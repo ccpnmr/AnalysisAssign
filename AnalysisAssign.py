@@ -35,7 +35,7 @@ from ccpn.framework.Framework import Framework
 from ccpn.ui.gui.widgets.Module import CcpnModule
 
 
-applicationName = 'AnalysisAssign'
+# applicationName = 'AnalysisAssign'
 
 # class Assign(AppBase):
 class Assign(Framework):
