@@ -25,3 +25,35 @@ import math
 
 def qScore(value1:float, value2:float):
   return math.sqrt(((value1-value2)**2)/((value1+value2)**2))
+
+def averageQScore(valueList):
+  score = sum([qScore(scoringValue[0], scoringValue[1]) for scoringValue in valueList])/len(valueList)
+  return score
+
+def euclidean(valueList):
+  score = sum([(scoringValue[0]-scoringValue[1])**2 for scoringValue in valueList])
+  return math.sqrt(score)
+
+
+def getNmrResidueMatches(queryShifts, matchNmrResiduesDict):
+  scoringMatrix = {}
+  scores = []
+  isotopeCode = '13C'
+  for res, mShifts in matchNmrResiduesDict.items():
+    scoringValues = []
+    mShifts2 = [shift for shift in mShifts if shift and shift.nmrAtom.isotopeCode == isotopeCode]
+    for mShift in mShifts2:
+      qShifts2 = [shift for shift in queryShifts if shift and shift.nmrAtom.isotopeCode == isotopeCode]
+      for qShift in queryShifts:
+          if qShift and mShift:
+              if mShift.nmrAtom.name == qShift.nmrAtom.name:
+                  scoringValues.append((mShift.value, qShift.value))
+    if scoringValues and len(scoringValues) == len(qShifts2):
+      score = averageQScore(scoringValues)
+      scoringMatrix[score] = res
+      scores.append(score)
+
+  return scoringMatrix, scores
+
+
+
