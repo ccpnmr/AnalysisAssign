@@ -428,7 +428,6 @@ class SequenceGraph(CcpnModule):
     possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
                       self.project.chains[0], self.project.chemicalShiftLists[0])
 
-    print('predicting', nmrResidues)
     for possibleMatch in possibleMatches:
       if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
         if hasattr(self.project._appBase, 'sequenceModule'):
