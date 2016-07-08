@@ -128,7 +128,7 @@ class Assign(Framework):
 
 
   def showPickAndAssignModule(self, position:str= 'bottom', relativeTo:CcpnModule=None):
-    from ccpn.Assign.modules.PickAndAssignModule import PickAndAssignModule
+    from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
     """Displays Pick and Assign module."""
     mainWindow = self.ui.mainWindow
@@ -143,7 +143,7 @@ class Assign(Framework):
     """
     Displays Backbone Assignment module.
     """
-    from ccpn.Assign.modules.BackboneAssignmentModule import BackboneAssignmentModule
+    from ccpn.AnalysisAssign.modules.BackboneAssignmentModule import BackboneAssignmentModule
 
     if hasattr(self, 'backboneModule'):
       return
@@ -183,7 +183,7 @@ class Assign(Framework):
 
 
   def showModifyAssignmentModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
-    from ccpn.Assign.modules.ModifyAssignmentModule import ModifyAssignmentModule
+    from ccpn.AnalysisAssign.modules.ModifyAssignmentModule import ModifyAssignmentModule
     mainWindow = self.ui.mainWindow
     self.modifyAssignmentsModule = ModifyAssignmentModule(mainWindow.moduleArea, self.project, nmrAtom=nmrAtom)
     mainWindow.moduleArea.addModule(self.modifyAssignmentsModule, position=position,

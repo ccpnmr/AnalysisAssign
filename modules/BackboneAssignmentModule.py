@@ -25,7 +25,7 @@ __version__ = "$Revision$"
 from collections import OrderedDict
 import typing
 
-from ccpn.Assign.lib.scoring import qScore
+from ccpn.AnalysisAssign.lib.scoring import qScore
 
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
