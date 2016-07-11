@@ -30,7 +30,7 @@ from ccpn.AnalysisAssign.lib.scoring import qScore
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 
-from ccpn.ui.gui.lib.Window import navigateToNmrResidue, markPositionsInStrips
+from ccpn.ui.gui.lib.Window import navigateToNmrResidue, markPositionsInStrips, centreAxis
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.modules.GuiStrip import GuiStrip
@@ -112,7 +112,6 @@ class BackboneAssignmentModule(CcpnModule):
     inside the module.
     """
     self.project._startFunctionCommandBlock('_startAssignment', nmrResidue)
-    print(nmrResidue, nmrResidue.sequenceCode, 'nmrResidue')
     try:
       self._setupShiftDicts()
 
@@ -127,11 +126,8 @@ class BackboneAssignmentModule(CcpnModule):
         else:
           nmrResidue = self.current.nmrChain.mainNmrResidues[-1]
 
-        # nmrResidues = [nmrResidue for nmrResidue in self.current.nmrChain.nmrResidues if not nmrResidue.sequenceCode.endswith('-1')]
-        # for nmrResidue in nmrResidues:
-        #   if self.assigner:
-        #     self.assigner.addResidue(nmrResidue, '+1')
       self._navigateTo(nmrResidue, row, col)
+
     finally:
       self.project._appBase._endCommandBlock()
 
@@ -262,8 +258,12 @@ class BackboneAssignmentModule(CcpnModule):
           navigateToNmrResidue(self.project, iNmrResidue, strip=strip)
 
     firstMatchResidue = assignMatrix[0][assignmentScores[0]]
-    shifts = [chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CA').id).value,
-              chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CB').id).value]
+    shifts = [chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CA').id),
+              chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CB').id)]
+
+
+
+
     if firstMatchResidue.sequenceCode.endswith('-1'):
       iNmrResidue = firstMatchResidue.mainNmrResidue
     else:
@@ -273,12 +273,7 @@ class BackboneAssignmentModule(CcpnModule):
       module = self.project.getByPid(matchModule)
       navigateToNmrResidue(self.project, iNmrResidue, strip=module.orderedStrips[0])
       module.orderedStrips[0].planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
-      print(shifts)
-      # module.orderedStrips[0].orderedAxes[1].position = ((max(shifts)+5)+(min(shifts)-5))/2
-      # module.orderedStrips[0].orderedAxes[1].width = max(shifts)-min(shifts)
-      # print(module.orderedStrips[0].orderedAxes[1].position, module.orderedStrips[0].orderedAxes[1].width)
-
-
+      centreAxis(module.orderedStrips[0].orderedAxes[1], shifts)
 
 
   def _connectSequenceGraph(self, assigner:CcpnModule):
