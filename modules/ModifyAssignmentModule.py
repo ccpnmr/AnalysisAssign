@@ -40,10 +40,11 @@ class ModifyAssignmentModule(CcpnModule, Base):
 
     CcpnModule.__init__(self, parent=None, name='Modify Assignment')
     Base.__init__(self, **kw)
+
     self.project = project
     assignedPeaksLabel = Label(self, '', grid=(0, 0))
     nmrAtomLabel = Label(self, 'Current NmrAtom', grid=(1, 0))
-    self.currentNmrAtomLabel = Label(self, nmrAtom.id, grid=(1, 1))
+    self.currentNmrAtomLabel = Label(self, '', grid=(1, 1))
     attachedNmrAtomsLabel = Label(self, '', grid=(2, 0))
     self.attachedNmrAtomsList = ListWidget(self, grid=(3, 0), gridSpan=(1, 2), callback=self.updatePeakTable)
     assignedPeaksLabel = Label(self, '', grid=(4, 0))

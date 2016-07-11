@@ -32,6 +32,7 @@ from ccpn.framework.Framework import Framework
 # from ccpn.ui.gui.modules import GuiStripNd
 # from ccpn.ui.gui.modules import GuiSpectrumDisplay
 # from ccpn.ui.gui.modules import GuiStripDisplayNd
+from ccpn.ui.gui.widgets import MessageDialog
 from ccpn.ui.gui.widgets.Module import CcpnModule
 
 
@@ -184,6 +185,11 @@ class Assign(Framework):
 
   def showModifyAssignmentModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
     from ccpn.AnalysisAssign.modules.ModifyAssignmentModule import ModifyAssignmentModule
+    if not nmrAtom:
+      self.project._logger.warn('No NmrAtom selected. The Modify Assignments Module requires an NmrAtom to launch')
+      MessageDialog.showWarning('No NmrAtom selected.', 'The Modify Assignments Module requires an NmrAtom to launch',
+                                colourScheme=self.preferences.general.colourScheme)
+      return
     mainWindow = self.ui.mainWindow
     self.modifyAssignmentsModule = ModifyAssignmentModule(mainWindow.moduleArea, self.project, nmrAtom=nmrAtom)
     mainWindow.moduleArea.addModule(self.modifyAssignmentsModule, position=position,
