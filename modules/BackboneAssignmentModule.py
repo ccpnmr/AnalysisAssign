@@ -138,77 +138,77 @@ class BackboneAssignmentModule(CcpnModule):
     to chemical shift value NmrAtoms in the NmrResidue. Creates assignMatrix for strip matching and
     add strips to matchModule(s) corresponding to assignment matches.
     """
-    if self.project._appBase.ui.mainWindow is not None:
-      mainWindow = self.project._appBase.ui.mainWindow
-    else:
-      mainWindow = self.project._appBase._mainWindow
-    mainWindow.clearMarks()
-    self.nmrResidueTable.nmrResidueTable.updateTable()
-    selectedDisplays = [display for display in self.project.spectrumDisplays
-                        if display.pid not in self.matchModules]
-
-    chemicalShiftList = self.project.getByPid(self.chemicalShiftListPulldown.currentText())
-
-    if nmrResidue.sequenceCode.endswith('-1'):
-      direction = '-1'
-      iNmrResidue = nmrResidue.mainNmrResidue
-      self.current.nmrResidue = iNmrResidue
-      navigateToNmrResidue(self.project, iNmrResidue, selectedDisplays=selectedDisplays,
-                           strip=strip, markPositions=False)
-
-      queryShifts = self.interShifts[nmrResidue]
-      matchShifts = self.intraShifts
-      for display in selectedDisplays:
-        if not strip:
-          strip = display.strips[0]
-        strip.planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
-        shiftDict = {}
-        for axis in strip.orderedAxes:
-          shiftDict[axis.code] = []
-          for atom in nmrResidue.nmrAtoms:
-            if atom._apiResonance.isotopeCode == spectrumLib.name2IsotopeCode(axis.code):
-              shift = chemicalShiftList.getChemicalShift(atom.id)
-              if shift is not None:
-                shiftDict[axis.code].append(shift)
-          for atom in iNmrResidue.nmrAtoms:
-            if (atom.isotopeCode == spectrumLib.name2IsotopeCode(axis.code)
-              and atom.isotopeCode != '13C'):
-              shift = chemicalShiftList.getChemicalShift(atom.id)
-              if shift is not None:
-                shiftDict[axis.code].append(shift)
-        atomPositions = [shiftDict[axis.code] for axis in strip.orderedAxes]
-        markPositionsInStrips(self.project, strip, strip.orderedAxes[:2], atomPositions, centre=True)
-
-    else:
-      direction = '+1'
-      iNmrResidue = nmrResidue
-      self.current.nmrResidue = iNmrResidue
-      navigateToNmrResidue(self.project, iNmrResidue, selectedDisplays=selectedDisplays,
-                           markPositions=True, strip=strip)
-      queryShifts = self.intraShifts[nmrResidue]
-      matchShifts = self.interShifts
-      for display in selectedDisplays:
-        if not strip:
-          display.strips[0].planeToolbar.spinSystemLabel.setText(nmrResidue._id)
-        else:
-          strip.planeToolbar.spinSystemLabel.setText(nmrResidue._id)
-
-    assignMatrix = self._buildAssignmentMatrix(queryShifts, matchShifts)
-    # from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
-    # assignMatrix = getNmrResidueMatches(queryShifts, matchShifts)
-    if not assignMatrix[1]:
-      self.project._logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
-      return
-    self._createMatchStrips(assignMatrix)
-    if hasattr(self, 'assigner'):
-      if self.assigner.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
-        self.assigner.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
-      elif not nmrResidue.nmrChain.isConnected:
-        self.assigner.addResidue(iNmrResidue, direction)
+    self.project._startFunctionCommandBlock('_navigateTo', nmrResidue, strip)
+    try:
+      if self.project._appBase.ui.mainWindow is not None:
+        mainWindow = self.project._appBase.ui.mainWindow
       else:
-        self.assigner.setNmrChainDisplay(nmrResidue.nmrChain.pid)
+        mainWindow = self.project._appBase._mainWindow
+      mainWindow.clearMarks()
+      self.nmrResidueTable.nmrResidueTable.updateTable()
+      selectedDisplays = [display for display in self.project.spectrumDisplays
+                          if display.pid not in self.matchModules]
 
+      chemicalShiftList = self.project.getByPid(self.chemicalShiftListPulldown.currentText())
 
+      if nmrResidue.sequenceCode.endswith('-1'):
+        direction = '-1'
+        iNmrResidue = nmrResidue.mainNmrResidue
+        self.current.nmrResidue = iNmrResidue
+        navigateToNmrResidue(self.project, iNmrResidue, selectedDisplays=selectedDisplays,
+                             strip=strip, markPositions=False)
+
+        queryShifts = self.interShifts[nmrResidue]
+        matchShifts = self.intraShifts
+        for display in selectedDisplays:
+          if not strip:
+            strip = display.strips[0]
+          strip.planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
+          shiftDict = {}
+          for axis in strip.orderedAxes:
+            shiftDict[axis.code] = []
+            for atom in nmrResidue.nmrAtoms:
+              if atom._apiResonance.isotopeCode == spectrumLib.name2IsotopeCode(axis.code):
+                shift = chemicalShiftList.getChemicalShift(atom.id)
+                if shift is not None:
+                  shiftDict[axis.code].append(shift)
+            for atom in iNmrResidue.nmrAtoms:
+              if (atom.isotopeCode == spectrumLib.name2IsotopeCode(axis.code)
+                and atom.isotopeCode != '13C'):
+                shift = chemicalShiftList.getChemicalShift(atom.id)
+                if shift is not None:
+                  shiftDict[axis.code].append(shift)
+          atomPositions = [shiftDict[axis.code] for axis in strip.orderedAxes]
+          markPositionsInStrips(self.project, strip, strip.orderedAxes[:2], atomPositions, centre=True)
+
+      else:
+        direction = '+1'
+        iNmrResidue = nmrResidue
+        self.current.nmrResidue = iNmrResidue
+        navigateToNmrResidue(self.project, iNmrResidue, selectedDisplays=selectedDisplays,
+                             markPositions=True, strip=strip)
+        queryShifts = self.intraShifts[nmrResidue]
+        matchShifts = self.interShifts
+        for display in selectedDisplays:
+          if not strip:
+            display.strips[0].planeToolbar.spinSystemLabel.setText(nmrResidue._id)
+          else:
+            strip.planeToolbar.spinSystemLabel.setText(nmrResidue._id)
+
+      assignMatrix = self._buildAssignmentMatrix(queryShifts, matchShifts)
+      if not assignMatrix[1]:
+        self.project._logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
+        return
+      self._createMatchStrips(assignMatrix)
+      if hasattr(self, 'assigner'):
+        if self.assigner.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
+          self.assigner.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
+        elif not nmrResidue.nmrChain.isConnected:
+          self.assigner.addResidue(iNmrResidue, direction)
+        else:
+          self.assigner.setNmrChainDisplay(nmrResidue.nmrChain.pid)
+    finally:
+      self.project._appBase._endCommandBlock()
 
 
   def _setupShiftDicts(self):
