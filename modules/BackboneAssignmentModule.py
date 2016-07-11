@@ -25,7 +25,7 @@ __version__ = "$Revision$"
 from collections import OrderedDict
 import typing
 
-#from ccpn.AnalysisAssign.lib.scoring import qScore
+from ccpn.AnalysisAssign.lib.scoring import qScore
 
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
@@ -122,7 +122,6 @@ class BackboneAssignmentModule(CcpnModule):
         self.assigner.clearAllItems()
         self.assigner.nmrChainPulldown.select(self.current.nmrChain.pid)
       if self.current.nmrChain.isConnected:
-        print(self.current.nmrChain.mainNmrResidues, 'chainResidues')
         if nmrResidue.sequenceCode.endswith('-1'):
           nmrResidue = self.current.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
         else:
@@ -198,9 +197,12 @@ class BackboneAssignmentModule(CcpnModule):
         else:
           strip.planeToolbar.spinSystemLabel.setText(nmrResidue._id)
 
-    # assignMatrix = self._buildAssignmentMatrix(queryShifts, matchShifts)
-    from ccpn.Assign.lib.scoring import getNmrResidueMatches
-    assignMatrix = getNmrResidueMatches(queryShifts, matchShifts)
+    assignMatrix = self._buildAssignmentMatrix(queryShifts, matchShifts)
+    # from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
+    # assignMatrix = getNmrResidueMatches(queryShifts, matchShifts)
+    if not assignMatrix[1]:
+      self.project._logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
+      return
     self._createMatchStrips(assignMatrix)
     if hasattr(self, 'assigner'):
       if self.assigner.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
@@ -239,6 +241,7 @@ class BackboneAssignmentModule(CcpnModule):
     Creates strips in match module corresponding to the best assignment possibilities
     in the assignMatrix.
     """
+    chemicalShiftList = self.project.getByPid(self.chemicalShiftListPulldown.currentText())
     assignmentScores = sorted(assignMatrix[1])[0:self.numberOfMatches]
     for assignmentScore in assignmentScores[1:]:
       matchResidue = assignMatrix[0][assignmentScore]
@@ -259,8 +262,10 @@ class BackboneAssignmentModule(CcpnModule):
           navigateToNmrResidue(self.project, iNmrResidue, strip=strip)
 
     firstMatchResidue = assignMatrix[0][assignmentScores[0]]
+    shifts = [chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CA').id).value,
+              chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CB').id).value]
     if firstMatchResidue.sequenceCode.endswith('-1'):
-      iNmrResidue = matchResidue.mainNmrResidue
+      iNmrResidue = firstMatchResidue.mainNmrResidue
     else:
       iNmrResidue = firstMatchResidue
 
@@ -268,6 +273,12 @@ class BackboneAssignmentModule(CcpnModule):
       module = self.project.getByPid(matchModule)
       navigateToNmrResidue(self.project, iNmrResidue, strip=module.orderedStrips[0])
       module.orderedStrips[0].planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
+      print(shifts)
+      # module.orderedStrips[0].orderedAxes[1].position = ((max(shifts)+5)+(min(shifts)-5))/2
+      # module.orderedStrips[0].orderedAxes[1].width = max(shifts)-min(shifts)
+      # print(module.orderedStrips[0].orderedAxes[1].position, module.orderedStrips[0].orderedAxes[1].width)
+
+
 
 
   def _connectSequenceGraph(self, assigner:CcpnModule):
@@ -281,32 +292,32 @@ class BackboneAssignmentModule(CcpnModule):
     self.assigner.setMode('fragment')
 
 
-  # def _buildAssignmentMatrix(self, queryShifts:typing.List[ChemicalShift],
-  #                            matchShifts:typing.Dict[NmrResidue, ChemicalShift]) -> typing.Tuple[typing.Dict[NmrResidue, typing.List[ChemicalShift]], typing.List[float]]:
-  #   """
-  #   Creates a dictionary of NmrResidues and qScores between queryShifts and matching shifts.
-  #   Returns dictionary and a list of the qScores.
-  #   """
-    # scores = []
-    # matrix = OrderedDict()
-    # for res, shift in matchShifts.items():
-    #
-    #   if len(queryShifts) > 1 and len(shift) > 1:
-    #
-    #     if qScore(queryShifts[0].value, shift[0].value) is not None and qScore(queryShifts[1].value, shift[1].value) is not None:
-    #
-    #       score = (qScore(queryShifts[0].value, shift[0].value)+qScore(queryShifts[1].value, shift[1].value))/2
-    #       scores.append(score)
-    #       matrix[score] = res
-    #   # elif len(queryShifts) == 1:
-    #   elif len(queryShifts) == 1 and shift:
-    #     if qScore(queryShifts[0].value, shift[0].value) is not None:
-    #
-    #       score = qScore(queryShifts[0].value, shift[0].value)
-    #       scores.append(score)
-    #       matrix[score] = res
-    #
-    # return matrix, scores
+  def _buildAssignmentMatrix(self, queryShifts:typing.List[ChemicalShift],
+                             matchShifts:typing.Dict[NmrResidue, ChemicalShift]) -> typing.Tuple[typing.Dict[NmrResidue, typing.List[ChemicalShift]], typing.List[float]]:
+    """
+    Creates a dictionary of NmrResidues and qScores between queryShifts and matching shifts.
+    Returns dictionary and a list of the qScores.
+    """
+    scores = []
+    matrix = OrderedDict()
+    for res, shift in matchShifts.items():
+
+      if len(queryShifts) > 1 and len(shift) > 1:
+
+        if qScore(queryShifts[0].value, shift[0].value) is not None and qScore(queryShifts[1].value, shift[1].value) is not None:
+
+          score = (qScore(queryShifts[0].value, shift[0].value)+qScore(queryShifts[1].value, shift[1].value))/2
+          scores.append(score)
+          matrix[score] = res
+      # elif len(queryShifts) == 1:
+      elif len(queryShifts) == 1 and shift:
+        if qScore(queryShifts[0].value, shift[0].value) is not None:
+
+          score = qScore(queryShifts[0].value, shift[0].value)
+          scores.append(score)
+          matrix[score] = res
+
+    return matrix, scores
 
   def closeModule(self):
     delattr(self.parent, 'backboneModule')

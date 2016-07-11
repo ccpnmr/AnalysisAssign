@@ -49,7 +49,7 @@ def getNmrResidueMatches(queryShifts, matchNmrResiduesDict):
               if mShift.nmrAtom.name == qShift.nmrAtom.name:
                   scoringValues.append((mShift.value, qShift.value))
     if scoringValues and len(scoringValues) == len(qShifts2):
-      score = averageQScore(scoringValues)
+      score = euclidean(scoringValues)
       scoringMatrix[score] = res
       scores.append(score)
 
