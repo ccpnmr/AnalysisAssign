@@ -221,7 +221,7 @@ class SequenceGraph(CcpnModule):
         self.nmrChainLabel.setText('Nmr Chain')
       elif mode == 'Assigned - backbone':
         self.nmrChainLabel.setText('Chain')
-        self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains])
+        self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains if self.project.getByPid('NC:%s' % chain.shortName)])
       self.modePulldown.select(mode)
       self.setNmrChainDisplay(self.nmrChainPulldown.currentText())
     else:
