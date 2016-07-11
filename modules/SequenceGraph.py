@@ -213,20 +213,26 @@ class SequenceGraph(CcpnModule):
       self.nmrResidueTable.updateTable()
 
   def setMode(self, mode):
-    self.editingToolbar.hide()
-    if mode == 'fragment':
-      self.editingToolbar.show()
-      self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
-      self.nmrChainLabel.setText('Nmr Chain')
-    elif mode == 'Assigned - backbone':
-      self.nmrChainLabel.setText('Chain')
-      self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains])
-    self.modePulldown.select(mode)
-    self.setNmrChainDisplay(self.nmrChainPulldown.currentText())
+    if self.project.nmrChains:
+      self.editingToolbar.hide()
+      if mode == 'fragment':
+        self.editingToolbar.show()
+        self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
+        self.nmrChainLabel.setText('Nmr Chain')
+      elif mode == 'Assigned - backbone':
+        self.nmrChainLabel.setText('Chain')
+        self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains])
+      self.modePulldown.select(mode)
+      self.setNmrChainDisplay(self.nmrChainPulldown.currentText())
+    else:
+      self.project._logger.warn('Project has no suitable NmrChains')
 
 
   def setNmrChainDisplay(self, nmrChainPid):
     self.current.nmrChain = self.project.getByPid(nmrChainPid)
+    if not self.current.nmrChain:
+      self.project._logger.warn('No NmrChain selected.')
+      return
     self.clearAllItems()
     if self.modePulldown.currentText() == 'fragment':
       nmrChain = self.project.getByPid(nmrChainPid)
