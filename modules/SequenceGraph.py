@@ -225,7 +225,7 @@ class SequenceGraph(CcpnModule):
       self.modePulldown.select(mode)
       self.setNmrChainDisplay(self.nmrChainPulldown.currentText())
     else:
-      self.project._logger.warn('Project has no suitable NmrChains')
+      self.project._logger.warn('No valid NmrChain is selected.')
 
 
   def setNmrChainDisplay(self, nmrChainPid):
