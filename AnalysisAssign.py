@@ -175,6 +175,11 @@ class Assign(Framework):
   def showResidueInformation(self, position: str='bottom', relativeTo:CcpnModule=None):
     """Displays Residue Information module."""
     from ccpn.ui.gui.modules.ResidueInformation import ResidueInformation
+    if not self.project.residues:
+      self.project._logger.warn('No Residues in  project. Residue Information Module requires Residues in the project to launch.')
+      MessageDialog.showWarning('No Residues in  project.', 'Residue Information Module requires Residues in the project to launch.',
+                                colourScheme=self.preferences.general.colourScheme)
+      return
 
     mainWindow = self.ui.mainWindow
     mainWindow.moduleArea.addModule(ResidueInformation(self, self.project), position=position,
