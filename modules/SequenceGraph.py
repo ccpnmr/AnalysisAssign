@@ -31,7 +31,7 @@ from PyQt4 import QtGui, QtCore
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.Project import Project
-from ccpn.core.lib.Assignment import getNmrResiduePrediction
+from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.ui.gui.widgets.Button import Button
 from ccpn.ui.gui.widgets.Font import Font
 from ccpn.ui.gui.widgets.Icon import Icon
@@ -39,7 +39,7 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
-from ccpn.core.lib.Assignment import nmrAtomPairsByDimensionTransfer
+from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
@@ -429,7 +429,7 @@ class SequenceGraph(CcpnModule):
     Predicts sequence position for Nmr residues displayed in the Assigner and highlights appropriate
     positions in the Sequence Module if it is displayed.
     """
-    from ccpn.core.lib.Assignment import getSpinSystemsLocation
+    from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
 
     possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
                       self.project.chains[0], self.project.chemicalShiftLists[0])
