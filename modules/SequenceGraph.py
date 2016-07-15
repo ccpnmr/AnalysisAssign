@@ -229,21 +229,25 @@ class SequenceGraph(CcpnModule):
 
 
   def setNmrChainDisplay(self, nmrChainPid):
-    self.current.nmrChain = self.project.getByPid(nmrChainPid)
-    if not self.current.nmrChain:
-      self.project._logger.warn('No NmrChain selected.')
-      return
-    self.clearAllItems()
-    if self.modePulldown.currentText() == 'fragment':
-      nmrChain = self.project.getByPid(nmrChainPid)
-      if nmrChain.isConnected:
-        for nmrResidue in nmrChain.mainNmrResidues:
-          self.addResidue(nmrResidue, '+1')
-      if len(self.predictedStretch) > 2:
-        self.predictSequencePosition(self.predictedStretch)
-    elif self.modePulldown.currentText() == 'Assigned - backbone':
-      nmrChain = self.project.getByPid(nmrChainPid)
-      self._showBackboneAssignments(nmrChain)
+    self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay(nmrChainPid)', nmrChainPid=nmrChainPid)
+    try:
+      self.current.nmrChain = self.project.getByPid(nmrChainPid)
+      if not self.current.nmrChain:
+        self.project._logger.warn('No NmrChain selected.')
+        return
+      self.clearAllItems()
+      if self.modePulldown.currentText() == 'fragment':
+        nmrChain = self.project.getByPid(nmrChainPid)
+        if nmrChain.isConnected:
+          for nmrResidue in nmrChain.mainNmrResidues:
+            self.addResidue(nmrResidue, '+1')
+        if len(self.predictedStretch) > 2:
+          self.predictSequencePosition(self.predictedStretch)
+      elif self.modePulldown.currentText() == 'Assigned - backbone':
+        nmrChain = self.project.getByPid(nmrChainPid)
+        self._showBackboneAssignments(nmrChain)
+    finally:
+      self.project._appBase._endCommandBlock()
 
   def addNmrChainToPulldown(self, nmrChain):
     self.nmrChainPulldown.addItem(nmrChain.pid)

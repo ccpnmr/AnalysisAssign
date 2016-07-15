@@ -128,6 +128,27 @@ class Assign(Framework):
     popup.exec_()
 
 
+  def showSequenceGraph(self, position:str='bottom', relativeTo:CcpnModule=None):
+    """
+    Displays assigner at the bottom of the screen, relative to another module if nextTo is specified.
+    """
+    from ccpn.AnalysisAssign.modules.SequenceGraph import SequenceGraph
+
+    if hasattr(self, 'assigner'):
+      return
+    self.assigner = SequenceGraph(self, project=self.project)
+    if hasattr(self, 'backboneModule'):
+      self.backboneModule._connectSequenceGraph(self.assigner)
+
+    if relativeTo is not None:
+      self.ui.mainWindow.moduleArea.addModule(self.assigner, position=position, relativeTo=relativeTo)
+    else:
+      self.ui.mainWindow.moduleArea.addModule(self.assigner, position=position)
+    self.ui.mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()")
+    self.project._logger.info("application.showSequenceGraph()")
+    return self.assigner
+
+
   def showPickAndAssignModule(self, position:str= 'bottom', relativeTo:CcpnModule=None):
     from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
@@ -140,7 +161,7 @@ class Assign(Framework):
     return self.pickAndAssignModule
 
 
-  def showBackboneAssignmentModule(self, position:str= 'bottom', relativeTo:CcpnModule=None):
+  def showBackboneAssignmentModule(self, position:str='bottom', relativeTo:CcpnModule=None):
     """
     Displays Backbone Assignment module.
     """

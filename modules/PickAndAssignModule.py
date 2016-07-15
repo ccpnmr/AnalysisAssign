@@ -96,23 +96,28 @@ class PickAndAssignModule(CcpnModule, Base):
     pass
 
   def _assignSelected(self):
-    shiftDict = {}
-    for atom in self.current.nmrResidue.nmrAtoms:
-      shiftDict[atom.isotopeCode] = []
 
-    for peak in self.current.peaks:
-      shiftList = peak.peakList.spectrum.chemicalShiftList
-      spectrum = peak.peakList.spectrum
-      for nmrAtom in self.current.nmrResidue.nmrAtoms:
-        if nmrAtom.isotopeCode in shiftDict.keys():
-          shiftDict[nmrAtom.isotopeCode].append((nmrAtom, shiftList.getChemicalShift(nmrAtom.id).value))
-      for ii, isotopeCode in enumerate(spectrum.isotopeCodes):
-        if isotopeCode in shiftDict.keys():
-          for shift in shiftDict[isotopeCode]:
-            sValue = shift[1]
-            pValue = peak.position[ii]
-            if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
-              peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule._assignSelected()')
+    try:
+      shiftDict = {}
+      for atom in self.current.nmrResidue.nmrAtoms:
+        shiftDict[atom.isotopeCode] = []
+
+      for peak in self.current.peaks:
+        shiftList = peak.peakList.spectrum.chemicalShiftList
+        spectrum = peak.peakList.spectrum
+        for nmrAtom in self.current.nmrResidue.nmrAtoms:
+          if nmrAtom.isotopeCode in shiftDict.keys():
+            shiftDict[nmrAtom.isotopeCode].append((nmrAtom, shiftList.getChemicalShift(nmrAtom.id).value))
+        for ii, isotopeCode in enumerate(spectrum.isotopeCodes):
+          if isotopeCode in shiftDict.keys():
+            for shift in shiftDict[isotopeCode]:
+              sValue = shift[1]
+              pValue = peak.position[ii]
+              if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
+                peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
+    finally:
+      self.project._appBase._endCommandBlock()
 
 
   def _restrictedPick(self, nmrResidue=None):
@@ -128,34 +133,42 @@ class PickAndAssignModule(CcpnModule, Base):
       print('No current nmrResidue')
       return
 
-    for module in self.project.spectrumDisplays:
-      if len(module.axisCodes) > 2:
-        for spectrumView in module.strips[0].spectrumViews:
-          visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
-                                  if peakListView.isVisible()]
-          if len(visiblePeakListViews) == 0:
-            return
-          else:
-            peakList, peaks = restrictedPick(peakListView=visiblePeakListViews[0],
-                                             axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-            # Lines below here to be removed when a notifier handles display of newly picked peaks
-            if len(peaks) > 0:
-              for strip in module.strips:
-                strip.showPeaks(peakList)
-              for peakListView in module.peakListViews:
-                peakItems = [peakListView.peakItems[peak] for peak in peaks if peak in peakListView.peakItems.keys()]
-                for peakItem in peakItems:
-                  peakItem.isSelected = True
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule._restrictedPick(nmrResidue)', nmrResidue=nmrResidue)
+    try:
+      for module in self.project.spectrumDisplays:
+        if len(module.axisCodes) > 2:
+          for spectrumView in module.strips[0].spectrumViews:
+            visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
+                                    if peakListView.isVisible()]
+            if len(visiblePeakListViews) == 0:
+              return
+            else:
+              peakList, peaks = restrictedPick(peakListView=visiblePeakListViews[0],
+                                               axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
+              # Lines below here to be removed when a notifier handles display of newly picked peaks
+              if len(peaks) > 0:
+                for strip in module.strips:
+                  strip.showPeaks(peakList)
+                for peakListView in module.peakListViews:
+                  peakItems = [peakListView.peakItems[peak] for peak in peaks if peak in peakListView.peakItems.keys()]
+                  for peakItem in peakItems:
+                    peakItem.isSelected = True
+    finally:
+      self.project._appBase._endCommandBlock()
 
   def _goToPositionInModules(self, nmrResidue=None, row=None, col=None):
-    if self.project._appBase.ui.mainWindow is not None:
-      mainWindow = self.project._appBase.ui.mainWindow
-    else:
-      mainWindow = self.project._appBase._mainWindow
-    mainWindow.clearMarks()
-    navigateToNmrResidue(self.project, nmrResidue, markPositions=True)
 
-    self.current.nmrResidue = nmrResidue
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule._goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
+    try:
+      if self.project._appBase.ui.mainWindow is not None:
+        mainWindow = self.project._appBase.ui.mainWindow
+      else:
+        mainWindow = self.project._appBase._mainWindow
+      mainWindow.clearMarks()
+      navigateToNmrResidue(self.project, nmrResidue, markPositions=True)
+      self.current.nmrResidue = nmrResidue
+    finally:
+      self.project._appBase._endCommandBlock()
 
 class SpectrumSelectionWidget(QtGui.QWidget, Base):
 

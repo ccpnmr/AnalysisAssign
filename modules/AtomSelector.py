@@ -114,7 +114,7 @@ class AtomSelector(CcpnModule):
     for ii, atom in enumerate(atoms):
       self.buttons[atom] = []
       button1 = Button(self.pickAndAssignWidget, text=atom+' [i-1]', grid=(1+ii, 0), callback=partial(self._pickAndAssign, '-1', atom))
-      button2 = Button(self.pickAndAssignWidget, text=atom+' [i]', grid=(1+ii, 1), callback=partial(self._pickAndAssign, '', atom))
+      button2 = Button(self.pickAndAssignWidget, text=atom+' [i]', grid=(1+ii, 1), callback=partial(self._pickAndAssign, '0', atom))
       button3 = Button(self.pickAndAssignWidget, text=atom+' [i+1]', grid=(1+ii, 2), callback=partial(self._pickAndAssign, '+1', atom))
       self.buttons[atom].append(button1)
       self.buttons[atom].append(button2)
@@ -240,37 +240,44 @@ class AtomSelector(CcpnModule):
         layout.removeItem(item)
 
 
-  def _pickAndAssign(self, position:int, atomType:str):
+  def _pickAndAssign(self, offset:int, atomType:str):
     """
     Takes a position either -1, 0 or +1 and an atom type, fetches an NmrAtom with name corresponding
     to the atom type and the position and assigns it to correct dimension of current.peaks
     """
+
     if not self.current.nmrResidue:
       return
-    name = atomType
-    if position == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
-      r = self.current.nmrResidue.previousNmrResidue
-      if not r:
-        r = self.current.nmrResidue.nmrChain.fetchNmrResidue(sequenceCode=self.current.nmrResidue.sequenceCode+'-1')
-    else:
-      r = self.current.nmrResidue
 
-    newNmrAtom = r.fetchNmrAtom(name=name)
-    # Replaced  by in-command echo
-    # self.pythonConsole.writeConsoleCommand(
-    #   "nmrAtom = nmrResidue.fetchNmrAtom(name='%s')" % name, nmrResidue=r.pid
-    # )
-    for peak in self.current.peaks:
-      for strip in self.project.strips:
-        for peakListView in strip.peakListViews:
-          if peak in peakListView.peakItems.keys():
-            # NBNB TBD FIXME consider using new _displayOrderSpectrumDimensionIndices
-            # function to map display axes to spectrum axes
-            axisCode = spectrumLib.axisCodeMatch(strip.axisCodes[1], peak.peakList.spectrum.axisCodes)
-            index = peak.peakList.spectrum.axisCodes.index(axisCode)
-            nmrAtoms = peak.dimensionNmrAtoms[index] + [newNmrAtom]
-            peak.assignDimension(axisCode, nmrAtoms)
-    self._returnButtonsToNormal()
+    self.project._appBase._startCommandBlock('application.atomSelector._pickAndAssign(offset={}, atomType={})'.format(offset, atomType))
+    try:
+      name = atomType
+      if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
+        r = self.current.nmrResidue.previousNmrResidue
+        if not r:
+          r = self.current.nmrResidue.nmrChain.fetchNmrResidue(sequenceCode=self.current.nmrResidue.sequenceCode+'-1')
+      else:
+        r = self.current.nmrResidue
+
+      newNmrAtom = r.fetchNmrAtom(name=name)
+      # Replaced  by in-command echo
+      # self.pythonConsole.writeConsoleCommand(
+      #   "nmrAtom = nmrResidue.fetchNmrAtom(name='%s')" % name, nmrResidue=r.pid
+      # )
+      for peak in self.current.peaks:
+        for strip in self.project.strips:
+          for peakListView in strip.peakListViews:
+            if peak in peakListView.peakItems.keys():
+              # NBNB TBD FIXME consider using new _displayOrderSpectrumDimensionIndices
+              # function to map display axes to spectrum axes
+              axisCode = spectrumLib.axisCodeMatch(strip.axisCodes[1], peak.peakList.spectrum.axisCodes)
+              index = peak.peakList.spectrum.axisCodes.index(axisCode)
+              nmrAtoms = peak.dimensionNmrAtoms[index] + [newNmrAtom]
+              peak.assignDimension(axisCode, nmrAtoms)
+    finally:
+      self.project._appBase._endCommandBlock()
+      self._returnButtonsToNormal()
+
 
 
   def _returnButtonsToNormal(self):
