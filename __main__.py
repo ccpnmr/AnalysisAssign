@@ -1,9 +1,8 @@
 __author__ = 'TJ'
 
-from ccpn.core.lib.Version import applicationVersion
 from ccpn.framework import Framework
 from ccpn.AnalysisAssign.AnalysisAssign import Assign as Application
-
+from ccpn.framework.Version import applicationVersion
 
 if __name__ == '__main__':
 
