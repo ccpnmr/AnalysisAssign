@@ -30,7 +30,7 @@ from ccpn.AnalysisAssign.lib.scoring import qScore
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 
-from ccpn.ui.gui.lib.Window import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms, makeStripPlot #markPositionsInStrip
+from ccpn.ui.gui.lib.Window import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms, makeStripPlot, markPositions
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.modules.GuiStrip import GuiStrip
@@ -158,17 +158,28 @@ class BackboneAssignmentModule(CcpnModule):
 
       self.current.nmrResidue = iNmrResidue
 
-      for display in selectedDisplays:
-        if not strip:
-          strip = display.strips[0]
+      if not strip:
+        strips = [display.strips[0] for display in selectedDisplays]
+      else:
+        strips = [strip]
+      for strip in strips:
         self._displayNmrResidueInStrip(iNmrResidue, strip)
-        self._centreStripForNmrResidue(nmrResidue, strip)
+        if len(strip.axisCodes) > 2:
+          self._centreStripForNmrResidue(nmrResidue, strip)
+        amidePair = [iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')]
+        carbonAtoms = [x for x in nmrResidue.nmrAtoms if x.isotopeCode == '13C']
+        atomPositions = matchAxesAndNmrAtoms(strip, nmrAtoms=set((amidePair+carbonAtoms)))
+        markPositions(self.project, list(atomPositions.keys()), list(atomPositions.values()))
 
       assignMatrix = self._buildAssignmentMatrix(queryShifts, matchShifts)
+
       if not assignMatrix[1]:
         self.project._logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
         return
       self._createMatchStrips(assignMatrix)
+
+
+      # markPositions(self.project, )
       if hasattr(self, 'assigner'):
         if self.assigner.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
           self.assigner.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
@@ -239,7 +250,8 @@ class BackboneAssignmentModule(CcpnModule):
       for ii, strip in enumerate(module.strips):
         nmrResidueId = nmrAtomPairs[ii][0].nmrResidue._id
         strip.planeToolbar.spinSystemLabel.setText(nmrResidueId)
-      self._centreStripForNmrResidue(nmrAtomPairs[0][0].nmrResidue, module.strips[0])
+
+      self._centreStripForNmrResidue(assignMatrix[0][assignmentScores[0]], module.strips[0])
 
   def _connectSequenceGraph(self, assigner:CcpnModule):
     """
