@@ -23,11 +23,15 @@ __version__ = "$Revision: 9395 $"
 
 import math
 
+
 def qScore(value1:float, value2:float):
   return math.sqrt(((value1-value2)**2)/((value1+value2)**2))
 
-def averageQScore(valueList):
-  score = sum([qScore(scoringValue[0], scoringValue[1]) for scoringValue in valueList])/len(valueList)
+def averageQScore(valueLists):
+  # print(valueList1, valueList2, len(valueList1), len(valueList2), len(valueList1)==len(valueList2))
+
+  # print(valueList2, valueList1, 'valueList')
+  score = sum([qScore(valueList[0], valueList[1]) for valueList in valueLists])/len(valueLists[0])
   return score
 
 def euclidean(valueList):
@@ -35,9 +39,16 @@ def euclidean(valueList):
   return math.sqrt(score)
 
 
-def getNmrResidueMatches(queryShifts, matchNmrResiduesDict):
+functionDict = {
+  'averageQScore': averageQScore,
+  'euclidean': euclidean,
+}
+
+
+
+def getNmrResidueMatches(queryShifts, matchNmrResiduesDict, scoringMethod):
   scoringMatrix = {}
-  scores = []
+  # scores = []
   isotopeCode = '13C'
   for res, mShifts in matchNmrResiduesDict.items():
     scoringValues = []
@@ -49,11 +60,10 @@ def getNmrResidueMatches(queryShifts, matchNmrResiduesDict):
               if mShift.nmrAtom.name == qShift.nmrAtom.name:
                   scoringValues.append((mShift.value, qShift.value))
     if scoringValues and len(scoringValues) == len(qShifts2):
-      score = euclidean(scoringValues)
+      score = functionDict[scoringMethod](scoringValues)
       scoringMatrix[score] = res
-      scores.append(score)
 
-  return scoringMatrix, scores
+  return scoringMatrix
 
 
 
