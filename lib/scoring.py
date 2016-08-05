@@ -28,9 +28,6 @@ def qScore(value1:float, value2:float):
   return math.sqrt(((value1-value2)**2)/((value1+value2)**2))
 
 def averageQScore(valueLists):
-  # print(valueList1, valueList2, len(valueList1), len(valueList2), len(valueList1)==len(valueList2))
-
-  # print(valueList2, valueList1, 'valueList')
   score = sum([qScore(valueList[0], valueList[1]) for valueList in valueLists])/len(valueLists[0])
   return score
 
@@ -38,17 +35,13 @@ def euclidean(valueList):
   score = sum([(scoringValue[0]-scoringValue[1])**2 for scoringValue in valueList])
   return math.sqrt(score)
 
-
 functionDict = {
   'averageQScore': averageQScore,
   'euclidean': euclidean,
 }
 
-
-
 def getNmrResidueMatches(queryShifts, matchNmrResiduesDict, scoringMethod):
   scoringMatrix = {}
-  # scores = []
   isotopeCode = '13C'
   for res, mShifts in matchNmrResiduesDict.items():
     scoringValues = []
