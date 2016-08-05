@@ -30,7 +30,7 @@ from ccpn.AnalysisAssign.lib.scoring import qScore
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 
-from ccpn.ui.gui.lib.Window import navigateToNmrResidue, markPositionsInStrips, centreAxis
+from ccpn.ui.gui.lib.Window import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms #markPositionsInStrip
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.modules.GuiStrip import GuiStrip
@@ -88,10 +88,8 @@ class BackboneAssignmentModule(CcpnModule):
 
   def _updateNmrResidueTable(self, nmrResidue, oldPid=None):
     if nmrResidue == self.current.nmrResidue:
-      # self.nmrResidueTable.nmrResidueTable.objectLists = self.project.nmrChains
       self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
       self.nmrResidueTable.nmrResidueTable.selector.select(nmrResidue.nmrChain)
-      # self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
       self.nmrResidueTable.updateTable()
 
 
@@ -149,14 +147,12 @@ class BackboneAssignmentModule(CcpnModule):
       selectedDisplays = [display for display in self.project.spectrumDisplays
                           if display.pid not in self.matchModules]
 
-      chemicalShiftList = self.project.getByPid(self.chemicalShiftListPulldown.currentText())
-
       if nmrResidue.sequenceCode.endswith('-1'):
         direction = '-1'
         iNmrResidue = nmrResidue.mainNmrResidue
         self.current.nmrResidue = iNmrResidue
-        navigateToNmrResidue(self.project, iNmrResidue, selectedDisplays=selectedDisplays,
-                             strip=strip, markPositions=False)
+        for display in selectedDisplays:
+          navigateToNmrAtomsInStrip(iNmrResidue.nmrAtoms, strip=display.strips[0])
 
         queryShifts = self.interShifts[nmrResidue]
         matchShifts = self.intraShifts
@@ -164,29 +160,16 @@ class BackboneAssignmentModule(CcpnModule):
           if not strip:
             strip = display.strips[0]
           strip.planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
-          shiftDict = {}
-          for axis in strip.orderedAxes:
-            shiftDict[axis.code] = []
-            for atom in nmrResidue.nmrAtoms:
-              if atom._apiResonance.isotopeCode == spectrumLib.name2IsotopeCode(axis.code):
-                shift = chemicalShiftList.getChemicalShift(atom.id)
-                if shift is not None:
-                  shiftDict[axis.code].append(shift)
-            for atom in iNmrResidue.nmrAtoms:
-              if (atom.isotopeCode == spectrumLib.name2IsotopeCode(axis.code)
-                and atom.isotopeCode != '13C'):
-                shift = chemicalShiftList.getChemicalShift(atom.id)
-                if shift is not None:
-                  shiftDict[axis.code].append(shift)
+          shiftDict = matchAxesAndNmrAtoms(strip, nmrResidue.nmrAtoms)
           atomPositions = [shiftDict[axis.code] for axis in strip.orderedAxes]
-          markPositionsInStrips(self.project, strip, strip.orderedAxes[:2], atomPositions, centre=True)
+          # markPositionsInStrip(self.project, strip, strip.orderedAxes[:2], atomPositions, centre=True)
 
       else:
         direction = '+1'
         iNmrResidue = nmrResidue
         self.current.nmrResidue = iNmrResidue
-        navigateToNmrResidue(self.project, iNmrResidue, selectedDisplays=selectedDisplays,
-                             markPositions=True, strip=strip)
+        for display in selectedDisplays:
+          navigateToNmrAtomsInStrip(iNmrResidue.nmrAtoms, strip=display.strips[0])
         queryShifts = self.intraShifts[nmrResidue]
         matchShifts = self.interShifts
         for display in selectedDisplays:
@@ -251,11 +234,11 @@ class BackboneAssignmentModule(CcpnModule):
         if len(self.project.getByPid(matchModule).strips) < self.numberOfMatches:
           newStrip = self.project.getByPid(matchModule).strips[-1].clone()
           newStrip.planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
-          navigateToNmrResidue(self.project, iNmrResidue, strip=newStrip)
+          navigateToNmrAtomsInStrip(iNmrResidue.nmrAtoms, strip=newStrip)
         else:
           strip = self.project.getByPid(matchModule).orderedStrips[assignmentScores.index(assignmentScore)]
           strip.planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
-          navigateToNmrResidue(self.project, iNmrResidue, strip=strip)
+          navigateToNmrAtomsInStrip(iNmrResidue.nmrAtoms, strip=strip)
 
     firstMatchResidue = assignMatrix[0][assignmentScores[0]]
     shifts = [chemicalShiftList.getChemicalShift(firstMatchResidue.fetchNmrAtom(name='CA').id),
@@ -271,9 +254,8 @@ class BackboneAssignmentModule(CcpnModule):
 
     for matchModule in self.matchModules:
       module = self.project.getByPid(matchModule)
-      navigateToNmrResidue(self.project, iNmrResidue, strip=module.orderedStrips[0])
+      navigateToNmrAtomsInStrip(iNmrResidue.nmrAtoms, strip=module.orderedStrips[0])
       module.orderedStrips[0].planeToolbar.spinSystemLabel.setText(iNmrResidue._id)
-      centreAxis(module.orderedStrips[0].orderedAxes[1], shifts)
 
 
   def _connectSequenceGraph(self, assigner:CcpnModule):
@@ -304,7 +286,6 @@ class BackboneAssignmentModule(CcpnModule):
           score = (qScore(queryShifts[0].value, shift[0].value)+qScore(queryShifts[1].value, shift[1].value))/2
           scores.append(score)
           matrix[score] = res
-      # elif len(queryShifts) == 1:
       elif len(queryShifts) == 1 and shift:
         if qScore(queryShifts[0].value, shift[0].value) is not None:
 
