@@ -211,6 +211,11 @@ class Assign(Framework):
 
   def showModifyAssignmentModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
     from ccpn.AnalysisAssign.modules.ModifyAssignmentModule import ModifyAssignmentModule
+
+    # NB Rasmus addition - this must work also outside the sequenceGraph
+    if nmrAtom is None:
+      nmrAtom = self.current.nmrAtom
+
     if not nmrAtom:
       self.project._logger.warn('No NmrAtom selected. The Modify Assignments Module requires an NmrAtom to launch')
       MessageDialog.showWarning('No NmrAtom selected.', 'The Modify Assignments Module requires an NmrAtom to launch',
