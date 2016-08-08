@@ -41,7 +41,6 @@ from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 
-from ccpnmodel.ccpncore.lib.spectrum import Spectrum as spectrumLib
 
 
 class BackboneAssignmentModule(CcpnModule):
