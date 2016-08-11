@@ -40,16 +40,15 @@ functionDict = {
   'euclidean': euclidean,
 }
 
-def getNmrResidueMatches(queryShifts, matchNmrResiduesDict, scoringMethod):
+def getNmrResidueMatches(queryShifts, matchNmrResiduesDict, scoringMethod, isotopeCode='13C'):
   scoringMatrix = {}
-  isotopeCode = '13C'
   for res, mShifts in matchNmrResiduesDict.items():
     scoringValues = []
     mShifts2 = [shift for shift in mShifts if shift and shift.nmrAtom.isotopeCode == isotopeCode]
     for mShift in mShifts2:
       qShifts2 = [shift for shift in queryShifts if shift and shift.nmrAtom.isotopeCode == isotopeCode]
       for qShift in queryShifts:
-          if qShift and mShift:
+          if qShift and mShift and qShift != mShift:
               if mShift.nmrAtom.name == qShift.nmrAtom.name:
                   scoringValues.append((mShift.value, qShift.value))
     if scoringValues and len(scoringValues) == len(qShifts2):

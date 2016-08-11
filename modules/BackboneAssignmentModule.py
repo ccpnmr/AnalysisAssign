@@ -30,7 +30,11 @@ from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 
-from ccpn.ui.gui.lib.Window import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms, makeStripPlot, markPositions
+from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
+from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms
+from ccpn.ui.gui.lib.Window import markPositions
+
+
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.modules.GuiStrip import GuiStrip
@@ -77,13 +81,26 @@ class BackboneAssignmentModule(CcpnModule):
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
 
   def _updateNmrChainList(self, nmrChain):
+    if not nmrChain:
+      self.project._logger.warn('No NmrChain specified')
+      return
+
     self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
 
   def _updateNmrChainPulldown(self, nmrChain):
+    if not nmrChain:
+      self.project._logger.warn('No NmrChain specified')
+      return
+
     self.nmrResidueTable.nmrResidueTable.objectLists = self.project.nmrChains
     self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
 
   def _updateNmrResidueTable(self, nmrResidue, oldPid=None):
+
+    if not nmrResidue:
+      self.project._logger.warn('No NmrResidue specified')
+      return
+
     if nmrResidue == self.current.nmrResidue:
       self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
       self.nmrResidueTable.nmrResidueTable.selector.select(nmrResidue.nmrChain)
@@ -106,6 +123,10 @@ class BackboneAssignmentModule(CcpnModule):
     Initiates assignment procedure when triggered by selection of an NmrResidue from the nmrResidueTable
     inside the module.
     """
+    if not nmrResidue:
+      self.project._logger.warn('No NmrResidue specified')
+      return
+
     self.project._startFunctionCommandBlock('_startAssignment', nmrResidue)
     try:
       self._setupShiftDicts()
@@ -129,9 +150,16 @@ class BackboneAssignmentModule(CcpnModule):
   def _navigateTo(self, nmrResidue:NmrResidue, row:int=None, col:int=None, strip:GuiStrip=None):
     """
     Takes an NmrResidue and an optional GuiStrip and changes z position(s) of all available displays
-    to chemical shift value NmrAtoms in the NmrResidue. Creates assignMatrix for strip matching and
-    add strips to matchModule(s) corresponding to assignment matches.
+    to chemical shift value NmrAtoms in the NmrResidue. Takes corresponding value from inter-residual
+    or intra-residual chemical shift dictionaries, using the NmrResidue pid as the key.
+    Determines which nmrResidue(s) match the query NmrResidue and creates up to five strips, one for
+    each of the match NmrResidue, and marks the carbon positions.
     """
+
+    if not nmrResidue:
+      self.project._logger.warn('No NmrResidue specified')
+      return
+
     self.project._startFunctionCommandBlock('_navigateTo', nmrResidue, strip)
     try:
       if self.project._appBase.ui.mainWindow is not None:
@@ -143,12 +171,17 @@ class BackboneAssignmentModule(CcpnModule):
       selectedDisplays = [display for display in self.project.spectrumDisplays
                           if display.pid not in self.matchModules]
 
+
+      # If NmrResidue is a -1 offset NmrResidue, set queryShifts as value from self.interShifts dictionary
+      # Set matchShifts as self.intraShifts
       if nmrResidue.sequenceCode.endswith('-1'):
         direction = '-1'
         iNmrResidue = nmrResidue.mainNmrResidue
         queryShifts = [shift for shift in self.interShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
         matchShifts = self.intraShifts
 
+      # If NmrResidue is not an offset NmrResidue, set queryShifts as value from self.intraShifts dictionary
+      # Set matchShifts as self.interShifts
       else:
         direction = '+1'
         iNmrResidue = nmrResidue
@@ -156,7 +189,7 @@ class BackboneAssignmentModule(CcpnModule):
         matchShifts = self.interShifts
 
       self.current.nmrResidue = iNmrResidue
-
+      # If a strip is not specified, use the first strip in the each of the spectrumDisplays in selectedDisplays.
       if not strip:
         strips = [display.strips[0] for display in selectedDisplays]
       else:
@@ -176,8 +209,6 @@ class BackboneAssignmentModule(CcpnModule):
         return
       self._createMatchStrips(assignMatrix)
 
-
-      # markPositions(self.project, )
       if hasattr(self, 'assigner'):
         if self.assigner.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
           self.assigner.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
@@ -191,10 +222,32 @@ class BackboneAssignmentModule(CcpnModule):
 
 
   def _displayNmrResidueInStrip(self, nmrResidue, strip):
-    navigateToNmrAtomsInStrip(nmrResidue.nmrAtoms, strip=strip, widths=['default']*len(strip.axisCodes))
+    """
+    navigate strip position to position specified by nmrResidue and set spinSystemLabel to nmrResidue id
+    """
+    if not nmrResidue:
+      self.project._logger.warn('No NmrResidue specified')
+      return
+
+    if not strip:
+      self.project._logger.warn('No Strip specified')
+      return
+
+    navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default']*len(strip.axisCodes))
     strip.planeToolbar.spinSystemLabel.setText(nmrResidue._id)
 
   def _centreStripForNmrResidue(self, nmrResidue, strip):
+    """
+    Centre y-axis of strip based on chemical shifts of from NmrResidue.nmrAtoms
+    """
+    if not nmrResidue:
+      self.project._logger.warn('No NmrResidue specified')
+      return
+
+    if not strip:
+      self.project._logger.warn('No Strip specified')
+      return
+
     yShifts = matchAxesAndNmrAtoms(strip, nmrResidue.nmrAtoms)[strip.axisOrder[1]]
     yShiftValues = [x.value for x in yShifts]
     yPosition = (max(yShiftValues) + min(yShiftValues))/2
@@ -226,6 +279,10 @@ class BackboneAssignmentModule(CcpnModule):
     Creates strips in match module corresponding to the best assignment possibilities
     in the assignMatrix.
     """
+    if not assignMatrix:
+      self.project._logger.warn('No assignment matrix specified')
+      return
+
     # Assignment score has format {score: nmrResidue} where score is a float
     # assignMatrix[0] is a dict {score: nmrResidue} assignMatrix[1] is a concurrent list of scores
     assignmentScores = sorted(list(assignMatrix.keys()))[0:self.numberOfMatches]
@@ -248,13 +305,13 @@ class BackboneAssignmentModule(CcpnModule):
 
       self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
 
-  def _connectSequenceGraph(self, assigner:CcpnModule):
+  def _connectSequenceGraph(self, sequenceGraph:CcpnModule):
     """
     # CCPN INTERNAL - called in showSequenceGraph method of GuiMainWindow.
     Connects Sequence Graph to this module.
     """
-    self.assigner = assigner
-    self.project._appBase.current.assigner = assigner
+    self.assigner = sequenceGraph
+    self.project._appBase.current.assigner = sequenceGraph
     self.assigner.nmrResidueTable = self.nmrResidueTable
     self.assigner.setMode('fragment')
 

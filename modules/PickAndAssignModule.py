@@ -34,15 +34,15 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 
 from ccpn.ui.gui.lib.PeakList import restrictedPick
-from ccpn.ui.gui.lib.Window import navigateToNmrResidue
+from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 
 class PickAndAssignModule(CcpnModule, Base):
 
-  def __init__(self, parent=None, project=None, **kw):
+  def __init__(self, parent=None, project=None, name='Pick And Assign', **kw):
 
-    CcpnModule.__init__(self, parent=None, name='Pick And Assign')
+    CcpnModule.__init__(self, parent=None, name=name)
     Base.__init__(self, **kw)
     self.project = project
     self.current = project._appBase.current
@@ -67,6 +67,13 @@ class PickAndAssignModule(CcpnModule, Base):
 
     self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+
+    self.closeModule = self._closeModule
+
+  def _closeModule(self):
+    self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
+    self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+    self.close()
 
   def _updateListWidget(self, item):
     if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
@@ -156,6 +163,7 @@ class PickAndAssignModule(CcpnModule, Base):
     finally:
       self.project._appBase._endCommandBlock()
 
+
   def _goToPositionInModules(self, nmrResidue=None, row=None, col=None):
 
     self.project._appBase._startCommandBlock('application.pickAndAssignModule._goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
@@ -165,7 +173,9 @@ class PickAndAssignModule(CcpnModule, Base):
       else:
         mainWindow = self.project._appBase._mainWindow
       mainWindow.clearMarks()
-      navigateToNmrResidue(self.project, nmrResidue, markPositions=True)
+      for displayPid in self.displayList.items():
+        strip = self.project.getByPid(displayPid).strips[0]
+        navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default', 'full', ''])
       self.current.nmrResidue = nmrResidue
     finally:
       self.project._appBase._endCommandBlock()
@@ -183,7 +193,15 @@ class SpectrumSelectionWidget(QtGui.QWidget, Base):
     self.checkBoxLabel = Label(self, 'Auto Refresh', grid=(0, 5))
     self.displayList = displayList
     self.update = self._update
+    self.setObjectName('spectrumSelectionWidget')
     self.update()
+    # self.setStyleSheet()
+
+  def getActiveDisplays(self):
+    if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
+      return self.project.spectrumDisplays
+    else:
+      return [self.project.getByPid(self.displayList.item(ii).text()) for ii in range(self.displayList.count())]
 
   def _update(self):
     rowCount = self.layout().rowCount()
@@ -196,12 +214,11 @@ class SpectrumSelectionWidget(QtGui.QWidget, Base):
           if item.widget():
             item.widget().hide()
         self.layout().removeItem(item)
-    if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
-      spectra = set([spectrumView.spectrum for spectrumDisplay in self.project.spectrumDisplays
-                     for spectrumView in spectrumDisplay.spectrumViews])
-    else:
-      spectra = [spectrumView.spectrum for ii in range(self.displayList.count())
-                 for spectrumView in self.project.getByPid(self.displayList.item(ii).text()).spectrumViews]
+    # if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
+    activeDisplays = self.getActiveDisplays()
+    spectra = set([spectrumView.spectrum for spectrumDisplay in activeDisplays
+                   for spectrumView in spectrumDisplay.spectrumViews])
+
 
     for ii, spectrum in enumerate(spectra):
       spectrumLabel1 = Label(self, spectrum.pid, grid=(ii+1, 0), vAlign='t')

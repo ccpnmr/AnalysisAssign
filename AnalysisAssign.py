@@ -53,7 +53,7 @@ class Assign(Framework):
                            ("Pick and Assign", self.showPickAndAssignModule, [('shortcut', 'pa')]),
                            (),
                            ("Backbone Assignment", self.showBackboneAssignmentModule, [('shortcut', 'bb')]),
-                           # ("Sidechain Assignment", self.showSetupNmrResiduesPopup, 'sc'),
+                           ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc')]),
                            (),
                            ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
                            ("Modify Assignments", self.showModifyAssignmentModule, [('shortcut', 'ma')]),
@@ -180,6 +180,27 @@ class Assign(Framework):
       self.backboneModule._connectSequenceGraph(self.assigner)
 
     return self.backboneModule
+
+
+  def showSidechainAssignmentModule(self, position:str='bottom', relativeTo:CcpnModule=None):
+    """
+    Displays Backbone Assignment module.
+    """
+    from ccpn.AnalysisAssign.modules.SideChainAssignmentModule import SideChainAssignmentModule
+
+    if hasattr(self, 'backboneModule'):
+      return
+
+    self.sidechainAssignmentModule = SideChainAssignmentModule(self, self.project)
+
+    mainWindow = self.ui.mainWindow
+    mainWindow.moduleArea.addModule(self.sidechainAssignmentModule, position=position, relativeTo=relativeTo)
+    mainWindow.pythonConsole.writeConsoleCommand("application.showSidechainAssignmentModule()")
+    self.project._logger.info("application.showSidechainAssignmentModule()")
+    # if hasattr(self, 'assigner'):
+    #   self.backboneModule._connectSequenceGraph(self.assigner)
+
+    return self.sidechainAssignmentModule
 
 
   def showPeakAssigner(self, position='bottom', relativeTo=None):
