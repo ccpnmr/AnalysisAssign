@@ -2,6 +2,10 @@
 from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot, makeStripPlotFromSingles
 
+from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
+from ccpn.ui.gui.lib.Window import markPositions
+
+
 from ccpnmodel.ccpncore.lib.spectrum import Spectrum as SpectrumLib
 
 class SideChainAssignmentModule(PickAndAssignModule):
@@ -13,7 +17,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
     self.refreshButton.show()
     self.spectrumSelectionWidget.refreshBox.setCallback(self.mediateRefresh)
     self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
-    self.mode = 'singles'
+    self.mode = 'pairs'
 
   def mediateRefresh(self):
     print('box is %s' %str(self.spectrumSelectionWidget.refreshBox.isChecked()))
@@ -59,21 +63,49 @@ class SideChainAssignmentModule(PickAndAssignModule):
     activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
 
     for display in activeDisplays:
+      print('\n\n''display', display, '\n\n')
       axisCodes = display.strips[0].axisCodes
-      nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[2][0])
+      nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[-1][0])
       displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]
-      print(nmrAtomPairs, '1')
+      pairsToRemove = []
       for nmrAtomPair in nmrAtomPairs:
-        if not all(x.isotopeCode in displayIsotopeCodes for x in nmrAtomPair):
+        pairIsotopeCodes = [nap.isotopeCode for nap in nmrAtomPair]
+        nmrAtoms = set()
+        if displayIsotopeCodes[1] in pairIsotopeCodes and displayIsotopeCodes[0] not in pairIsotopeCodes:
           nmrAtomPairs.remove(nmrAtomPair)
-        # if nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode:
-        #   if nmrAtomPair[0].isotopeCode == displayIsotopeCodes[2]:
-        #     nmrAtomPairs.remove(nmrAtomPair)
-      print(nmrAtomPairs, '2')
-      makeStripPlot(display, nmrAtomPairs)
+        elif not all(x.isotopeCode in displayIsotopeCodes for x in nmrAtomPair):
+          nmrAtomPairs.remove(nmrAtomPair)
+        elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and not self.has_duplicates(displayIsotopeCodes):
+          nmrAtomPairs.remove(nmrAtomPair)
+        elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and displayIsotopeCodes[0] != displayIsotopeCodes[2]:
+          if displayIsotopeCodes.count(nmrAtomPair[0].isotopeCode) != 2:
+            nmrAtoms.add(nmrAtomPair[0])
+            nmrAtoms.add(nmrAtomPair[1])
+            pairsToRemove.append(nmrAtomPair)
+      for pair in pairsToRemove:
+        nmrAtomPairs.remove(pair)
+      sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
+      if len(display.strips[0].axisCodes) > 2:
+        makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
+      nmrAtoms = [x for x in nmrAtomPairs for x in x]
+      axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
+      markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
+
+
+  def has_duplicates(self, seq):
+    return any(seq.count(x) > 1 for x in seq)
+
+  def sortNmrAtomPairs(self, nmrAtomPairs):
+    order = ['CA', 'CB', 'CG', 'CG1', 'CG2', 'CD', 'CE', 'CZ']
+    ordering = []
+    for p in nmrAtomPairs:
+      if p[0].name[:len(p[0].name)] in order:
+          ordering.append((order.index(p[0].name[:len(p[0].name)]), p))
+
+    sortedNmrAtomPairs = [x[1] for x in sorted(ordering, key=lambda x: x[0])]
+    return sortedNmrAtomPairs
 
   def _startAssignmentFromSingles(self):
-    from ccpn.core.lib.AssignmentLib import getBoundNmrAtomPairs
     activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
 
     for display in activeDisplays:
@@ -82,11 +114,13 @@ class SideChainAssignmentModule(PickAndAssignModule):
       displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]
 
       for nmrAtom in self.current.nmrResidue.nmrAtoms:
-        if nmrAtom.isotopeCode in displayIsotopeCodes:
+        if nmrAtom.isotopeCode in displayIsotopeCodes and nmrAtom.isotopeCode == displayIsotopeCodes[2]:
           nmrAtoms.add(nmrAtom)
 
-      print(nmrAtoms)
       makeStripPlotFromSingles(display, list(nmrAtoms))
+      axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
+      markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
+
       #
       # nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[2][0])
       # displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]

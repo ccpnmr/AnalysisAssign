@@ -166,6 +166,7 @@ class PickAndAssignModule(CcpnModule, Base):
 
   def _goToPositionInModules(self, nmrResidue=None, row=None, col=None):
 
+    activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
     self.project._appBase._startCommandBlock('application.pickAndAssignModule._goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
     try:
       if self.project._appBase.ui.mainWindow is not None:
@@ -173,8 +174,8 @@ class PickAndAssignModule(CcpnModule, Base):
       else:
         mainWindow = self.project._appBase._mainWindow
       mainWindow.clearMarks()
-      for displayPid in self.displayList.items():
-        strip = self.project.getByPid(displayPid).strips[0]
+      for display in activeDisplays:
+        strip = display.strips[0]
         navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default', 'full', ''])
       self.current.nmrResidue = nmrResidue
     finally:

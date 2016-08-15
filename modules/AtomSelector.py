@@ -82,6 +82,11 @@ class AtomSelector(CcpnModule):
     gridLine += 1
     nmrResidueLabel = Label(self, 'Current NmrResidue:', grid=(gridLine, 0))
     self.currentNmrResidueLabel = Label(self, grid=(gridLine, 1))
+    self.offsetLabel = Label(self, 'Offset:', grid=(gridLine, 2))
+    self.offsetSelector = PulldownList(self, grid=(gridLine, 3), callback=self._updateWidget)
+    self.offsetSelector.setData(['0', '-1', '+1'])
+    self.offsetSelector.hide()
+    self.offsetLabel.hide()
     # gridLine 2
     gridLine += 1
     self.layout.addWidget(self.pickAndAssignWidget, gridLine, 0, 8, 8)
@@ -106,6 +111,8 @@ class AtomSelector(CcpnModule):
 
   def _createBackBoneButtons(self):
     self._cleanupPickAndAssignWidget()
+    self.offsetSelector.hide()
+    self.offsetLabel.hide()
     headerLabel = Label(self, text='i-1')
     self.pickAndAssignWidget.layout().addWidget(headerLabel, 0, 0)
     headerLabel2 = Label(self.pickAndAssignWidget, text='i', grid=(0, 1))
@@ -128,6 +135,8 @@ class AtomSelector(CcpnModule):
 
   def _createSideChainButtons(self):
     self._cleanupPickAndAssignWidget()
+    self.offsetSelector.show()
+    self.offsetLabel.show()
     self.hCheckBox = CheckBox(self.pickAndAssignWidget, hAlign='r', callback=self._toggleBox)
     self.hCheckBox.setChecked(True)
     self.pickAndAssignWidget.layout().addWidget(self.hCheckBox, 0, 0, QtCore.Qt.AlignRight)
@@ -221,13 +230,19 @@ class AtomSelector(CcpnModule):
 
       else:
         self.buttons = {}
-        residueType = self.current.nmrResidue.residueType.upper()
+        if self.offsetSelector.currentText() == '-1':
+          nmrResidue = self.current.nmrResidue.previousNmrResidue
+        elif self.offsetSelector.currentText() == '+1':
+          nmrResidue = self.current.nmrResidue.nextNmrResidue
+        else:
+          nmrResidue = self.current.nmrResidue
+        residueType = nmrResidue.residueType.upper()
         atomButtonList2 = self._getAtomButtonList(residueType)
         for ii, atomList in enumerate(atomButtonList2):
           for jj, atom in enumerate(atomList):
             self.buttons[atom] = []
             button = Button(self.pickAndAssignWidget, text=atom, grid=(ii+1, jj), hAlign='t',
-                            callback=partial(self._pickAndAssign, '0', atom))
+                    callback=partial(self._pickAndAssign, self.offsetSelector.currentText(), atom))
             button.setMinimumSize(45, 20)
             self.buttons[atom].append(button)
 
@@ -352,7 +367,13 @@ class AtomSelector(CcpnModule):
               if self.current.nmrResidue.residueType == '':
                 predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode) for ccpCode in CCP_CODES]
               else:
-                predictedAtomTypes = getNmrAtomPrediction(self.current.nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
+                if self.offsetSelector.currentText() == '-1':
+                  nmrResidue = self.current.nmrResidue.previousNmrResidue
+                elif self.offsetSelector.currentText() == '+1':
+                  nmrResidue = self.current.nmrResidue.nextNmrResidue
+                else:
+                  nmrResidue = self.current.nmrResidue
+                predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
               for type in predictedAtomTypes:
                 for atomType, buttons in self.buttons.items():
                   if type[0][1] == atomType:
