@@ -15,12 +15,13 @@ class SideChainAssignmentModule(PickAndAssignModule):
     PickAndAssignModule.__init__(self, parent, project, name='Sidechain Assignment')
 
     self.refreshButton.show()
+    self.refreshButton.setCallback(self._startAssignment)
     self.spectrumSelectionWidget.refreshBox.setCallback(self.mediateRefresh)
     self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
     self.mode = 'pairs'
 
   def mediateRefresh(self):
-    print('box is %s' %str(self.spectrumSelectionWidget.refreshBox.isChecked()))
+    print('box is %s' % str(self.spectrumSelectionWidget.refreshBox.isChecked()))
     if self.spectrumSelectionWidget.refreshBox.isChecked():
       self.__adminsterNotifiers()
     elif not self.spectrumSelectionWidget.refreshBox.isChecked():
@@ -32,6 +33,8 @@ class SideChainAssignmentModule(PickAndAssignModule):
       return
     else:
       print('nmrAtom: %s is changing' % nmrAtom.pid)
+
+      self._startAssignment()
 
 
   def __unRegisterNotifiers(self):
@@ -52,6 +55,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
 
   def _startAssignment(self):
+    self.project._appBase.ui.mainWindow.clearMarks()
     if self.mode == 'singles':
       self._startAssignmentFromSingles()
     elif self.mode == 'pairs':
@@ -69,6 +73,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
       displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]
       pairsToRemove = []
       for nmrAtomPair in nmrAtomPairs:
+        print(nmrAtomPair)
         pairIsotopeCodes = [nap.isotopeCode for nap in nmrAtomPair]
         nmrAtoms = set()
         if displayIsotopeCodes[1] in pairIsotopeCodes and displayIsotopeCodes[0] not in pairIsotopeCodes:
@@ -79,12 +84,15 @@ class SideChainAssignmentModule(PickAndAssignModule):
           nmrAtomPairs.remove(nmrAtomPair)
         elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and displayIsotopeCodes[0] != displayIsotopeCodes[2]:
           if displayIsotopeCodes.count(nmrAtomPair[0].isotopeCode) != 2:
+            print('wrong pair', nmrAtomPair)
             nmrAtoms.add(nmrAtomPair[0])
             nmrAtoms.add(nmrAtomPair[1])
             pairsToRemove.append(nmrAtomPair)
+      print('pairsToRemove', pairsToRemove)
       for pair in pairsToRemove:
         nmrAtomPairs.remove(pair)
       sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
+      print(sortedNmrAtomPairs)
       if len(display.strips[0].axisCodes) > 2:
         makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
       nmrAtoms = [x for x in nmrAtomPairs for x in x]
