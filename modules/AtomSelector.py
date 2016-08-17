@@ -83,7 +83,7 @@ class AtomSelector(CcpnModule):
     nmrResidueLabel = Label(self, 'Current NmrResidue:', grid=(gridLine, 0))
     self.currentNmrResidueLabel = Label(self, grid=(gridLine, 1))
     self.offsetLabel = Label(self, 'Offset:', grid=(gridLine, 2))
-    self.offsetSelector = PulldownList(self, grid=(gridLine, 3), callback=self._updateWidget)
+    self.offsetSelector = PulldownList(self, grid=(gridLine, 3), callback=self._updateFromOffset)
     self.offsetSelector.setData(['0', '-1', '+1'])
     self.offsetSelector.hide()
     self.offsetLabel.hide()
@@ -99,7 +99,12 @@ class AtomSelector(CcpnModule):
     self.current.unRegisterNotify(self._updateWidget, 'nmrResidues')
     self.close()
 
+  def _updateFromOffset(self, item):
+    self._updateWidget([self.current.nmrResidue])
+
   def _updateWidget(self, nmrResidues=None):
+    if not nmrResidues:
+      nmrResidues = [self.current.nmrResidue]
     self.currentNmrResidueLabel.setText(nmrResidues[0].id)
     if self.radioButton1.isChecked():
       self._createBackBoneButtons()
@@ -378,7 +383,7 @@ class AtomSelector(CcpnModule):
                 for atomType, buttons in self.buttons.items():
                   if type[0][1] == atomType:
                     for button in buttons:
-                      if type[1] > 85:
+                      if type[1] >= 85:
                         button.setStyleSheet('background-color: green')
                       elif 50 < type[1] < 85:
                         button.setStyleSheet('background-color: orange')

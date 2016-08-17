@@ -95,7 +95,11 @@ class SideChainAssignmentModule(PickAndAssignModule):
       for pair in pairsToRemove:
         if pair in nmrAtomPairs:
           nmrAtomPairs.remove(pair)
-      sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
+      if len(nmrAtomPairs) > 1:
+        sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
+
+      else:
+        sortedNmrAtomPairs = nmrAtomPairs
 
       if len(display.strips[0].axisCodes) > 2:
         makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
@@ -109,7 +113,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
   def sortNmrAtomPairs(self, nmrAtomPairs):
     order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
-             'H', 'HA', 'HB', 'HG', 'HD', 'HE', 'HZ', 'HH']
+             'H', 'HA', 'HB', 'HG', 'HD',  'HE',  'HZ', 'HH']
     ordering = []
     for p in nmrAtomPairs:
       if p[0].name[:len(p[0].name)] in order:
