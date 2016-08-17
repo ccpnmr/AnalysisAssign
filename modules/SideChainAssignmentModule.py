@@ -76,10 +76,16 @@ class SideChainAssignmentModule(PickAndAssignModule):
         nmrAtoms = set()
         if displayIsotopeCodes[1] in pairIsotopeCodes and displayIsotopeCodes[0] not in pairIsotopeCodes:
           pairsToRemove.append(nmrAtomPair)
+          nmrAtoms.add(nmrAtomPair[0])
+          nmrAtoms.add(nmrAtomPair[1])
         if not all(x.isotopeCode in displayIsotopeCodes for x in nmrAtomPair):
           pairsToRemove.append(nmrAtomPair)
+          nmrAtoms.add(nmrAtomPair[0])
+          nmrAtoms.add(nmrAtomPair[1])
         elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and not self.has_duplicates(displayIsotopeCodes):
           pairsToRemove.append(nmrAtomPair)
+          nmrAtoms.add(nmrAtomPair[0])
+          nmrAtoms.add(nmrAtomPair[1])
         if len(displayIsotopeCodes) > 2:
           if nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and displayIsotopeCodes[0] != displayIsotopeCodes[2]:
             if displayIsotopeCodes.count(nmrAtomPair[0].isotopeCode) != 2:
@@ -90,6 +96,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
         if pair in nmrAtomPairs:
           nmrAtomPairs.remove(pair)
       sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
+
       if len(display.strips[0].axisCodes) > 2:
         makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
       nmrAtoms = [x for x in nmrAtomPairs for x in x]
@@ -101,13 +108,17 @@ class SideChainAssignmentModule(PickAndAssignModule):
     return any(seq.count(x) > 1 for x in seq)
 
   def sortNmrAtomPairs(self, nmrAtomPairs):
-    order = ['CA', 'CB', 'CG', 'CG1', 'CG2', 'CD', 'CE', 'CZ']
+    order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
+             'H', 'HA', 'HB', 'HG', 'HD', 'HE', 'HZ', 'HH']
     ordering = []
     for p in nmrAtomPairs:
       if p[0].name[:len(p[0].name)] in order:
           ordering.append((order.index(p[0].name[:len(p[0].name)]), p))
 
-    sortedNmrAtomPairs = [x[1] for x in sorted(ordering, key=lambda x: x[0])]
+    if len(nmrAtomPairs) > 1:
+      sortedNmrAtomPairs = [x[1] for x in sorted(ordering, key=lambda x: x[0])]
+    else:
+      sortedNmrAtomPairs = nmrAtomPairs
     return sortedNmrAtomPairs
 
   def _startAssignmentFromSingles(self):
