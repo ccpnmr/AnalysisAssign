@@ -222,6 +222,14 @@ class SpectrumSelectionWidget(QtGui.QWidget, Base):
 
 
     for ii, spectrum in enumerate(spectra):
+      for tol in spectrum.assignmentTolerances:
+        if tol is None:
+          index = spectrum.assignmentTolerances.index(tol)
+          tolerance = spectrum.spectralWidths[index]/spectrum.pointCounts[index]
+          spectrumTolerances = list(spectrum.assignmentTolerances)
+          spectrumTolerances[index] = tolerance
+          spectrum.assignmentTolerances = spectrumTolerances
+
       spectrumLabel1 = Label(self, spectrum.pid, grid=(ii+1, 0), vAlign='t')
       spectrumCheckBox1 = CheckBox(self, grid=(ii+1, 1), hAlign='c', vAlign='t')
       spectrumCheckBox1.setChecked(True)

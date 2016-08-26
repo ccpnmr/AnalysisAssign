@@ -112,7 +112,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
     return any(seq.count(x) > 1 for x in seq)
 
   def sortNmrAtomPairs(self, nmrAtomPairs):
-    order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
+    order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD1', 'CD2', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
              'H', 'HA', 'HB', 'HG', 'HD',  'HE',  'HZ', 'HH']
     ordering = []
     for p in nmrAtomPairs:
@@ -140,20 +140,5 @@ class SideChainAssignmentModule(PickAndAssignModule):
       makeStripPlotFromSingles(display, list(nmrAtoms))
       axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
-
-      #
-      # nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[2][0])
-      # displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]
-      # print(nmrAtomPairs, '1')
-      # for nmrAtomPair in nmrAtomPairs:
-      #   if not all(x.isotopeCode in displayIsotopeCodes for x in nmrAtomPair):
-      #     nmrAtomPairs.remove(nmrAtomPair)
-      #   # if nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode:
-      #   #   if nmrAtomPair[0].isotopeCode == displayIsotopeCodes[2]:
-      #   #     nmrAtomPairs.remove(nmrAtomPair)
-      # print(nmrAtomPairs, '2')
-      # makeStripPlot(display, nmrAtomPairs)
-
-
 
 
