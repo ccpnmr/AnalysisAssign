@@ -64,18 +64,41 @@ class PickAndAssignModule(CcpnModule, Base):
     self.scrollArea.setWidget(self.spectrumSelectionWidget)
     self.displayList.removeItem = self._removeListWidgetItem
     self.refreshButton.hide()
+    self.__registerNotifiers()
 
-    self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
-    self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
 
     self.closeModule = self._closeModule
 
-  def _closeModule(self):
+
+  def __registerNotifiers(self):
+    self.project.registerNotifier('NmrResidue', 'create', self._updateListWidget)
+    self.project.registerNotifier('NmrResidue', 'delete', self._updateListWidget)
+    self.project.registerNotifier('NmrResidue', 'modify', self._updateListWidget)
     self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
+    self.project.registerNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+
+  def __unRegisterNotifiers(self):
+    self.project.unRegisterNotifier('NmrResidue', 'create', self._updateListWidget)
+    self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateListWidget)
+    self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateListWidget)
+    self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateListWidget)
+    self.project.unRegisterNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+
+  def _closeModule(self):
+    """
+    Unregister notifiers and close module.
+    """
+    self.__unRegisterNotifiers()
     self.close()
 
   def _updateListWidget(self, item):
+
     if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
       self.displayList.takeItem(0)
     self.displayList.addItem(self.project.getByPid(item).pid)

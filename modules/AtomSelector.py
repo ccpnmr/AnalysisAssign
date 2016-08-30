@@ -191,8 +191,9 @@ class AtomSelector(CcpnModule):
       residueZetas = [atom for atom in zetaAtoms if atom in residueAtoms]
       residueEtas = [atom for atom in etaAtoms if atom in residueAtoms]
       residueMoreEtas = [atom for atom in moreEtaAtoms if atom in residueAtoms]
-      residueAtomButtonList = [residueAlphas, residueBetas, residueGammas, residueMoreGammas, residueDeltas, residueMoreDeltas,
-                      residueEpsilons, residueMoreEpsilons, residueZetas, residueEtas, residueMoreEtas]
+      residueAtomButtonList = [residueAlphas, residueBetas, residueGammas, residueMoreGammas,
+                               residueDeltas, residueMoreDeltas, residueEpsilons,
+                               residueMoreEpsilons, residueZetas, residueEtas, residueMoreEtas]
       return residueAtomButtonList
 
     return atomButtonList

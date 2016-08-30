@@ -58,6 +58,7 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
     self.connectedAtoms = 0
     self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
+    self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
     if project._appBase.preferences.general.colourScheme == 'dark':
       colour1 = '#F7FFFF'
       colour2 = '#BEC4F3'
@@ -73,9 +74,12 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     else:
       self.setDefaultTextColor(QtGui.QColor(colour1))
 
-  def mouseDoubleClickEvent(self, event):
+  def _mouseDoubleClickEvent(self, event):
+    """
+    CCPN INTERNAL - re-implementation of double click event to raise modifyAssignmentModule
+    """
 
-    if not hasattr(self.project._appBase, 'maModule'):
+    if not hasattr(self.project._appBase, 'modifyAssignmentsModule'):
       self.project._appBase.showModifyAssignmentModule(self.nmrAtom)
     else:
       self.project._appBase.current.nmrAtom = self.nmrAtom
@@ -101,12 +105,14 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
     self.parent = parent
     self.nmrResidue = nmrResidue
+    self.mousePressEvent = self._mousePressEvent
+    self.mouseMoveEvent = self._mouseMoveEvent
 
   def _update(self):
     self.setPlainText(self.nmrResidue.id)
 
 
-  def mouseMoveEvent(self, event):
+  def _mouseMoveEvent(self, event):
 
     if (event.buttons() == QtCore.Qt.LeftButton) and (event.modifiers() & QtCore.Qt.ShiftModifier):
         for item in self.parent.scene.items():
@@ -126,10 +132,8 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
         else:
           self.show()
 
-  def mousePressEvent(self, event):
+  def _mousePressEvent(self, event):
     self.nmrResidue.project._appBase.current.nmrResidue = self.nmrResidue
-    # print(self.nmrResidue.project._appBase.current.guiNmrResidue)
-    # print(self.nmrResidue)
     self.setSelected(True)
 
 
@@ -312,6 +316,7 @@ class SequenceGraph(CcpnModule):
     for item in atoms.values():
       self.scene.addItem(item)
     nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
+    print(nmrAtoms, nmrResidue, atoms)
     if "CB" in list(atoms.keys()):
       self._addConnectingLine(atoms['CA'], atoms['CB'], lineColour, 1.0, 0)
     if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
@@ -368,6 +373,8 @@ class SequenceGraph(CcpnModule):
                     "CB": np.array([self.atomSpacing, -2*self.atomSpacing]),
                     "CO": np.array([2*self.atomSpacing, -1*self.atomSpacing])
                     }
+    if nmrResidue.residueType == 'GLY':
+      del residueAtoms['CB']
     if self.residueCount == 0:
       for k, v in residueAtoms.items():
         if k in nmrAtoms:
@@ -375,7 +382,7 @@ class SequenceGraph(CcpnModule):
         else:
           nmrAtom = None
         atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
-
+      print(atoms)
       self.guiResiduesShown.append(atoms)
       self.predictedStretch.append(nmrResidue)
 
@@ -454,8 +461,12 @@ class SequenceGraph(CcpnModule):
         lineColour = '#f7ffff'
       elif self.project._appBase.preferences.general.colourScheme == 'light':
         lineColour = ''
-      for nmrResidue in nmrChain.nmrResidues:
-        self.addResidue(nmrResidue, direction='+1')
+      for residue in nmrChain.chain.residues:
+        if not residue.nmrResidue:
+          newNmrResidue = nmrChain.fetchNmrResidue(sequenceCode=residue.sequenceCode, residueType=residue.residueType)
+          for atom in residue.atoms:
+            newNmrResidue.fetchNmrAtom(name=atom.name)
+        self.addResidue(residue.nmrResidue, direction='+1')
       for ii, res in enumerate(self.guiResiduesShown):
         if ii % 10 == 0:
           if self.project._appBase.ui.mainWindow is not None:
