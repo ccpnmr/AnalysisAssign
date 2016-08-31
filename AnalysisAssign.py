@@ -130,23 +130,23 @@ class Assign(Framework):
 
   def showSequenceGraph(self, position:str='bottom', relativeTo:CcpnModule=None):
     """
-    Displays assigner at the bottom of the screen, relative to another module if nextTo is specified.
+    Displays sequence graph at the bottom of the screen, relative to another module if nextTo is specified.
     """
     from ccpn.AnalysisAssign.modules.SequenceGraph import SequenceGraph
 
-    if hasattr(self, 'assigner'):
+    if hasattr(self, 'sequenceGraph'):
       return
-    self.assigner = SequenceGraph(self, project=self.project)
+    self.sequenceGraph = SequenceGraph(self, project=self.project)
     if hasattr(self, 'backboneModule'):
-      self.backboneModule._connectSequenceGraph(self.assigner)
+      self.backboneModule._connectSequenceGraph(self.sequenceGraph)
 
     if relativeTo is not None:
-      self.ui.mainWindow.moduleArea.addModule(self.assigner, position=position, relativeTo=relativeTo)
+      self.ui.mainWindow.moduleArea.addModule(self.sequenceGraph, position=position, relativeTo=relativeTo)
     else:
-      self.ui.mainWindow.moduleArea.addModule(self.assigner, position=position)
+      self.ui.mainWindow.moduleArea.addModule(self.sequenceGraph, position=position)
     self.ui.mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()")
     self.project._logger.info("application.showSequenceGraph()")
-    return self.assigner
+    return self.sequenceGraph
 
 
   def showPickAndAssignModule(self, position:str= 'bottom', relativeTo:CcpnModule=None):
@@ -176,8 +176,8 @@ class Assign(Framework):
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showBackboneAssignmentModule()")
     self.project._logger.info("application.showBackboneAssignmentModule()")
-    if hasattr(self, 'assigner'):
-      self.backboneModule._connectSequenceGraph(self.assigner)
+    if hasattr(self, 'sequenceGraph'):
+      self.backboneModule._connectSequenceGraph(self.sequenceGraph)
 
     return self.backboneModule
 
@@ -197,8 +197,6 @@ class Assign(Framework):
     mainWindow.moduleArea.addModule(self.sidechainAssignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showSidechainAssignmentModule()")
     self.project._logger.info("application.showSidechainAssignmentModule()")
-    # if hasattr(self, 'assigner'):
-    #   self.backboneModule._connectSequenceGraph(self.assigner)
 
     return self.sidechainAssignmentModule
 

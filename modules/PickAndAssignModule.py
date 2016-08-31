@@ -66,7 +66,6 @@ class PickAndAssignModule(CcpnModule, Base):
     self.refreshButton.hide()
     self.__registerNotifiers()
 
-
     self.closeModule = self._closeModule
 
 

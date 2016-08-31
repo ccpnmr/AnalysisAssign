@@ -51,7 +51,7 @@ class AtomSelector(CcpnModule):
   def __init__(self, parent, project=None):
     CcpnModule.__init__(self, name='Atom Selector')
     self.orientation = 'vertical'
-    self.moveLabel=False
+    self.moveLabel = False
     self.pickAndAssignWidget = Widget(self)
     # self.pickAndAssignWidget.setMaximumSize(500, 300)
     self.parent = parent
@@ -296,7 +296,7 @@ class AtomSelector(CcpnModule):
             if peak in peakListView.peakItems.keys():
               spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
               index = spectrumIndices[1]
-              axisCode = peak.axisCodes[1]
+              axisCode = peak.axisCodes[index]
               nmrAtoms = peak.dimensionNmrAtoms[index] + [newNmrAtom]
               peak.assignDimension(axisCode, nmrAtoms)
     finally:

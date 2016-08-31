@@ -241,6 +241,7 @@ class SequenceGraph(CcpnModule):
         return
       self.clearAllItems()
       if self.modePulldown.currentText() == 'fragment':
+
         nmrChain = self.project.getByPid(nmrChainPid)
         if nmrChain.isConnected:
           for nmrResidue in nmrChain.mainNmrResidues:
@@ -252,6 +253,15 @@ class SequenceGraph(CcpnModule):
         self._showBackboneAssignments(nmrChain)
     finally:
       self.project._appBase._endCommandBlock()
+
+
+  def resetSequenceGraph(self):
+    # self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay()')
+    # try:
+    self.nmrChainPulldown.select('NC:@-')
+    # self.setNmrChainDisplay('NC:@-')
+    # finally:
+    #   self.project._appBase._endCommandBlock()
 
   def addNmrChainToPulldown(self, nmrChain):
     self.nmrChainPulldown.addItem(nmrChain.pid)
@@ -268,7 +278,7 @@ class SequenceGraph(CcpnModule):
 
 
   def closeModule(self):
-    delattr(self.parent, 'assigner')
+    delattr(self.parent, 'sequenceGraph')
     self.close()
 
   def disconnectNextNmrResidue(self):
@@ -291,7 +301,7 @@ class SequenceGraph(CcpnModule):
 
   def clearAllItems(self):
     """
-    Removes all displayed residues in the assigner and resets items count to zero.
+    Removes all displayed residues in the sequence graph and resets items count to zero.
     """
     for item in self.scene.items():
       self.scene.removeItem(item)
@@ -316,7 +326,6 @@ class SequenceGraph(CcpnModule):
     for item in atoms.values():
       self.scene.addItem(item)
     nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
-    print(nmrAtoms, nmrResidue, atoms)
     if "CB" in list(atoms.keys()):
       self._addConnectingLine(atoms['CA'], atoms['CB'], lineColour, 1.0, 0)
     if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
@@ -357,7 +366,7 @@ class SequenceGraph(CcpnModule):
 
   def addResidue(self, nmrResidue:NmrResidue, direction:str, atomSpacing=None):
     """
-    Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the assigner
+    Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
     corresponding to the Nmr Residue.
     Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
     beneath Nmr Residue name
@@ -367,8 +376,8 @@ class SequenceGraph(CcpnModule):
       self.atomSpacing = atomSpacing
     nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
 
-    residueAtoms = {"H": np.array([0, 0]),
-                    "N": np.array([0, -1*self.atomSpacing]),
+    residueAtoms = {"H":  np.array([0, 0]),
+                    "N":  np.array([0, -1*self.atomSpacing]),
                     "CA": np.array([self.atomSpacing, -1*self.atomSpacing]),
                     "CB": np.array([self.atomSpacing, -2*self.atomSpacing]),
                     "CO": np.array([2*self.atomSpacing, -1*self.atomSpacing])
@@ -382,7 +391,6 @@ class SequenceGraph(CcpnModule):
         else:
           nmrAtom = None
         atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
-      print(atoms)
       self.guiResiduesShown.append(atoms)
       self.predictedStretch.append(nmrResidue)
 
@@ -409,8 +417,6 @@ class SequenceGraph(CcpnModule):
         self.predictedStretch.append(nmrResidue)
 
     self._assembleResidue(nmrResidue, atoms)
-
-
 
     self.residueCount += 1
 
