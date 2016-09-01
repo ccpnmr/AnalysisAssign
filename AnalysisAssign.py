@@ -149,7 +149,7 @@ class Assign(Framework):
     return self.sequenceGraph
 
 
-  def showPickAndAssignModule(self, position:str= 'bottom', relativeTo:CcpnModule=None):
+  def showPickAndAssignModule(self, position:str='bottom', relativeTo:CcpnModule=None):
     from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
     """Displays Pick and Assign module."""
