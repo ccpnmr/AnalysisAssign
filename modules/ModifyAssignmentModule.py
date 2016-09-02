@@ -35,7 +35,9 @@ from ccpn.ui.gui.modules.PeakTable import PeakListSimple
 from ccpn.ui.gui.modules.peakUtils import getPeakPosition, getPeakAnnotation
 
 class ModifyAssignmentModule(CcpnModule, Base):
+  """
 
+  """
   def __init__(self, parent=None, project=None, nmrAtom=None, **kw):
 
     CcpnModule.__init__(self, parent=None, name='Modify Assignment')
@@ -71,6 +73,7 @@ class ModifyAssignmentModule(CcpnModule, Base):
     columns = [Column('Id', 'id')]
     tipTexts = []
     numDim = max([len(pk.position) for pk in self.current.nmrAtom.assignedPeaks])
+
     for i in range(numDim):
       j = i + 1
       c = Column('Assign F%d' % j, lambda pk, dim=i:getPeakAnnotation(pk, dim))
@@ -107,6 +110,7 @@ class ModifyAssignmentModule(CcpnModule, Base):
     """
     if peak.height:
       return '%7.2E' % float(peak.height*peak.peakList.spectrum.scale)
+
 
   def updatePeakTable(self, item):
     self.assignedPeaksTable.setObjects(self.project.getByPid('NA:'+item.text()).assignedPeaks)

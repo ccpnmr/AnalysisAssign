@@ -80,7 +80,13 @@ class BackboneAssignmentModule(CcpnModule):
     self.project.registerNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
 
+    self.closeModule = self._closeModule
+
   def _updateNmrChainList(self, nmrChain):
+    """
+    Convenience function for notifiers to update the NmrResidueTable when notifier is called in
+    response to creation, deletion and changes to NmrChain objects.
+    """
     if not nmrChain:
       self.project._logger.warn('No NmrChain specified')
       return
@@ -88,6 +94,10 @@ class BackboneAssignmentModule(CcpnModule):
     self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
 
   def _updateNmrChainPulldown(self, nmrChain):
+    """
+    Convenience function for notifiers to update the NmrResidueTable when notifier is called in
+    response to creation, deletion and changes to NmrChain objects.
+    """
     if not nmrChain:
       self.project._logger.warn('No NmrChain specified')
       return
@@ -96,6 +106,10 @@ class BackboneAssignmentModule(CcpnModule):
     self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
 
   def _updateNmrResidueTable(self, nmrResidue, oldPid=None):
+    """
+    Convenience function for notifiers to update the NmrResidueTable when notifier is called in
+    response to creation, deletion and changes to the current.nmrResidue object.
+    """
 
     if not nmrResidue:
       self.project._logger.warn('No NmrResidue specified')
@@ -108,12 +122,20 @@ class BackboneAssignmentModule(CcpnModule):
 
 
   def _toggleWidget2(self):
+    """
+    Toggles display of second widget in module.
+    """
     if self.settingsButton.isChecked():
       self.widget2.show()
     else:
       self.widget2.hide()
 
   def _selectMatchModule(self, item):
+    """
+    Call back to assign modules as match modules in reponse to a signal from the modulePulldown
+    above. Adds the item to a list containing match modules and adds the Pid of the module to the
+    moduleList ListWidget object.
+    """
     self.moduleList.addItem(item)
     self.matchModules.append(item)
 
@@ -132,9 +154,9 @@ class BackboneAssignmentModule(CcpnModule):
       self._setupShiftDicts()
 
       self.current.nmrChain = nmrResidue.nmrChain
-      if hasattr(self, 'assigner'):
-        self.assigner.clearAllItems()
-        self.assigner.nmrChainPulldown.select(self.current.nmrChain.pid)
+      if hasattr(self, 'sequenceGraph'):
+        self.sequenceGraph.clearAllItems()
+        self.sequenceGraph.nmrChainPulldown.select(self.current.nmrChain.pid)
       if self.current.nmrChain.isConnected:
         if nmrResidue.sequenceCode.endswith('-1'):
           nmrResidue = self.current.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
@@ -209,13 +231,13 @@ class BackboneAssignmentModule(CcpnModule):
         return
       self._createMatchStrips(assignMatrix)
 
-      if hasattr(self, 'assigner'):
-        if self.assigner.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
-          self.assigner.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
+      if hasattr(self, 'sequenceGraph'):
+        if self.sequenceGraph.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
+          self.sequenceGraph.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
         elif not nmrResidue.nmrChain.isConnected:
-          self.assigner.addResidue(iNmrResidue, direction)
+          self.sequenceGraph.addResidue(iNmrResidue, direction)
         else:
-          self.assigner.setNmrChainDisplay(nmrResidue.nmrChain.pid)
+          self.sequenceGraph.setNmrChainDisplay(nmrResidue.nmrChain.pid)
     finally:
       self.project._appBase._endCommandBlock()
 
@@ -310,13 +332,17 @@ class BackboneAssignmentModule(CcpnModule):
     # CCPN INTERNAL - called in showSequenceGraph method of GuiMainWindow.
     Connects Sequence Graph to this module.
     """
-    self.assigner = sequenceGraph
+    self.sequenceGraph = sequenceGraph
     self.project._appBase.current.assigner = sequenceGraph
-    self.assigner.nmrResidueTable = self.nmrResidueTable
-    self.assigner.setMode('fragment')
+    self.sequenceGraph.nmrResidueTable = self.nmrResidueTable
+    self.sequenceGraph.setMode('fragment')
 
 
-  def closeModule(self):
+  def _closeModule(self):
+    """
+    Re-implementation of the closeModule method of the CcpnModule class required to remove backboneModule
+    attribute from mainWindow when the module closes.
+    """
     delattr(self.parent, 'backboneModule')
     self.close()
 

@@ -16,38 +16,42 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
     self.refreshButton.show()
     self.refreshButton.setCallback(self._startAssignment)
-    self.spectrumSelectionWidget.refreshBox.setCallback(self.mediateRefresh)
+    self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
     self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
     self.mode = 'pairs'
 
-  def mediateRefresh(self):
-    print('box is %s' % str(self.spectrumSelectionWidget.refreshBox.isChecked()))
+  def _mediateRefresh(self):
+    """
+
+    """
     if self.spectrumSelectionWidget.refreshBox.isChecked():
       self.__adminsterNotifiers()
     elif not self.spectrumSelectionWidget.refreshBox.isChecked():
       self.__unRegisterNotifiers()
 
 
-  def updateModules(self, nmrAtom):
+  def _updateModules(self, nmrAtom):
+    """
+    Convenience function called by notifiers to refresh strip plots when an NmrAtom is created, deleted,
+    modified or rename. Calls _startAssignment as to mediate changes.
+    """
     if not nmrAtom.nmrResidue is self.current.nmrResidue:
       return
     else:
-      print('nmrAtom: %s is changing' % nmrAtom.pid)
-
       self._startAssignment()
 
 
   def __unRegisterNotifiers(self):
-    self.project.unRegisterNotifier('NmrAtom', 'rename', self.updateModules)
-    self.project.unRegisterNotifier('NmrAtom', 'create', self.updateModules)
-    self.project.unRegisterNotifier('NmrAtom', 'modify', self.updateModules)
-    self.project.unRegisterNotifier('NmrAtom', 'delete', self.updateModules)
+    self.project.unRegisterNotifier('NmrAtom', 'rename', self._updateModules)
+    self.project.unRegisterNotifier('NmrAtom', 'create', self._updateModules)
+    self.project.unRegisterNotifier('NmrAtom', 'modify', self._updateModules)
+    self.project.unRegisterNotifier('NmrAtom', 'delete', self._updateModules)
 
   def __adminsterNotifiers(self):
-    self.project.registerNotifier('NmrAtom', 'rename', self.updateModules)
-    self.project.registerNotifier('NmrAtom', 'create', self.updateModules)
-    self.project.registerNotifier('NmrAtom', 'modify', self.updateModules)
-    self.project.registerNotifier('NmrAtom', 'delete', self.updateModules)
+    self.project.registerNotifier('NmrAtom', 'rename', self._updateModules)
+    self.project.registerNotifier('NmrAtom', 'create', self._updateModules)
+    self.project.registerNotifier('NmrAtom', 'modify', self._updateModules)
+    self.project.registerNotifier('NmrAtom', 'delete', self._updateModules)
 
   def _closeModule(self):
     self.__unRegisterNotifiers()
@@ -82,7 +86,8 @@ class SideChainAssignmentModule(PickAndAssignModule):
           pairsToRemove.append(nmrAtomPair)
           nmrAtoms.add(nmrAtomPair[0])
           nmrAtoms.add(nmrAtomPair[1])
-        elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and not self.has_duplicates(displayIsotopeCodes):
+        elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and not \
+                any(displayIsotopeCodes.count(x) > 1 for x in displayIsotopeCodes):
           pairsToRemove.append(nmrAtomPair)
           nmrAtoms.add(nmrAtomPair[0])
           nmrAtoms.add(nmrAtomPair[1])
@@ -108,10 +113,11 @@ class SideChainAssignmentModule(PickAndAssignModule):
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
 
-  def has_duplicates(self, seq):
-    return any(seq.count(x) > 1 for x in seq)
-
   def sortNmrAtomPairs(self, nmrAtomPairs):
+    """
+    Sorts pairs of NmrAtoms into 'greek' order. Used in _startAssignmentFromPairs to pass correctly
+    ordered lists to makeStripPlot so strips are in the correct order.
+    """
     order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD1', 'CD2', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
              'H', 'HA', 'HB', 'HG', 'HD',  'HE',  'HZ', 'HH']
     ordering = []
