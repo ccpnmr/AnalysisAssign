@@ -54,7 +54,8 @@ class SideChainAssignmentModule(PickAndAssignModule):
     self.project.registerNotifier('NmrAtom', 'delete', self._updateModules)
 
   def _closeModule(self):
-    self.__unRegisterNotifiers()
+    if self.spectrumSelectionWidget.refreshBox.isChecked():
+      self.__unRegisterNotifiers()
     self.close()
 
 

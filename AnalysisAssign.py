@@ -188,7 +188,7 @@ class Assign(Framework):
     """
     from ccpn.AnalysisAssign.modules.SideChainAssignmentModule import SideChainAssignmentModule
 
-    if hasattr(self, 'backboneModule'):
+    if hasattr(self, 'sidechainAssignmentModule'):
       return
 
     self.sidechainAssignmentModule = SideChainAssignmentModule(self, self.project)

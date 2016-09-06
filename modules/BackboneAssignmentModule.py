@@ -65,9 +65,7 @@ class BackboneAssignmentModule(CcpnModule):
     self.nmrResidueTable = NmrResidueTable(self.mainWidget, project, callback=self._startAssignment)
     self.parent = parent
 
-    self.settingsButton = Button(self.nmrResidueTable, icon='icons/applications-system',
-                                grid=(0, 5), hPolicy='fixed', toggle=True)
-    self.settingsButton.toggled.connect(partial(self.toggleSettingsWidget, self.settingsButton))
+    self.placeSettingsButton(buttonParent=self.nmrResidueTable, buttonGrid=(0, 5))
 
     self.layout.addWidget(self.nmrResidueTable, 0, 0, 1, 3)
 
@@ -80,13 +78,10 @@ class BackboneAssignmentModule(CcpnModule):
     chemicalShiftListLabel = Label(self.settingsWidget, text='Chemical Shift List', grid=(1, 1))
     self.chemicalShiftListPulldown = PulldownList(self.settingsWidget, grid=(2, 1), callback=self._setupShiftDicts)
     self.chemicalShiftListPulldown.setData([shiftlist.pid for shiftlist in project.chemicalShiftLists])
-    self.settingsButton.setChecked(False)
-
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
 
-    self.closeModule = self._closeModule
 
   def _updateNmrChainList(self, nmrChain):
     """
@@ -334,12 +329,12 @@ class BackboneAssignmentModule(CcpnModule):
     self.sequenceGraph.nmrResidueTable = self.nmrResidueTable
     self.sequenceGraph.setMode('fragment')
 
-
   def _closeModule(self):
     """
     Re-implementation of the closeModule method of the CcpnModule class required to remove backboneModule
     attribute from mainWindow when the module closes.
     """
+    print(self.parent)
     delattr(self.parent, 'backboneModule')
     self.close()
 

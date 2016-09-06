@@ -91,7 +91,6 @@ class AtomSelector(CcpnModule):
     gridLine += 1
     self.layout.addWidget(self.pickAndAssignWidget, gridLine, 0, 8, 8)
     self.current.registerNotify(self._updateWidget, 'nmrResidues')
-    self.closeModule = self._closeModule
     self.buttons = {}
     
   def _closeModule(self):

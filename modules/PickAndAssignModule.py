@@ -40,6 +40,8 @@ from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 
 class PickAndAssignModule(CcpnModule, Base):
 
+  includeSettingsWidget = True
+
   def __init__(self, parent=None, project=None, name='Pick And Assign', **kw):
 
     CcpnModule.__init__(self, parent=None, name=name)
@@ -50,9 +52,6 @@ class PickAndAssignModule(CcpnModule, Base):
     self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick', callback=self._restrictedPick, grid=(0, 2))
     self.assignSelectedButton = Button(self.nmrResidueTable, text='Assign Selected', callback=self._assignSelected, grid=(0, 3))
     self.refreshButton = Button(self.nmrResidueTable, text='Refresh', callback=self._refresh, grid=(0, 4))
-    self.settingsButton = Button(self.nmrResidueTable, icon='icons/applications-system', grid=(0, 5), hPolicy='fixed', toggle=True)
-    self.settingsButton.toggled.connect(self._toggleWidget2)
-    self.settingsButton.setChecked(False)
     displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
     self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
     self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])
@@ -66,7 +65,9 @@ class PickAndAssignModule(CcpnModule, Base):
     self.refreshButton.hide()
     self.__registerNotifiers()
 
-    self.closeModule = self._closeModule
+    # self.closeModule = self._closeModule
+
+    self.settingsButton = self.placeSettingsButton(self.nmrResidueTable, buttonGrid=(0, 5))
 
 
   def __registerNotifiers(self):
