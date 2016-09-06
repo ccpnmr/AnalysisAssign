@@ -23,6 +23,8 @@ __version__ = "$Revision$"
 #=========================================================================================
 
 from collections import OrderedDict
+from functools import partial
+
 import typing
 
 from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
@@ -49,30 +51,34 @@ from ccpn.ui.gui.widgets.ListWidget import ListWidget
 
 class BackboneAssignmentModule(CcpnModule):
 
+  includeSettingsWidget = True
+
   def __init__(self, parent, project):
 
-    super(BackboneAssignmentModule, self).__init__(parent=None, name='Backbone Assignment')
+    super(BackboneAssignmentModule, self).__init__(parent=None, name='Backbone Assignment', logger=project._logger)
 
     self.project = project
     self.current = project._appBase.current
     self.numberOfMatches = 5
     self.nmrChains = project.nmrChains
     self.matchModules = []
-    self.nmrResidueTable = NmrResidueTable(self.widget1, project, callback=self._startAssignment)
+    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project, callback=self._startAssignment)
     self.parent = parent
+
     self.settingsButton = Button(self.nmrResidueTable, icon='icons/applications-system',
                                 grid=(0, 5), hPolicy='fixed', toggle=True)
+    self.settingsButton.toggled.connect(partial(self.toggleSettingsWidget, self.settingsButton))
 
     self.layout.addWidget(self.nmrResidueTable, 0, 0, 1, 3)
-    self.settingsButton.toggled.connect(self._toggleWidget2)
+
     modules = [display.pid for display in project.spectrumDisplays]
     modules.insert(0, '  ')
-    modulesLabel = Label(self.widget2, text="Selected Modules", grid=(1, 0))
-    self.modulePulldown = PulldownList(self.widget2, grid=(2, 0), callback=self._selectMatchModule)
+    modulesLabel = Label(self.settingsWidget, text="Selected Modules", grid=(1, 0))
+    self.modulePulldown = PulldownList(self.settingsWidget, grid=(2, 0), callback=self._selectMatchModule)
     self.modulePulldown.setData(modules)
-    self.moduleList = ListWidget(self.widget2, grid=(3, 0), )
-    chemicalShiftListLabel = Label(self.widget2, text='Chemical Shift List', grid=(1, 1))
-    self.chemicalShiftListPulldown = PulldownList(self.widget2, grid=(2, 1), callback=self._setupShiftDicts)
+    self.moduleList = ListWidget(self.settingsWidget, grid=(3, 0), )
+    chemicalShiftListLabel = Label(self.settingsWidget, text='Chemical Shift List', grid=(1, 1))
+    self.chemicalShiftListPulldown = PulldownList(self.settingsWidget, grid=(2, 1), callback=self._setupShiftDicts)
     self.chemicalShiftListPulldown.setData([shiftlist.pid for shiftlist in project.chemicalShiftLists])
     self.settingsButton.setChecked(False)
 
@@ -120,15 +126,6 @@ class BackboneAssignmentModule(CcpnModule):
       self.nmrResidueTable.nmrResidueTable.selector.select(nmrResidue.nmrChain)
       self.nmrResidueTable.updateTable()
 
-
-  def _toggleWidget2(self):
-    """
-    Toggles display of second widget in module.
-    """
-    if self.settingsButton.isChecked():
-      self.widget2.show()
-    else:
-      self.widget2.hide()
 
   def _selectMatchModule(self, item):
     """

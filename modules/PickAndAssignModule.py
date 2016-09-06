@@ -46,20 +46,20 @@ class PickAndAssignModule(CcpnModule, Base):
     Base.__init__(self, **kw)
     self.project = project
     self.current = project._appBase.current
-    self.nmrResidueTable = NmrResidueTable(self.widget1, project=project, callback=self._goToPositionInModules, grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
+    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self._goToPositionInModules, grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
     self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick', callback=self._restrictedPick, grid=(0, 2))
     self.assignSelectedButton = Button(self.nmrResidueTable, text='Assign Selected', callback=self._assignSelected, grid=(0, 3))
     self.refreshButton = Button(self.nmrResidueTable, text='Refresh', callback=self._refresh, grid=(0, 4))
     self.settingsButton = Button(self.nmrResidueTable, icon='icons/applications-system', grid=(0, 5), hPolicy='fixed', toggle=True)
     self.settingsButton.toggled.connect(self._toggleWidget2)
     self.settingsButton.setChecked(False)
-    displaysLabel = Label(self.widget2, 'Selected Displays', grid=(0, 0))
-    self.displaysPulldown = PulldownList(self.widget2, grid=(1, 0), callback=self._updateListWidget)
+    displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
+    self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
     self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])
-    self.displayList = ListWidget(self.widget2, grid=(0, 1), gridSpan=(4, 1))
+    self.displayList = ListWidget(self.settingsWidget, grid=(0, 1), gridSpan=(4, 1))
     self.displayList.addItem('<All>')
     self.displayList.setFixedWidth(self.displaysPulldown.width())
-    self.scrollArea = ScrollArea(self.widget2, grid=(0, 2), gridSpan=(4, 4))
+    self.scrollArea = ScrollArea(self.settingsWidget, grid=(0, 2), gridSpan=(4, 4))
     self.spectrumSelectionWidget = SpectrumSelectionWidget(self.scrollArea, project, self.displayList)
     self.scrollArea.setWidget(self.spectrumSelectionWidget)
     self.displayList.removeItem = self._removeListWidgetItem
@@ -117,9 +117,9 @@ class PickAndAssignModule(CcpnModule, Base):
 
   def _toggleWidget2(self):
     if self.settingsButton.isChecked():
-      self.widget2.show()
+      self.settingsWidget.show()
     else:
-      self.widget2.hide()
+      self.settingsWidget.hide()
 
   def _refresh(self):
     pass
