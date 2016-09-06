@@ -277,7 +277,7 @@ class SequenceGraph(CcpnModule):
     self.updateNmrResidueTable()
 
 
-  def closeModule(self):
+  def _closeModule(self):
     delattr(self.parent, 'sequenceGraph')
     self.close()
 

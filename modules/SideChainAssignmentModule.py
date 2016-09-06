@@ -22,7 +22,8 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
   def _mediateRefresh(self):
     """
-
+    Activate/de-activate notifiers depending on the state of the auto-refresh checkbox
+    in the spectrum selection widget.
     """
     if self.spectrumSelectionWidget.refreshBox.isChecked():
       self.__adminsterNotifiers()
@@ -33,7 +34,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
   def _updateModules(self, nmrAtom):
     """
     Convenience function called by notifiers to refresh strip plots when an NmrAtom is created, deleted,
-    modified or rename. Calls _startAssignment as to mediate changes.
+    modified or rename. Calls _startAssignment as to carry out changes.
     """
     if not nmrAtom.nmrResidue is self.current.nmrResidue:
       return
@@ -145,7 +146,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
           nmrAtoms.add(nmrAtom)
 
       makeStripPlotFromSingles(display, list(nmrAtoms))
-      axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
+      axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], list(nmrAtoms))
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
 
