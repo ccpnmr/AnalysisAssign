@@ -52,6 +52,10 @@ class PickAndAssignModule(CcpnModule, Base):
     self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick', callback=self._restrictedPick, grid=(0, 2))
     self.assignSelectedButton = Button(self.nmrResidueTable, text='Assign Selected', callback=self._assignSelected, grid=(0, 3))
     self.refreshButton = Button(self.nmrResidueTable, text='Refresh', callback=self._refresh, grid=(0, 4))
+
+
+    # place settings toggle butotn and add widgets to settings layout.
+    self.settingsButton = self.placeSettingsButton(self.nmrResidueTable, buttonGrid=(0, 5))
     displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
     self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
     self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])
@@ -64,10 +68,6 @@ class PickAndAssignModule(CcpnModule, Base):
     self.displayList.removeItem = self._removeListWidgetItem
     self.refreshButton.hide()
     self.__registerNotifiers()
-
-    # self.closeModule = self._closeModule
-
-    self.settingsButton = self.placeSettingsButton(self.nmrResidueTable, buttonGrid=(0, 5))
 
 
   def __registerNotifiers(self):
