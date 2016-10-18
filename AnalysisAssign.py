@@ -61,6 +61,15 @@ class Assign(Framework):
                           ])
     self.addApplicationMenuSpec(menuSpec)
 
+  # overrides superclass
+  def _closeExtraWindows(self):
+
+    # remove links to modules when closing them
+    for attr in ('sequenceGraph', 'backboneModule', 'sidechainAssignmentModule'):
+      if hasattr(self, attr):
+        delattr(self, attr)
+
+    Framework._closeExtraWindows(self)
 
   # def initGraphics(self):
   #   """Set up graphics system after loading"""
