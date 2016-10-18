@@ -22,7 +22,7 @@ __version__ = "$Revision$"
 # Start of code
 #=========================================================================================
 
-import os
+# import os
 import typing
 from functools import partial
 
@@ -38,9 +38,8 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.RadioButton import RadioButton
 from ccpn.ui.gui.widgets.Widget import Widget
-from ccpn.util import Path
+# from ccpn.util import Path
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
-from ccpnmodel.ccpncore.lib.spectrum import Spectrum as spectrumLib
 
 
 class AtomSelector(CcpnModule):

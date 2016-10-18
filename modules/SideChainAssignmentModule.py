@@ -1,12 +1,9 @@
-
+from ccpn.util import Common
 from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot, makeStripPlotFromSingles
 
 from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
 from ccpn.ui.gui.lib.Window import markPositions
-
-
-from ccpnmodel.ccpncore.lib.spectrum import Spectrum as SpectrumLib
 
 class SideChainAssignmentModule(PickAndAssignModule):
 
@@ -75,12 +72,13 @@ class SideChainAssignmentModule(PickAndAssignModule):
     for display in activeDisplays:
       axisCodes = display.strips[0].axisCodes
       nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[-1][0])
-      displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]
+      displayIsotopeCodes = [Common.name2IsotopeCode(code) for code in axisCodes]
       pairsToRemove = []
       for nmrAtomPair in nmrAtomPairs:
         pairIsotopeCodes = [nap.isotopeCode for nap in nmrAtomPair]
         nmrAtoms = set()
-        if displayIsotopeCodes[1] in pairIsotopeCodes and displayIsotopeCodes[0] not in pairIsotopeCodes:
+        if (displayIsotopeCodes[1] in pairIsotopeCodes
+            and displayIsotopeCodes[0] not in pairIsotopeCodes):
           pairsToRemove.append(nmrAtomPair)
           nmrAtoms.add(nmrAtomPair[0])
           nmrAtoms.add(nmrAtomPair[1])
@@ -139,7 +137,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
     for display in activeDisplays:
       axisCodes = display.strips[0].axisCodes
       nmrAtoms = set()
-      displayIsotopeCodes = [SpectrumLib.name2IsotopeCode(code) for code in axisCodes]
+      displayIsotopeCodes = [Common.name2IsotopeCode(code) for code in axisCodes]
 
       for nmrAtom in self.current.nmrResidue.nmrAtoms:
         if nmrAtom.isotopeCode in displayIsotopeCodes and nmrAtom.isotopeCode == displayIsotopeCodes[2]:
