@@ -71,20 +71,23 @@ class PickAndAssignModule(CcpnModule, Base):
 
 
   def __registerNotifiers(self):
-    self.project.registerNotifier('NmrResidue', 'create', self._updateListWidget)
-    self.project.registerNotifier('NmrResidue', 'delete', self._updateListWidget)
-    self.project.registerNotifier('NmrResidue', 'modify', self._updateListWidget)
-    self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
+    # wb104, 1 Nov 2016: not sure why the first four notifiers are as specified,
+    # the widget is to do with displays not NmrResidues, and it breaks the function
+    # because the argument would be an NmrResidue, not an item
+    #self.project.registerNotifier('NmrResidue', 'create', self._updateListWidget)
+    #self.project.registerNotifier('NmrResidue', 'delete', self._updateListWidget)
+    #self.project.registerNotifier('NmrResidue', 'modify', self._updateListWidget)
+    #self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
     self.project.registerNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
 
   def __unRegisterNotifiers(self):
-    self.project.unRegisterNotifier('NmrResidue', 'create', self._updateListWidget)
-    self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateListWidget)
-    self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateListWidget)
-    self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateListWidget)
+    #self.project.unRegisterNotifier('NmrResidue', 'create', self._updateListWidget)
+    #self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateListWidget)
+    #self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateListWidget)
+    #self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateListWidget)
     self.project.unRegisterNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
@@ -104,7 +107,7 @@ class PickAndAssignModule(CcpnModule, Base):
     self.displayList.addItem(self.project.getByPid(item).pid)
     self.spectrumSelectionWidget.update()
 
-  def _updateNmrResidueTable(self, nmrResidue, oldPid):
+  def _updateNmrResidueTable(self, nmrResidue):
     self.nmrResidueTable.nmrResidueTable.updateTable()
     self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
 
@@ -188,6 +191,7 @@ class PickAndAssignModule(CcpnModule, Base):
 
 
   def _goToPositionInModules(self, nmrResidue=None, row=None, col=None):
+    # DANGER: nmrResidue allowed to be None but is assumed not to be None below
 
     activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
     self.project._appBase._startCommandBlock('application.pickAndAssignModule._goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
