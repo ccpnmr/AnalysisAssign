@@ -33,8 +33,9 @@ from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 
-from ccpn.ui.gui.lib.PeakList import restrictedPick
-from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip
+from ccpn.ui.gui.lib import PeakList
+from ccpn.ui.gui.lib import Strip
+
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 
@@ -176,7 +177,7 @@ class PickAndAssignModule(CcpnModule, Base):
             if len(visiblePeakListViews) == 0:
               return
             else:
-              peakList, peaks = restrictedPick(peakListView=visiblePeakListViews[0],
+              peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
               # Lines below here to be removed when a notifier handles display of newly picked peaks
               if len(peaks) > 0:
@@ -203,7 +204,13 @@ class PickAndAssignModule(CcpnModule, Base):
       mainWindow.clearMarks()
       for display in activeDisplays:
         strip = display.strips[0]
-        navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default', 'full', ''])
+        n = len(strip.axisCodes)
+        #Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default', 'full', ''])
+        if n == 2:
+          widths = ['default', 'default']
+        else:
+          widths = ['default', 'full'] + (n-2)*['']
+        Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
       self.current.nmrResidue = nmrResidue
     finally:
       self.project._appBase._endCommandBlock()
