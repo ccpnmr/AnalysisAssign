@@ -61,7 +61,6 @@ class BackboneAssignmentModule(CcpnModule):
     self.current = project._appBase.current
     self.numberOfMatches = 5
     self.nmrChains = project.nmrChains
-    self.matchModules = []
     self.nmrResidueTable = NmrResidueTable(self.mainWidget, project, callback=self._startAssignment)
     self.layout.addWidget(self.nmrResidueTable, 0, 0, 1, 3)
     self.parent = parent
@@ -70,11 +69,11 @@ class BackboneAssignmentModule(CcpnModule):
     # place button for settings widget and add widgets to settings widget
     self.placeSettingsButton(buttonParent=self.nmrResidueTable, buttonGrid=(0, 5))
     modules = [display.pid for display in project.spectrumDisplays]
-    modules.insert(0, '  ')
+    modules.insert(0, '') # just so that can select proper items (list only updated when pulldown selection changed)
     modulesLabel = Label(self.settingsWidget, text="Selected Modules", grid=(1, 0))
     self.modulePulldown = PulldownList(self.settingsWidget, grid=(2, 0), callback=self._selectMatchModule)
     self.modulePulldown.setData(modules)
-    self.moduleList = ListWidget(self.settingsWidget, grid=(3, 0), )
+    self.moduleList = ListWidget(self.settingsWidget, grid=(3, 0))
     chemicalShiftListLabel = Label(self.settingsWidget, text='Chemical Shift List', grid=(1, 1))
     self.chemicalShiftListPulldown = PulldownList(self.settingsWidget, grid=(2, 1), callback=self._setupShiftDicts)
     self.chemicalShiftListPulldown.setData([shiftlist.pid for shiftlist in project.chemicalShiftLists])
@@ -124,16 +123,21 @@ class BackboneAssignmentModule(CcpnModule):
       self.nmrResidueTable.nmrResidueTable.selector.select(nmrResidue.nmrChain)
       self.nmrResidueTable.updateTable()
 
+  def _matchModules(self):
 
-  def _selectMatchModule(self, item):
+    return [self.moduleList.item(i).text() for i in range(self.moduleList.count())]
+
+  def _selectMatchModule(self, text):
     """
     Call back to assign modules as match modules in reponse to a signal from the modulePulldown
     above. Adds the item to a list containing match modules and adds the Pid of the module to the
     moduleList ListWidget object.
     """
-    self.moduleList.addItem(item)
-    self.matchModules.append(item)
+    if not text:  # blank row
+      return
 
+    if text not in self._matchModules():
+      self.moduleList.addItem(text)
 
   def _startAssignment(self, nmrResidue:NmrResidue, row:int=None, col:int=None):
     """
@@ -186,7 +190,7 @@ class BackboneAssignmentModule(CcpnModule):
       mainWindow.clearMarks()
       self.nmrResidueTable.nmrResidueTable.updateTable()
       selectedDisplays = [display for display in self.project.spectrumDisplays
-                          if display.pid not in self.matchModules]
+                          if display.pid not in self._matchModules()]
 
 
       # If NmrResidue is a -1 offset NmrResidue, set queryShifts as value from self.interShifts dictionary
@@ -312,7 +316,7 @@ class BackboneAssignmentModule(CcpnModule):
         iNmrResidue = matchResidue
       nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
-    for modulePid in self.matchModules:
+    for modulePid in self._matchModules():
       module = self.project.getByPid(modulePid)
       makeStripPlot(module, nmrAtomPairs)
 
