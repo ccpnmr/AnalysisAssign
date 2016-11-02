@@ -51,7 +51,7 @@ class AtomSelector(CcpnModule):
     CcpnModule.__init__(self, name='Atom Selector')
     self.orientation = 'vertical'
     self.moveLabel = False
-    self.pickAndAssignWidget = Widget(self)
+    self.pickAndAssignWidget = Widget(self, setLayout=True)
     # self.pickAndAssignWidget.setMaximumSize(500, 300)
     self.parent = parent
 
@@ -82,7 +82,7 @@ class AtomSelector(CcpnModule):
     nmrResidueLabel = Label(self, 'Current NmrResidue:', grid=(gridLine, 0))
     self.currentNmrResidueLabel = Label(self, grid=(gridLine, 1))
     self.offsetLabel = Label(self, 'Offset:', grid=(gridLine, 2))
-    self.offsetSelector = PulldownList(self, grid=(gridLine, 3), callback=self._updateFromOffset)
+    self.offsetSelector = PulldownList(self, grid=(gridLine, 3), callback=self._updateWidget)
     self.offsetSelector.setData(['0', '-1', '+1'])
     self.offsetSelector.hide()
     self.offsetLabel.hide()
@@ -97,13 +97,11 @@ class AtomSelector(CcpnModule):
     self.current.unRegisterNotify(self._updateWidget, 'nmrResidues')
     self.close()
 
-  def _updateFromOffset(self, item):
-    self._updateWidget([self.current.nmrResidue])
-
   def _updateWidget(self, nmrResidues=None):
-    if not nmrResidues:
+    if not nmrResidues and self.current.nmrResidue:
       nmrResidues = [self.current.nmrResidue]
-    self.currentNmrResidueLabel.setText(nmrResidues[0].id)
+    if nmrResidues and nmrResidues[0]:
+      self.currentNmrResidueLabel.setText(nmrResidues[0].id)
     if self.radioButton1.isChecked():
       self._createBackBoneButtons()
     elif self.radioButton2.isChecked():
