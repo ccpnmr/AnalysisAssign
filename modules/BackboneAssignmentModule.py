@@ -81,6 +81,7 @@ class BackboneAssignmentModule(CcpnModule):
 
     # register notifiers for updating of pulldown lists and NmrResidueTable
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
 
