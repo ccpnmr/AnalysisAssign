@@ -180,7 +180,7 @@ class SequenceGraph(CcpnModule):
     self.modePulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setMode)
     self.nmrChainLabel = Label(self, 'NmrChain  ', grid=(0, 2), hAlign='r')
     self.nmrChainPulldown = PulldownList(self, grid=(0, 3), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
-    self.modePulldown.setData(['fragment', 'Assigned - backbone', 'Assigned - All'])
+    self.modePulldown.setData(['fragment', 'Assigned - backbone'])  # TBD: , 'Assigned - All'])
     self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
     self.disconnectPreviousIcon = Icon('icons/previous')
