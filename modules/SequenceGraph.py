@@ -533,7 +533,8 @@ class SequenceGraph(CcpnModule):
 
   def _getAssignmentsFromSpectra(self):
     for spectrum in self.project.spectra:
-      connections = [x for x in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values()) for x in x]
+      connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
+                     for x in y]
       for ii, connection in enumerate(connections):
         # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
         #                self.project._data2Obj.get(connection[1]).nmrAtom]

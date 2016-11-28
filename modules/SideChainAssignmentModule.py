@@ -108,7 +108,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
       if len(display.strips[0].axisCodes) > 2:
         makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
-      nmrAtoms = [x for x in nmrAtomPairs for x in x]
+      nmrAtoms = [x for y in nmrAtomPairs for x in y]
       axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
