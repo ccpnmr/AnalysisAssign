@@ -175,7 +175,7 @@ class PickAndAssignModule(CcpnModule, Base):
             visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
                                     if peakListView.isVisible()]
             if len(visiblePeakListViews) == 0:
-              return
+              continue
             else:
               peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
