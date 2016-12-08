@@ -33,13 +33,14 @@ from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.Project import Project
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.ui.gui.widgets.Button import Button
-from ccpn.ui.gui.widgets.Font import Font
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
 from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
+
+from ccpn.ui.gui.guiSettings import textFont, textFontBold
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
@@ -59,10 +60,10 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     self.connectedAtoms = 0
     self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
     self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
-    if project._appBase.preferences.general.colourScheme == 'dark':
+    if project._appBase.colourScheme == 'dark':
       colour1 = '#F7FFFF'
       colour2 = '#BEC4F3'
-    elif project._appBase.preferences.general.colourScheme == 'light':
+    elif project._appBase.colourScheme == 'light':
       colour1 = '#FDFDFC'
       colour2 = '#555D85'
 
@@ -96,10 +97,10 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     super(GuiNmrResidue, self).__init__()
     self.setPlainText(nmrResidue.id)
     project = nmrResidue.project
-    self.setFont(Font(size=12, bold=True))
-    if project._appBase.preferences.general.colourScheme == 'dark':
+    self.setFont(textFont)
+    if project._appBase.colourScheme == 'dark':
       self.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
-    elif project._appBase.preferences.general.colourScheme == 'light':
+    elif project._appBase.colourScheme == 'light':
       self.setDefaultTextColor(QtGui.QColor('#555D85'))
     self.setPos(caAtom.x()-caAtom.boundingRect().width()/2, caAtom.y()+30)
     self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
@@ -319,9 +320,9 @@ class SequenceGraph(CcpnModule):
     Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
     creates a graphical representation of a residue in the assigner
     """
-    if self.project._appBase.preferences.general.colourScheme == 'dark':
+    if self.project._appBase.colourScheme == 'dark':
       lineColour = '#f7ffff'
-    elif self.project._appBase.preferences.general.colourScheme == 'light':
+    elif self.project._appBase.colourScheme == 'light':
       lineColour = ''
     for item in atoms.values():
       self.scene.addItem(item)
@@ -432,11 +433,11 @@ class SequenceGraph(CcpnModule):
     for prediction in predictions:
       predictionLabel = QtGui.QGraphicsTextItem()
       predictionLabel.setPlainText(prediction[0]+' '+prediction[1])
-      if self.project._appBase.preferences.general.colourScheme == 'dark':
+      if self.project._appBase.colourScheme == 'dark':
         predictionLabel.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
-      elif self.project._appBase.preferences.general.colourScheme == 'light':
+      elif self.project._appBase.colourScheme == 'light':
         predictionLabel.setDefaultTextColor(QtGui.QColor('#555D85'))
-      predictionLabel.setFont(Font(size=12, bold=True))
+      predictionLabel.setFont(textFontBold)
       predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
                              caAtom.y()+(30*(predictions.index(prediction)+2)))
       self.scene.addItem(predictionLabel)
@@ -463,10 +464,10 @@ class SequenceGraph(CcpnModule):
   def _showBackboneAssignments(self, nmrChain):
     self.project._startFunctionCommandBlock('_showBackboneAssignments', nmrChain)
     try:
-      if self.project._appBase.preferences.general.colourScheme == 'dark':
+      if self.project._appBase.colourScheme == 'dark':
         lineColour = '#f7ffff'
-      elif self.project._appBase.preferences.general.colourScheme == 'light':
-        lineColour = ''
+      elif self.project._appBase.colourScheme == 'light':
+        lineColour = ''  #TODO: check if correct
       for residue in nmrChain.chain.residues:
         if not residue.nmrResidue:
           newNmrResidue = nmrChain.fetchNmrResidue(sequenceCode=residue.sequenceCode, residueType=residue.residueType)

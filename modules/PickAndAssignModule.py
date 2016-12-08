@@ -179,7 +179,7 @@ class PickAndAssignModule(CcpnModule, Base):
             else:
               peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-              # Lines below here to be removed when a notifier handles display of newly picked peaks
+              #TODO: Lines below here to be removed when a notifier handles display of newly picked peaks
               if len(peaks) > 0:
                 for strip in module.strips:
                   strip.showPeaks(peakList)

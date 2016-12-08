@@ -305,7 +305,7 @@ class AtomSelector(CcpnModule):
     """
     Returns all buttons in Atom Selector to original colours and style.
     """
-    if self.parent._appBase.preferences.general.colourScheme == 'dark':
+    if self.parent._appBase.colourScheme == 'dark':
       backgroundColour1 = '#535a83'
       backgroundColour2 = '#e4e15b'
     else:
