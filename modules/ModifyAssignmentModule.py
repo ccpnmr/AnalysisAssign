@@ -1,7 +1,7 @@
 """This file contains ModifyAssignmentModule class
 
 intial version by Simon;
-extensively modified by Geerten 1-7/12/2016:
+extensively modified by Geerten 1-9/12/2016:
 - intialisation with 'empty' settings possible,
 - now responsive to current.nmrResidues
 """
@@ -39,55 +39,101 @@ logger = getLogger()
 
 from ccpn.ui.gui.modules.peakUtils import getPeakPosition, getPeakAnnotation
 
-class ModifyAssignmentModule(CcpnModule, Base):
+class ModifyAssignmentModule(CcpnModule):
   """
-  This Module allows inspection of the NmrAtoms of a given NmrResidue
+  This Module allows inspection of the NmrAtoms of a selected NmrResidue
   It responds to current.nmrResidues, taking the last added residue to this list
   The NmrAtom listWidget allows for selection of the nmrAtom; subsequently its assignedPeaks
   are displayed.
 
   """
+  ALL = '<all>'
+
   def __init__(self, parent=None, project=None, **kw):
 
     CcpnModule.__init__(self, parent=parent, name='Modify Assignment')
-    Base.__init__(self, **kw)
+    #Base.__init__(self, **kw)
 
     self.project = project
     self.current = project._appBase.current
     self.sampledDims = {}
+    self.pids = []  # list of currently displayed NmrAtom pids + <all>
 
     #assignedPeaksLabel = Label(self, '', grid=(0, 0))
+    #self.mainWidget.layout().setSpacing(0)
+    #self.mainWidget.layout().setContentsMargins(0,0,0,0)
+
     gridLine = 0
-    self.nmrAtomLabel = Label(self, 'NmrAtom(s):', grid=(gridLine, 0), gridSpan=(1, 1), vAlign='top')
-    self.peaksLabel = Label(self, 'Attached peaks of selected NmrAtom:', grid=(gridLine, 1), gridSpan=(1, 1))
+    self.nmrAtomLabel = Label(self.mainWidget, 'NmrAtom(s):', grid=(gridLine, 0), gridSpan=(1, 1), vAlign='top')
+    self.peaksLabel = Label(self.mainWidget, 'Assigned peaks of selected NmrAtom:', grid=(gridLine, 1), gridSpan=(1, 1))
     gridLine += 1
 
-    self.attachedNmrAtomsList = ListWidget(self, grid=(gridLine, 0), gridSpan=(1, 1), hPolicy='fixed', vAlign='top',
-                                           callback=self.updatePeakTable, contextMenu=False)
+    self.attachedNmrAtomsList = ListWidget(self.mainWidget, grid=(gridLine, 0), gridSpan=(1, 1), vAlign='top',
+                                           callback=self._updatePeakTableCallback, contextMenu=False)
+    self.attachedNmrAtomsList.setFixedWidth(120)
     #gridLine += 1
 
-    self.assignedPeaksTable = ObjectTable(self, self.getColumns(), selectionCallback=self.setCurrentPeak,
+    self.assignedPeaksTable = ObjectTable(self.mainWidget, self.getColumns(), selectionCallback=self.setCurrentPeak,
                               objects=[], grid=(gridLine, 1), gridSpan=(1, 5))
 
-    self.current.registerNotify(self.updateModule, 'nmrResidues')
+    self.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
     # update if current.nmrResidue is defined
     if self.current.nmrResidue is not None:
-      self.updateModule([self.current.nmrResidue])
+      self._updateModuleCallback([self.current.nmrResidue])
 
-  def updateModule(self, nmrResidues):
+  def _updateModuleCallback(self, nmrResidues):
+    """
+    Callback function: Module responsive to nmrResidues; updates the list widget with nmrAtoms and updates peakTable if
+    current.nmrAtom belongs to nmrResidue
+    """
     self.attachedNmrAtomsList.clear()
     if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
-#      nmrAtom = nmrAtoms[0]
-#      self.attachedNmrAtomsList.addItems(list(set([x.id for peak in self.current.nmrAtom.assignedPeaks
-#                                                   for dim in peak.dimensionNmrAtoms for x in dim])))
-      self.attachedNmrAtomsList.addItems([atm.pid for atm in nmrResidues[-1].nmrAtoms])
+      # get the pids and append <all>
+      self.pids = [atm.pid for atm in nmrResidues[-1].nmrAtoms] + [self.ALL]
+      self.attachedNmrAtomsList.addItems(self.pids)
+      # clear and fill the peak table
       self.assignedPeaksTable.setObjects([])
+      if self.current.nmrAtom is not None and self.current.nmrAtom.pid in self.pids:
+        self._updatePeakTable(self.current.nmrAtom.pid)
+      else:
+        self._updatePeakTable(self.ALL)
     else:
-      logger.error('No valid nmrAtom/nmrResidue defined')
+      logger.debug('No valid nmrAtom/nmrResidue defined')
+
+  def _updatePeakTableCallback(self, item):
+    """
+    Update the peakTable using item.text (which contains a NmrAtom pid or <all>)
+    """
+    if item is not None:
+      text = item.text()
+      self._updatePeakTable(text)
+    else:
+      logger.error('No valid item selected')
+
+  def _updatePeakTable(self, pid):
+    """
+    Update peak table depending on value of pid;
+    clears peakTable if pid is None
+    """
+    if pid is None:
+      self.assignedPeaksTable.setObjects([])
+      return
+
+    if pid == self.ALL:
+      peaks = list(set([pk for nmrAtom in self.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
+      self.assignedPeaksTable.setObjects(peaks)
+      # highlight current.nmrAtom in the list widget
+      self.attachedNmrAtomsList.setCurrentRow(self.pids.index(pid))
+    else:
+      nmrAtom = self.project.getByPid(pid)
+      if nmrAtom is not None:
+        self.assignedPeaksTable.setObjects(nmrAtom.assignedPeaks)
+        # highlight current.nmrAtom in the list widget
+        self.attachedNmrAtomsList.setCurrentRow(self.pids.index(pid))
 
   def getColumns(self):
 
-    columns = [Column('Id', 'id')]
+    columns = [Column('Peak', 'id')]
     tipTexts = []
     # get the maxmimum number of dimensions from all spectra in the project
     numDim = max([sp.dimensionCount for sp in self.project.spectra] + [1])
@@ -114,13 +160,11 @@ class ModifyAssignmentModule(CcpnModule, Base):
       c = Column(text, lambda pk, dim=i, unit=unit:getPeakPosition(pk, dim, unit))
       columns.append(c)
       tipTexts.append(tipText)
-
-
     return columns
 
-
   def setCurrentPeak(self, peak, row, col):
-    self.current.peak = peak
+    if peak is not None:
+      self.current.peak = peak
 
   def _getPeakHeight(self, peak):
     """
@@ -128,16 +172,6 @@ class ModifyAssignmentModule(CcpnModule, Base):
     """
     if peak.height:
       return '%7.2E' % float(peak.height*peak.peakList.spectrum.scale)
-
-
-  def updatePeakTable(self, item):
-    """
-    Update the peakTable using item (NmrAtom pid)
-    """
-    if item is not None:
-      self.assignedPeaksTable.setObjects(self.project.getByPid(item.text()).assignedPeaks)
-    else:
-      logger.error('No valid nmrAtom selected')
 
   def __del__(self):
     self.current.unRegisterNotify(self.updateModule, 'nmrAtoms')

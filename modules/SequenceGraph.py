@@ -52,14 +52,20 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
   def __init__(self, project, text, pos=None, nmrAtom=None):
 
     super(GuiNmrAtom, self).__init__()
+
     self.setPlainText(text)
     self.setPos(QtCore.QPointF((pos[0]-self.boundingRect().x()), (pos[1]-self.boundingRect().y())))
-    self.nmrAtom = nmrAtom
+
     self.project = project
-    self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+    self.current = project._appBase.current
+    self.nmrAtom = nmrAtom
+    if nmrAtom:
+      self.name = nmrAtom.name
     self.connectedAtoms = 0
+
+    self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
     self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
-    self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
+
     if project._appBase.colourScheme == 'dark':
       colour1 = '#F7FFFF'
       colour2 = '#BEC4F3'
@@ -67,26 +73,40 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
       colour1 = '#FDFDFC'
       colour2 = '#555D85'
 
-    if nmrAtom:
-      self.name = nmrAtom.name
-    self.setDefaultTextColor(QtGui.QColor(colour1))
+    #self.setDefaultTextColor(QtGui.QColor(colour1))
     if self.isSelected:
       self.setDefaultTextColor(QtGui.QColor(colour2))
     else:
       self.setDefaultTextColor(QtGui.QColor(colour1))
 
-  def _mouseDoubleClickEvent(self, event):
+  def mouseDoubleClickEvent(self, event):
     """
-    CCPN INTERNAL - re-implementation of double click event to raise modifyAssignmentModule
+    CCPN INTERNAL - re-implementation of double click event
     """
+    #print('>>doubleClickEvent')
+    # if self.nmrAtom is Not None:
+    #   self.current.nmrAtom = self.nmrAtom
+    #   self.current.nmrResidue = self.nmrAtom.nmrResidue
+    pass
 
-    if not hasattr(self.project._appBase, 'modifyAssignmentsModule'):
-      self.project._appBase.showModifyAssignmentModule(self.nmrAtom)
-    else:
-      self.project._appBase.current.nmrAtom = self.nmrAtom
+  def mousePressEvent(self, event):
+    """
+    CCPN INTERNAL - re-implementation of mouse press event
+    """
+    print('>>pressEvent')
+    if self.nmrAtom is not None:
+      self.current.nmrAtom = self.nmrAtom
+      self.current.nmrResidue = self.nmrAtom.nmrResidue
+
+  def mouseReleaseEvent(self, event):
+    """
+    CCPN INTERNAL - re-implementation of mouse press event
+    """
+    #print('>>release Event')
+    pass
+
 
 class GuiNmrResidue(QtGui.QGraphicsTextItem):
-
   """
   Object linking residues displayed in Assigner and Nmr Residues. Contains functionality for drag and
   drop assignment in conjunction with the Sequence Module.
