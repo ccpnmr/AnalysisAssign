@@ -166,12 +166,5 @@ class ModifyAssignmentModule(CcpnModule):
     if peak is not None:
       self.current.peak = peak
 
-  def _getPeakHeight(self, peak):
-    """
-    Returns the height of the specified peak.
-    """
-    if peak.height:
-      return '%7.2E' % float(peak.height*peak.peakList.spectrum.scale)
-
   def __del__(self):
     self.current.unRegisterNotify(self.updateModule, 'nmrAtoms')
