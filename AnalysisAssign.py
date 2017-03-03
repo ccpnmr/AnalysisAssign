@@ -36,9 +36,6 @@ from ccpn.ui.gui.widgets import MessageDialog
 from ccpn.ui.gui.widgets.Module import CcpnModule
 
 
-# applicationName = 'AnalysisAssign'
-
-# class Assign(AppBase):
 class Assign(Framework):
   """Root class for Assign application"""
 
@@ -56,7 +53,7 @@ class Assign(Framework):
                            ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc')]),
                            (),
                            ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
-                           ("Modify Assignments", self.showModifyAssignmentModule, [('shortcut', 'ma')]),
+                           ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
                            ("Residue Information", self.showResidueInformation, [('shortcut', 'ri')]),
                           ])
     self.addApplicationMenuSpec(menuSpec)
@@ -119,7 +116,7 @@ class Assign(Framework):
     if hasattr(self, 'backboneModule'):
       return
 
-    self.backboneModule = BackboneAssignmentModule(self, self.project)
+    self.backboneModule = BackboneAssignmentModule(self)
 
     mainWindow = self.ui.mainWindow
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
@@ -151,11 +148,11 @@ class Assign(Framework):
 
 
   def showPeakAssigner(self, position='bottom', relativeTo=None):
-    """Displays assignment module."""
+    """Displays peak assignment module."""
     from ccpn.ui.gui.modules.PeakAssigner import PeakAssigner
 
     mainWindow = self.ui.mainWindow
-    self.assignmentModule = PeakAssigner(self, self.project, self.current.peaks)
+    self.assignmentModule = PeakAssigner(mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentModule()")
     self.project._logger.info("application.showAssignmentModule()")
@@ -177,21 +174,17 @@ class Assign(Framework):
     self.project._logger.info("application.showResidueInformation()")
 
 
-  def showModifyAssignmentModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
-    from ccpn.AnalysisAssign.modules.ModifyAssignmentModule import ModifyAssignmentModule
+  def showAssignmentInspectorModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
+    from ccpn.AnalysisAssign.modules.AssignmentInspectorModule import AssignmentInspectorModule
 
     if not nmrAtom and len(self.project.nmrAtoms) == 0:
-      self.project._logger.warn('No NmrAtom selected or defined. The Modify Assignments Module requires an NmrAtom to launch')
-      MessageDialog.showWarning('No NmrAtom selected or defined.',
-                                'The Modify Assignments Module requires an NmrAtom to launch')
-      return
-
-    # if nmrAtom is not None:
-    #   self.current.nmrAtom = nmrAtom
-    # if self.current.nmrAtom is None:
-    #   self.current.nmrAtom = self.project.nmrAtoms[0]
-    # print('>>', self.current.nmrAtom)
+      self.project._logger.warn('No NmrAtom selected or defined. The Modify Assignments Module requires an NmrAtom to be functional')
+      #MessageDialog.showWarning('No NmrAtom selected or defined.',
+      #                          'The Modify Assignments Module requires an NmrAtom to be functional')
+      #return
 
     mainWindow = self.ui.mainWindow
-    self.modifyAssignmentsModule = ModifyAssignmentModule(mainWindow.moduleArea, self.project)
-    mainWindow.moduleArea.addModule(self.modifyAssignmentsModule, position=position, relativeTo=relativeTo)
+    self.assignmentInspectorModule = AssignmentInspectorModule(mainWindow.moduleArea)
+    mainWindow.moduleArea.addModule(self.assignmentInspectorModule, position=position, relativeTo=relativeTo)
+    mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentInspectorModule()")
+    self.project._logger.info("application.showAssignmentInspectorModule()")

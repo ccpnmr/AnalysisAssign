@@ -46,38 +46,48 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
+from ccpn.ui.gui.widgets.Frame import Frame
 
+from ccpn.util.Logging import getLogger
 
+logger = getLogger()
 
 class BackboneAssignmentModule(CcpnModule):
 
   includeSettingsWidget = True
+  maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+  settingsOnTop = True
 
-  def __init__(self, parent, project):
+  def __init__(self, parent):
 
-    super(BackboneAssignmentModule, self).__init__(parent=None, name='Backbone Assignment', logger=project._logger)
+    super(BackboneAssignmentModule, self).__init__(parent=None, name='Backbone Assignment')
+    # project, current, application and mainWindow are inherited from CcpnModule
 
-    self.project = project
-    self.current = project._appBase.current
     self.numberOfMatches = 5
-    self.nmrChains = project.nmrChains
-    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project, callback=self._startAssignment)
-    self.layout.addWidget(self.nmrResidueTable, 0, 0, 1, 3)
+    self.nmrChains = self.project.nmrChains
+    self.nmrResidueTable = NmrResidueTable(self.mainWidget, self.project, callback=self._startAssignment)
     self.parent = parent
 
+    ### Settings
 
-    # place button for settings widget and add widgets to settings widget
-    self.placeSettingsButton(buttonParent=self.nmrResidueTable, buttonGrid=(0, 5))
-    modules = [display.pid for display in project.spectrumDisplays]
+    row = 0
+    # Chemical shift list selection
+    self.chemicalShiftListLabel = Label(self.settingsWidget, text='ChemicalShiftList:', grid=(row, 0))
+    self.chemicalShiftListPulldown = PulldownList(self.settingsWidget, grid=(row,1), vAlign='top',
+                                                  callback=self._setupShiftDicts,
+                                                  texts=[shiftlist.pid for shiftlist in self.project.chemicalShiftLists]
+                                                  )
+    # Match module selection
+    row += 1
+    modules = [display.pid for display in self.project.spectrumDisplays]
     modules.insert(0, '') # just so that can select proper items (list only updated when pulldown selection changed)
-    modulesLabel = Label(self.settingsWidget, text="Selected Modules", grid=(1, 0))
-    self.modulePulldown = PulldownList(self.settingsWidget, grid=(2, 0), callback=self._selectMatchModule)
-    self.modulePulldown.setData(modules)
-    self.moduleList = ListWidget(self.settingsWidget, grid=(3, 0))
-    chemicalShiftListLabel = Label(self.settingsWidget, text='Chemical Shift List', grid=(1, 1))
-    self.chemicalShiftListPulldown = PulldownList(self.settingsWidget, grid=(2, 1), callback=self._setupShiftDicts)
-    self.chemicalShiftListPulldown.setData([shiftlist.pid for shiftlist in project.chemicalShiftLists])
-
+    self.modulesLabel = Label(self.settingsWidget, text="Match module(s):", grid=(row, 0), vAlign='top')
+    self.modulePulldown = PulldownList(self.settingsWidget, grid=(row, 1), vAlign='top',
+                                       callback=self._selectMatchModule,
+                                       texts=modules)
+    row += 1
+    self.moduleList = ListWidget(self.settingsWidget, grid=(row,1), vAlign='top')
+    self.moduleList.setFixedHeight(80)
 
     # register notifiers for updating of pulldown lists and NmrResidueTable
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
@@ -92,7 +102,7 @@ class BackboneAssignmentModule(CcpnModule):
     response to creation, deletion and changes to NmrChain objects.
     """
     if not nmrChain:
-      self.project._logger.warn('No NmrChain specified')
+      logger.warn('No NmrChain specified')
       return
 
     self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
@@ -103,7 +113,7 @@ class BackboneAssignmentModule(CcpnModule):
     response to creation, deletion and changes to NmrChain objects.
     """
     if not nmrChain:
-      self.project._logger.warn('No NmrChain specified')
+      logger.warn('No NmrChain specified')
       return
 
     self.nmrResidueTable.nmrResidueTable.objectLists = self.project.nmrChains
@@ -116,7 +126,7 @@ class BackboneAssignmentModule(CcpnModule):
     """
 
     if not nmrResidue:
-      self.project._logger.warn('No NmrResidue specified')
+      logger.warn('No NmrResidue specified')
       return
 
     if nmrResidue == self.current.nmrResidue:
@@ -146,7 +156,7 @@ class BackboneAssignmentModule(CcpnModule):
     inside the module.
     """
     if not nmrResidue:
-      self.project._logger.warn('No NmrResidue specified')
+      logger.warn('No NmrResidue specified')
       return
 
     self.project._startFunctionCommandBlock('_startAssignment', nmrResidue)
@@ -179,7 +189,7 @@ class BackboneAssignmentModule(CcpnModule):
     """
 
     if not nmrResidue:
-      self.project._logger.warn('No NmrResidue specified')
+      logger.warn('No NmrResidue specified')
       return
 
     self.project._startFunctionCommandBlock('_navigateTo', nmrResidue, strip)
@@ -227,7 +237,7 @@ class BackboneAssignmentModule(CcpnModule):
 
       assignMatrix = getNmrResidueMatches(queryShifts, matchShifts, 'averageQScore')
       if not assignMatrix.values():
-        self.project._logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
+        logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
         return
       self._createMatchStrips(assignMatrix)
 
@@ -248,11 +258,11 @@ class BackboneAssignmentModule(CcpnModule):
     navigate strip position to position specified by nmrResidue and set spinSystemLabel to nmrResidue id
     """
     if not nmrResidue:
-      self.project._logger.warn('No NmrResidue specified')
+      logger.warn('No NmrResidue specified')
       return
 
     if not strip:
-      self.project._logger.warn('No Strip specified')
+      logger.warn('No Strip specified')
       return
 
     navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default']*len(strip.axisCodes))
@@ -263,11 +273,11 @@ class BackboneAssignmentModule(CcpnModule):
     Centre y-axis of strip based on chemical shifts of from NmrResidue.nmrAtoms
     """
     if not nmrResidue:
-      self.project._logger.warn('No NmrResidue specified')
+      logger.warn('No NmrResidue specified')
       return
 
     if not strip:
-      self.project._logger.warn('No Strip specified')
+      logger.warn('No Strip specified')
       return
 
     yShifts = matchAxesAndNmrAtoms(strip, nmrResidue.nmrAtoms)[strip.axisOrder[1]]
@@ -302,7 +312,7 @@ class BackboneAssignmentModule(CcpnModule):
     in the assignMatrix.
     """
     if not assignMatrix:
-      self.project._logger.warn('No assignment matrix specified')
+      logger.warn('No assignment matrix specified')
       return
 
     # Assignment score has format {score: nmrResidue} where score is a float

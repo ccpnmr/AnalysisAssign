@@ -56,7 +56,7 @@ class PickAndAssignModule(CcpnModule, Base):
 
 
     # place settings toggle butotn and add widgets to settings layout.
-    self.settingsButton = self.placeSettingsButton(self.nmrResidueTable, buttonGrid=(0, 5))
+    #self.settingsButton = self.placeSettingsButton(self.nmrResidueTable, buttonGrid=(0, 5))
     displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
     self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
     self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])

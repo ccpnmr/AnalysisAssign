@@ -1,6 +1,6 @@
-"""This file contains ModifyAssignmentModule class
+"""This file contains AssignmentInspectorModule class
 
-intial version by Simon;
+derived from ModifyAssignmentModule by Simon;
 extensively modified by Geerten 1-9/12/2016:
 - intialisation with 'empty' settings possible,
 - now responsive to current.nmrResidues
@@ -26,20 +26,18 @@ __version__ = "$Revision: 9605 $"
 # Start of code
 #=========================================================================================
 
-
-from ccpn.ui.gui.widgets.Base import Base
+from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column
-from ccpn.ui.gui.modules.PeakTable import PeakListSimple
 from ccpn.util.Logging import getLogger
 
 logger = getLogger()
 
 from ccpn.ui.gui.modules.peakUtils import getPeakPosition, getPeakAnnotation
 
-class ModifyAssignmentModule(CcpnModule):
+class AssignmentInspectorModule(CcpnModule):
   """
   This Module allows inspection of the NmrAtoms of a selected NmrResidue
   It responds to current.nmrResidues, taking the last added residue to this list
@@ -49,37 +47,57 @@ class ModifyAssignmentModule(CcpnModule):
   """
   ALL = '<all>'
 
-  def __init__(self, parent=None, project=None, **kw):
+  # overide in specific module implementations
+  includeSettingsWidget = False
+  maxSettingsState = 3  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+  settingsOnTop = True
 
-    CcpnModule.__init__(self, parent=parent, name='Modify Assignment')
-    #Base.__init__(self, **kw)
+  def __init__(self, parent=None):
 
-    self.project = project
-    self.current = project._appBase.current
-    self.sampledDims = {}
-    self.pids = []  # list of currently displayed NmrAtom pids + <all>
+    CcpnModule.__init__(self, parent=parent, name='Assignment Inspector')
 
-    #assignedPeaksLabel = Label(self, '', grid=(0, 0))
-    #self.mainWidget.layout().setSpacing(0)
-    #self.mainWidget.layout().setContentsMargins(0,0,0,0)
+    # inherited from CcpnModule:
+    # self.application, self.current, self.project, self.mainWindow
 
-    gridLine = 0
-    self.nmrAtomLabel = Label(self.mainWidget, 'NmrAtom(s):', grid=(gridLine, 0), gridSpan=(1, 1), vAlign='top')
-    self.peaksLabel = Label(self.mainWidget, 'Assigned peaks of selected NmrAtom:', grid=(gridLine, 1), gridSpan=(1, 1))
-    gridLine += 1
+    self.sampledDims = {} #GWV: not sure what this is supposed to do
+    self.ids = []  # list of currently displayed NmrAtom ids + <all>
 
-    self.attachedNmrAtomsList = ListWidget(self.mainWidget, grid=(gridLine, 0), gridSpan=(1, 1), vAlign='top',
-                                           callback=self._updatePeakTableCallback, contextMenu=False)
-    self.attachedNmrAtomsList.setFixedWidth(120)
-    #gridLine += 1
+    policies = dict(vAlign='top')
 
-    self.assignedPeaksTable = ObjectTable(self.mainWidget, self.getColumns(), selectionCallback=self.setCurrentPeak,
-                              objects=[], grid=(gridLine, 1), gridSpan=(1, 5))
+    # Frame-1: NmrAtoms
+    width = 130
+    self.frame1 = Frame(self.mainWidget, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain')
+    self.frame1.setFixedWidth(width)
+    self.nmrAtomLabel = Label(self.frame1, 'NmrAtom(s):', bold=True,
+                              grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
+
+    self.attachedNmrAtomsList = ListWidget(self.frame1,
+                                           callback=self._updatePeakTableCallback, contextMenu=False,
+                                           grid=(1, 0), gridSpan=(1, 1), **policies
+                                           )
+    self.attachedNmrAtomsList.setFixedWidth(width-2)
+
+
+    # Frame-2: peaks
+    self.frame2 = Frame(self.mainWidget, grid=(0,1), gridSpan=(1,5), **policies, fShape='styledPanel', fShadow='plain')
+    self.peaksLabel = Label(self.frame2, 'Peaks assigned to NmrAtom(s):', bold=True,
+                            grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
+    self.assignedPeaksTable = ObjectTable(self.frame2, self.getColumns(),
+                                          selectionCallback=self._setCurrentPeak,
+                                          actionCallback=self._navigateToPeak,
+                                          objects=[], autoResize=True,
+                                          grid=(1, 0), gridSpan=(1, 5), **policies
+                                          )
+    #self.attachedNmrAtomsList.setFixedHeight(200)
+    #self.assignedPeaksTable.setFixedHeight(200)
 
     self.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
     # update if current.nmrResidue is defined
     if self.current.nmrResidue is not None:
       self._updateModuleCallback([self.current.nmrResidue])
+
+  def __del__(self):
+    self.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
 
   def _updateModuleCallback(self, nmrResidues):
     """
@@ -89,12 +107,12 @@ class ModifyAssignmentModule(CcpnModule):
     self.attachedNmrAtomsList.clear()
     if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
       # get the pids and append <all>
-      self.pids = [atm.pid for atm in nmrResidues[-1].nmrAtoms] + [self.ALL]
-      self.attachedNmrAtomsList.addItems(self.pids)
+      self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [self.ALL]
+      self.attachedNmrAtomsList.addItems(self.ids)
       # clear and fill the peak table
       self.assignedPeaksTable.setObjects([])
-      if self.current.nmrAtom is not None and self.current.nmrAtom.pid in self.pids:
-        self._updatePeakTable(self.current.nmrAtom.pid)
+      if self.current.nmrAtom is not None and self.current.nmrAtom.id in self.ids:
+        self._updatePeakTable(self.current.nmrAtom.id)
       else:
         self._updatePeakTable(self.ALL)
     else:
@@ -110,29 +128,33 @@ class ModifyAssignmentModule(CcpnModule):
     else:
       logger.error('No valid item selected')
 
-  def _updatePeakTable(self, pid):
+  def _updatePeakTable(self, id):
     """
-    Update peak table depending on value of pid;
+    Update peak table depending on value of id;
     clears peakTable if pid is None
     """
-    if pid is None:
+    if id is None:
       self.assignedPeaksTable.setObjects([])
       return
 
-    if pid == self.ALL:
+    if id == self.ALL:
       peaks = list(set([pk for nmrAtom in self.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
       self.assignedPeaksTable.setObjects(peaks)
       # highlight current.nmrAtom in the list widget
-      self.attachedNmrAtomsList.setCurrentRow(self.pids.index(pid))
+      self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
+      self.peaksLabel.setText('Assigned peaks of NmrAtoms(s): %s' % self.ALL)
     else:
+      pid = 'NA:'+ id
       nmrAtom = self.project.getByPid(pid)
+      #print('>>', pid, nmrAtom)
       if nmrAtom is not None:
         self.assignedPeaksTable.setObjects(nmrAtom.assignedPeaks)
         # highlight current.nmrAtom in the list widget
-        self.attachedNmrAtomsList.setCurrentRow(self.pids.index(pid))
+        self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
+        self.peaksLabel.setText('Assigned peaks of NmrAtom: %s' % nmrAtom.id)
 
   def getColumns(self):
-
+    "get collumns for intialisation of table"
     columns = [Column('Peak', 'id')]
     tipTexts = []
     # get the maxmimum number of dimensions from all spectra in the project
@@ -143,9 +165,6 @@ class ModifyAssignmentModule(CcpnModule):
       c = Column('Assign F%d' % j, lambda pk, dim=i:getPeakAnnotation(pk, dim))
       columns.append(c)
       tipTexts.append('NmrAtom assignments of peak in dimension %d' % j)
-
-    for i in range(numDim):
-      j = i + 1
 
       sampledDim = self.sampledDims.get(i)
       if sampledDim:
@@ -160,11 +179,31 @@ class ModifyAssignmentModule(CcpnModule):
       c = Column(text, lambda pk, dim=i, unit=unit:getPeakPosition(pk, dim, unit))
       columns.append(c)
       tipTexts.append(tipText)
+
     return columns
 
-  def setCurrentPeak(self, peak, row, col):
+  def _setCurrentPeak(self, peak, row, col):
+    """
+    PeakTable select callback
+    """
     if peak is not None:
       self.current.peak = peak
 
-  def __del__(self):
-    self.current.unRegisterNotify(self.updateModule, 'nmrAtoms')
+  def _navigateToPeak(self, peak, row, col):
+    """
+    PeakTable double-click callback; navigate in to peak in current.strip
+    """
+    from ccpn.ui.gui.lib.Strip import navigateToPositionInStrip
+    #print('>peakTableDoubleClick>', peak)
+    if peak is not None and self.current.strip is not None:
+      self.current.peak = peak
+      navigateToPositionInStrip(strip=self.current.strip, positions=peak.position)
+
+  def _getPeakHeight(self, peak):
+    """
+    Returns the height of the specified peak as formatted string or 'None' if undefined
+    """
+    if peak.height:
+      return '%7.2E' % float(peak.height)
+    else:
+      return '%s' % None
