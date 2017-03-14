@@ -22,32 +22,21 @@ __version__ = "$Revision$"
 # Start of code
 #=========================================================================================
 
-from collections import OrderedDict
-from functools import partial
-
 import typing
+from collections import OrderedDict
 
 from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
-
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
-
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms
 from ccpn.ui.gui.lib.Window import markPositions
-
-
-
-from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.modules.GuiStrip import GuiStrip
-
-from ccpn.ui.gui.widgets.Button import Button
-from ccpn.ui.gui.widgets.PulldownList import PulldownList
-from ccpn.ui.gui.widgets.Module import CcpnModule
+from ccpn.ui.gui.modules.CcpnModule import CcpnModule
+from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
-from ccpn.ui.gui.widgets.Frame import Frame
-
+from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.util.Logging import getLogger
 
 logger = getLogger()

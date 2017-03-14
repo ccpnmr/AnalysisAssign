@@ -29,11 +29,8 @@ __version__ = "$Revision$"
 # from ccpn.framework.lib.SvnRevision import applicationVersion
 
 from ccpn.framework.Framework import Framework
-# from ccpn.ui.gui.modules import GuiStripNd
-# from ccpn.ui.gui.modules import GuiSpectrumDisplay
-# from ccpn.ui.gui.modules import GuiStripDisplayNd
+from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets import MessageDialog
-from ccpn.ui.gui.widgets.Module import CcpnModule
 
 
 class Assign(Framework):

@@ -23,21 +23,18 @@ __version__ = "$Revision$"
 #=========================================================================================
 from PyQt4 import QtGui
 
-from ccpn.ui.gui.widgets.Button import Button
+from ccpn.ui.gui.lib import PeakList
+from ccpn.ui.gui.lib import Strip
+from ccpn.ui.gui.modules.CcpnModule import CcpnModule
+from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.widgets.Base import Base
+from ccpn.ui.gui.widgets.Button import Button
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
-from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.DoubleSpinbox import DoubleSpinbox
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
-
-from ccpn.ui.gui.lib import PeakList
-from ccpn.ui.gui.lib import Strip
-
-
-from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 
 class PickAndAssignModule(CcpnModule, Base):
 

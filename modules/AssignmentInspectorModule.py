@@ -26,8 +26,8 @@ __version__ = "$Revision: 9605 $"
 # Start of code
 #=========================================================================================
 
+from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Frame import Frame
-from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column

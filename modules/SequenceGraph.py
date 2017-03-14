@@ -24,23 +24,20 @@ __version__ = "$Revision: 9395 $"
 
 import json
 import typing
-import numpy as np
 
+import numpy as np
 from PyQt4 import QtGui, QtCore
 
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
-from ccpn.core.Project import Project
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
-from ccpn.ui.gui.widgets.Button import Button
+from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
+from ccpn.ui.gui.guiSettings import textFont, textFontBold
+from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.Label import Label
-from ccpn.ui.gui.widgets.Module import CcpnModule
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
-from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
-
-from ccpn.ui.gui.guiSettings import textFont, textFontBold
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
