@@ -285,7 +285,7 @@ class SequenceGraph(CcpnModule):
     self.nmrChainPulldown.select('NC:@-')
     # self.setNmrChainDisplay('NC:@-')
     # finally:
-    #   self._endCommandEchoBlock()
+    #   self.project._endCommandEchoBlock()
 
   def addNmrChainToPulldown(self, nmrChain):
     self.nmrChainPulldown.addItem(nmrChain.pid)
