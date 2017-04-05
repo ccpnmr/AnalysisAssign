@@ -154,7 +154,7 @@ class BackboneAssignmentModule(CcpnModule):
       logger.warn('No NmrResidue specified')
       return
 
-    self.project._startFunctionCommandBlock('_startAssignment', nmrResidue)
+    self.project._startCommandEchoBlock('_startAssignment', nmrResidue)
     try:
       self._setupShiftDicts()
 
@@ -171,7 +171,7 @@ class BackboneAssignmentModule(CcpnModule):
       self._navigateTo(nmrResidue, row, col)
 
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 
   def _navigateTo(self, nmrResidue:NmrResidue, row:int=None, col:int=None, strip:GuiStrip=None):
@@ -187,7 +187,7 @@ class BackboneAssignmentModule(CcpnModule):
       logger.warn('No NmrResidue specified')
       return
 
-    self.project._startFunctionCommandBlock('_navigateTo', nmrResidue, strip)
+    self.project._startCommandEchoBlock('_navigateTo', nmrResidue, strip)
     try:
       if self.project._appBase.ui.mainWindow is not None:
         mainWindow = self.project._appBase.ui.mainWindow
@@ -244,7 +244,7 @@ class BackboneAssignmentModule(CcpnModule):
         else:
           self.sequenceGraph.setNmrChainDisplay(nmrResidue.nmrChain.pid)
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 
 

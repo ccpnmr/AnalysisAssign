@@ -301,7 +301,7 @@ class AtomSelector(CcpnModule):
               nmrAtoms = peak.dimensionNmrAtoms[index] + [newNmrAtom]
               peak.assignDimension(axisCode, nmrAtoms)
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
       self._returnButtonsToNormal()
 
 
