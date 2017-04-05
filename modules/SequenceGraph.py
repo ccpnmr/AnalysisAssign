@@ -270,7 +270,7 @@ class SequenceGraph(CcpnModule):
         nmrChain = self.project.getByPid(nmrChainPid)
         self._showBackboneAssignments(nmrChain)
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 
   def resetSequenceGraph(self):
@@ -279,7 +279,7 @@ class SequenceGraph(CcpnModule):
     self.nmrChainPulldown.select('NC:@-')
     # self.setNmrChainDisplay('NC:@-')
     # finally:
-    #   self.project._appBase._endCommandBlock()
+    #   self._endCommandEchoBlock()
 
   def addNmrChainToPulldown(self, nmrChain):
     self.nmrChainPulldown.addItem(nmrChain.pid)
@@ -479,7 +479,7 @@ class SequenceGraph(CcpnModule):
     self.setNmrChainDisplay(self.current.nmrChain.pid)
 
   def _showBackboneAssignments(self, nmrChain):
-    self.project._startFunctionCommandBlock('_showBackboneAssignments', nmrChain)
+    self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
     try:
       if self.project._appBase.colourScheme == 'dark':
         lineColour = '#f7ffff'
@@ -502,7 +502,7 @@ class SequenceGraph(CcpnModule):
           self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
       self._getAssignmentsFromSpectra()
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom, colour:str, width:float, displacement:float, style:str=None):

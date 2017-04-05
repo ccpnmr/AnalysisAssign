@@ -148,7 +148,7 @@ class PickAndAssignModule(CcpnModule, Base):
               if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
                 peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 
   def _restrictedPick(self, nmrResidue=None):
@@ -185,7 +185,7 @@ class PickAndAssignModule(CcpnModule, Base):
                   for peakItem in peakItems:
                     peakItem.isSelected = True
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 
   def _goToPositionInModules(self, nmrResidue=None, row=None, col=None):
@@ -210,7 +210,7 @@ class PickAndAssignModule(CcpnModule, Base):
         Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
       self.current.nmrResidue = nmrResidue
     finally:
-      self.project._appBase._endCommandBlock()
+      self._endCommandEchoBlock()
 
 class SpectrumSelectionWidget(QtGui.QWidget, Base):
 
