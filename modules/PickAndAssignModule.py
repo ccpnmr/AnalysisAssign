@@ -14,9 +14,8 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 #=========================================================================================
 # Last code modification:
 #=========================================================================================
-__author__ = "$Author$"
-__date__ = "$Date$"
-__version__ = "$Revision$"
+__author__ = "$Author: Geerten Vuister $"
+__date__ = "$Date: 2017-04-06 21:07:01 +0100 (Thu, April 06, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -36,24 +35,23 @@ from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 
-class PickAndAssignModule(CcpnModule, Base):
+class PickAndAssignModule(CcpnModule):
 
   includeSettingsWidget = True
+  maxSettingsState = 2
 
   def __init__(self, parent=None, project=None, name='Pick And Assign', **kw):
 
-    CcpnModule.__init__(self, parent=None, name=name)
-    Base.__init__(self, **kw)
-    self.project = project
-    self.current = project._appBase.current
-    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self._goToPositionInModules, grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
-    self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick', callback=self._restrictedPick, grid=(0, 2))
-    self.assignSelectedButton = Button(self.nmrResidueTable, text='Assign Selected', callback=self._assignSelected, grid=(0, 3))
-    self.refreshButton = Button(self.nmrResidueTable, text='Refresh', callback=self._refresh, grid=(0, 4))
+    CcpnModule.__init__(self, parent=parent, name=name)
 
+    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self.goToPositionInModules, grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
+    self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick',
+                                       callback=self.restrictedPick, grid=(0, 2), hAlign='r')
+    self.restrictedAssignButton = Button(self.nmrResidueTable, text='Assign Selected',
+                                       callback=self.assignSelected, grid=(0, 3), hAlign='r')
+    self.restrictedPickAndAssignButton = Button(self.nmrResidueTable, text='Restricted Pick and Assign',
+                                       callback=self.restrictedPickAndAssign, grid=(0, 4), hAlign='r')
 
-    # place settings toggle butotn and add widgets to settings layout.
-    #self.settingsButton = self.placeSettingsButton(self.nmrResidueTable, buttonGrid=(0, 5))
     displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
     self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
     self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])
@@ -64,28 +62,21 @@ class PickAndAssignModule(CcpnModule, Base):
     self.spectrumSelectionWidget = SpectrumSelectionWidget(self.scrollArea, project, self.displayList)
     self.scrollArea.setWidget(self.spectrumSelectionWidget)
     self.displayList.removeItem = self._removeListWidgetItem
-    self.refreshButton.hide()
-    self.__registerNotifiers()
 
+    self.__registerNotifiers()
 
   def __registerNotifiers(self):
     # wb104, 1 Nov 2016: not sure why the first four notifiers are as specified,
     # the widget is to do with displays not NmrResidues, and it breaks the function
     # because the argument would be an NmrResidue, not an item
-    #self.project.registerNotifier('NmrResidue', 'create', self._updateListWidget)
-    #self.project.registerNotifier('NmrResidue', 'delete', self._updateListWidget)
-    #self.project.registerNotifier('NmrResidue', 'modify', self._updateListWidget)
-    #self.project.registerNotifier('NmrResidue', 'rename', self._updateListWidget)
+    # GWV: 5/4/2017 agree and removed
+    # GWV: should NmrResidueTable not take care of this??
     self.project.registerNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
 
   def __unRegisterNotifiers(self):
-    #self.project.unRegisterNotifier('NmrResidue', 'create', self._updateListWidget)
-    #self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateListWidget)
-    #self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateListWidget)
-    #self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateListWidget)
     self.project.unRegisterNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
@@ -109,7 +100,6 @@ class PickAndAssignModule(CcpnModule, Base):
     self.nmrResidueTable.nmrResidueTable.updateTable()
     self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
 
-
   def _removeListWidgetItem(self):
     self.displayList.takeItem(self.displayList.currentRow())
 
@@ -126,9 +116,10 @@ class PickAndAssignModule(CcpnModule, Base):
   def _refresh(self):
     pass
 
-  def _assignSelected(self):
+  def assignSelected(self):
+    "Assign current.peaks on the bases of nmrAtoms of current.nmrResidue"
 
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule._assignSelected()')
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule.assignSelected()')
     try:
       shiftDict = {}
       for atom in self.current.nmrResidue.nmrAtoms:
@@ -150,10 +141,10 @@ class PickAndAssignModule(CcpnModule, Base):
     finally:
       self.project._appBase._endCommandBlock()
 
-
-  def _restrictedPick(self, nmrResidue=None):
+  def restrictedPick(self, nmrResidue=None):
     """
     Routine refactored in revision 9381.
+ 
     Takes an NmrResidue feeds it into restricted pick lib functions and picks peaks for all
     spectrum displays specified in the settings tab. Pick uses X and Z axes for each spectrumView as
     centre points with tolerances and the y as the long axis to pick the whole region.
@@ -164,7 +155,40 @@ class PickAndAssignModule(CcpnModule, Base):
       print('No current nmrResidue')
       return
 
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule._restrictedPick(nmrResidue)', nmrResidue=nmrResidue)
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
+                                             nmrResidue=nmrResidue)
+    try:
+      for module in self.project.spectrumDisplays:
+        if len(module.axisCodes) > 2:
+          for spectrumView in module.strips[0].spectrumViews:
+            visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
+                                    if peakListView.isVisible()]
+            if len(visiblePeakListViews) == 0:
+              continue
+            else:
+              peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
+                                                        axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
+              self.current.peaks = peaks
+    finally:
+      self.project._appBase._endCommandBlock()
+
+  def restrictedPickAndAssign(self, nmrResidue=None):
+    """
+    Routine refactored in revision 9381.
+    Functionality changed for beta2 to include the Assign part
+     
+    Takes an NmrResidue feeds it into restricted pick lib functions and picks peaks for all
+    spectrum displays specified in the settings tab. Pick uses X and Z axes for each spectrumView as
+    centre points with tolerances and the y as the long axis to pick the whole region.
+    Calls _assignSelected to assign
+    """
+    if not nmrResidue:
+      nmrResidue = self.current.nmrResidue
+    elif not self.current.nmrResidue:
+      print('No current nmrResidue')
+      return
+
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)', nmrResidue=nmrResidue)
     try:
       for module in self.project.spectrumDisplays:
         if len(module.axisCodes) > 2:
@@ -176,41 +200,36 @@ class PickAndAssignModule(CcpnModule, Base):
             else:
               peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-              #TODO: Lines below here to be removed when a notifier handles display of newly picked peaks
-              if len(peaks) > 0:
-                for strip in module.strips:
-                  strip.showPeaks(peakList)
-                for peakListView in module.peakListViews:
-                  peakItems = [peakListView.peakItems[peak] for peak in peaks if peak in peakListView.peakItems.keys()]
-                  for peakItem in peakItems:
-                    peakItem.isSelected = True
+              self.current.peaks = peaks
+              self._assignSelected()
     finally:
       self.project._appBase._endCommandBlock()
 
-
-  def _goToPositionInModules(self, nmrResidue=None, row=None, col=None):
-    # DANGER: nmrResidue allowed to be None but is assumed not to be None below
+  def goToPositionInModules(self, nmrResidue=None, row=None, col=None):
+    "Go to the positions defined my NmrAtoms of nmrResidue in the active displays"
 
     activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule._goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule.goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
     try:
-      if self.project._appBase.ui.mainWindow is not None:
-        mainWindow = self.project._appBase.ui.mainWindow
-      else:
-        mainWindow = self.project._appBase._mainWindow
-      mainWindow.clearMarks()
-      for display in activeDisplays:
-        strip = display.strips[0]
-        n = len(strip.axisCodes)
-        #Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default', 'full', ''])
-        if n == 2:
-          widths = ['default', 'default']
+      if nmrResidue is not None:
+        if self.project._appBase.ui.mainWindow is not None:
+          mainWindow = self.project._appBase.ui.mainWindow
         else:
-          widths = ['default', 'full'] + (n-2)*['']
-        Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
-      self.current.nmrResidue = nmrResidue
+          mainWindow = self.project._appBase._mainWindow
+        mainWindow.clearMarks()
+        for display in activeDisplays:
+          strip = display.strips[0]
+          n = len(strip.axisCodes)
+          #Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default', 'full', ''])
+          if n == 2:
+            widths = ['default', 'default']
+          else:
+            widths = ['default', 'full'] + (n-2)*['']
+          Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
+        self.current.nmrResidue = nmrResidue
     finally:
       self.project._appBase._endCommandBlock()
+
 
 class SpectrumSelectionWidget(QtGui.QWidget, Base):
 

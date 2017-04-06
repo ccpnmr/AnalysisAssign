@@ -14,9 +14,8 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 #=========================================================================================
 # Last code modification:
 #=========================================================================================
-__author__ = "$Author$"
-__date__ = "$Date$"
-__version__ = "$Revision$"
+__author__ = "$Author: Geerten Vuister $"
+__date__ = "$Date: 2017-04-06 21:07:01 +0100 (Thu, April 06, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -45,69 +44,71 @@ class AtomSelector(CcpnModule):
   """
   Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
   to peak dimensions
+  Responds to current.nmrResidue and current.peaks
   """
+  includeSettingsWidget = True
+  maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+  settingsOnTop = True
+
   def __init__(self, parent, project=None):
-    CcpnModule.__init__(self, name='Atom Selector')
-    self.orientation = 'vertical'
-    self.moveLabel = False
-    self.pickAndAssignWidget = Widget(self, setLayout=True)
-    # self.pickAndAssignWidget.setMaximumSize(500, 300)
-    self.parent = parent
+    CcpnModule.__init__(self, parent=parent, name='Atom Selector')
 
-    if self.parent is not None:
-      self.pythonConsole = self.parent.pythonConsole
-    else:
-      self.pythonConsole = self._parent.pythonConsole
-
-    self.current = self.parent._appBase.current
-    self.project = project
     self.current.registerNotify(self._predictAssignments, 'peaks')
-    # self.current.registerNotify(self.predictAssignments, 'peaks')
-    # nmrResidueLabel = Label(self, 'Current NmrResidue', grid=(0, 0))
-    gridLine = -1
-    gridLine += 1
-    self.molTypeLabel = Label(self, 'Molecule Type', grid=(gridLine, 0))
-    self.molTypePulldown = PulldownList(self, grid=(gridLine, 1))
-    self.molTypePulldown.setData(['protein', 'DNA', 'RNA', 'carbohydrate', 'other'])
-    self.radioButton1 = RadioButton(self, grid=(gridLine, 2), hAlign='r', callback=self._createBackBoneButtons)
+    self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
+
+    # Settings
+    self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
+    self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=['protein', 'DNA', 'RNA', 'carbohydrate', 'other'])
+    self.radioButton1 = RadioButton(self.settingsWidget, grid=(0, 2), hAlign='r', callback=self._createBackBoneButtons)
     self.radioButton1.setChecked(True)
-    self.label1 = Label(self, 'Backbone', grid=(gridLine, 3), hAlign='l')
-    self.radioButton2 = RadioButton(self, grid=(gridLine, 4), hAlign='r', callback=self._createSideChainButtons)
-    self.label2 = Label(self, 'Side chain', grid=(gridLine, 5), hAlign='l')
-    # gridLine 1
+    self.label1 = Label(self.settingsWidget, 'Backbone', grid=(0, 3), hAlign='l')
+    self.radioButton2 = RadioButton(self.settingsWidget, grid=(0, 4), hAlign='r', callback=self._createSideChainButtons)
+    self.label2 = Label(self.settingsWidget, 'Side chain', grid=(0, 5), hAlign='l')
+    # gridLine 1; dummy line for spacing TODO: do this better
+    #gridLine += 1
+    #newLabel = Label(self, '', grid=(gridLine, 0))
+
+    gridLine = -1
+    # gridline 0: options
     gridLine += 1
-    newLabel = Label(self, '', grid=(gridLine, 0))
-    gridLine += 1
-    nmrResidueLabel = Label(self, 'Current NmrResidue:', grid=(gridLine, 0))
-    self.currentNmrResidueLabel = Label(self, grid=(gridLine, 1))
-    self.offsetLabel = Label(self, 'Offset:', grid=(gridLine, 2))
-    self.offsetSelector = PulldownList(self, grid=(gridLine, 3), callback=self._updateWidget)
-    self.offsetSelector.setData(['0', '-1', '+1'])
+    nmrResidueLabel = Label(self.mainWidget, 'Current NmrResidue:', grid=(gridLine, 0))
+    self.currentNmrResidueLabel = Label(self.mainWidget, grid=(gridLine, 1))
+
+    self.offsetLabel = Label(self.mainWidget, 'Offset:', grid=(gridLine, 2))
+    self.offsetSelector = PulldownList(self.mainWidget, grid=(gridLine, 3), texts = ['0', '-1', '+1'])
     self.offsetSelector.hide()
     self.offsetLabel.hide()
     # gridLine 2
     gridLine += 1
-    self.layout.addWidget(self.pickAndAssignWidget, gridLine, 0, 8, 8)
-    self.current.registerNotify(self._updateWidget, 'nmrResidues')
+    self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(8,8))
+    #self.mainWidget.layout.addWidget(self.pickAndAssignWidget, gridLine, 0, 8, 8)
+
     self.buttons = {}
-    
+
+    self._updateWidget()
+    self._predictAssignments(self.current.peaks)
+
   def _closeModule(self):
     self.current.unRegisterNotify(self._predictAssignments, 'peaks')
-    self.current.unRegisterNotify(self._updateWidget, 'nmrResidues')
+    self.current.unRegisterNotify(self._nmrResidueCallBack, 'nmrResidues')
     self.close()
 
-  def _updateWidget(self, nmrResidues=None):
-    if not nmrResidues and self.current.nmrResidue:
-      nmrResidues = [self.current.nmrResidue]
-    if nmrResidues and nmrResidues[0]:
-      self.currentNmrResidueLabel.setText(nmrResidues[0].id)
+  def _nmrResidueCallBack(self, nmrResidues=None):
+    "Callback if current.nmrResidue changes"
+    if nmrResidues is not None and self.current.nmrResidue:
+      self._updateWidget()
+
+  def _updateWidget(self):
+    "Update the widget to reflect the proper state"
+    if self.current.nmrResidue is not None:
+      self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+    else:
+      self.currentNmrResidueLabel.setText('')
     if self.radioButton1.isChecked():
       self._createBackBoneButtons()
     elif self.radioButton2.isChecked():
       self._createSideChainButtons()
-    else:
-      return
-
+    return
 
   def _createBackBoneButtons(self):
     self._cleanupPickAndAssignWidget()
@@ -292,19 +293,17 @@ class AtomSelector(CcpnModule):
               spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
               index = spectrumIndices[1]
               axisCode = peak.axisCodes[index]
-              nmrAtoms = peak.dimensionNmrAtoms[index] + [newNmrAtom]
+              nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
               peak.assignDimension(axisCode, nmrAtoms)
     finally:
       self.project._appBase._endCommandBlock()
       self._returnButtonsToNormal()
 
-
-
   def _returnButtonsToNormal(self):
     """
     Returns all buttons in Atom Selector to original colours and style.
     """
-    if self.parent._appBase.colourScheme == 'dark':
+    if self.application.colourScheme == 'dark':
       backgroundColour1 = '#535a83'
       backgroundColour2 = '#e4e15b'
     else:
@@ -317,7 +316,6 @@ class AtomSelector(CcpnModule):
           """Dock QPushButton { background-color: %s}
              Dock QPushButton::hover { background-color: %s}""" % (backgroundColour1, backgroundColour2)
         )
-
 
   def _predictAssignments(self, peaks:typing.List[Peak]):
     """
