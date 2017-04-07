@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-06 21:07:01 +0100 (Thu, April 06, 2017) $"
+__date__ = "$Date: 2017-04-07 14:05:12 +0100 (Fri, April 07, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -35,6 +35,9 @@ from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 
+from ccpn.util.Logging import getLogger
+logger = getLogger()
+
 class PickAndAssignModule(CcpnModule):
 
   includeSettingsWidget = True
@@ -44,13 +47,14 @@ class PickAndAssignModule(CcpnModule):
 
     CcpnModule.__init__(self, parent=parent, name=name)
 
-    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self.goToPositionInModules, grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
+    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self.goToPositionInModules,
+                                           grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
     self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick',
-                                       callback=self.restrictedPick, grid=(0, 2), hAlign='r')
-    self.restrictedAssignButton = Button(self.nmrResidueTable, text='Assign Selected',
-                                       callback=self.assignSelected, grid=(0, 3), hAlign='r')
+                                       callback=self.restrictedPick, grid=(0, 2))
+    self.assignSelectedButton = Button(self.nmrResidueTable, text='Assign Selected',
+                                       callback=self.assignSelected, grid=(0, 3))
     self.restrictedPickAndAssignButton = Button(self.nmrResidueTable, text='Restricted Pick and Assign',
-                                       callback=self.restrictedPickAndAssign, grid=(0, 4), hAlign='r')
+                                                callback=self.restrictedPickAndAssign, grid=(0, 4))
 
     displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
     self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
@@ -119,6 +123,14 @@ class PickAndAssignModule(CcpnModule):
   def assignSelected(self):
     "Assign current.peaks on the bases of nmrAtoms of current.nmrResidue"
 
+    if self.current.nmrResidue is None:
+      logger.error('Undefined nmrResidue; select one first before proceeding')
+      return
+
+    if len(self.current.peaks) == 0:
+      logger.error('Undefined peak(s); select one or more before proceeding')
+      return
+
     self.project._appBase._startCommandBlock('application.pickAndAssignModule.assignSelected()')
     try:
       shiftDict = {}
@@ -151,13 +163,15 @@ class PickAndAssignModule(CcpnModule):
     """
     if not nmrResidue:
       nmrResidue = self.current.nmrResidue
-    elif not self.current.nmrResidue:
-      print('No current nmrResidue')
+
+    if nmrResidue is None:
+      logger.error('Undefined nmrResidue; select one first before proceeding')
       return
 
     self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
                                              nmrResidue=nmrResidue)
     try:
+      peaks = []
       for module in self.project.spectrumDisplays:
         if len(module.axisCodes) > 2:
           for spectrumView in module.strips[0].spectrumViews:
@@ -166,21 +180,22 @@ class PickAndAssignModule(CcpnModule):
             if len(visiblePeakListViews) == 0:
               continue
             else:
-              peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
+              peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                         axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-              self.current.peaks = peaks
+              peaks = peaks + pks
+      self.current.peaks = peaks
     finally:
       self.project._appBase._endCommandBlock()
 
   def restrictedPickAndAssign(self, nmrResidue=None):
     """
-    Routine refactored in revision 9381.
-    Functionality changed for beta2 to include the Assign part
+    Functionality for beta2 to include the Assign part
      
     Takes an NmrResidue feeds it into restricted pick lib functions and picks peaks for all
     spectrum displays specified in the settings tab. Pick uses X and Z axes for each spectrumView as
     centre points with tolerances and the y as the long axis to pick the whole region.
-    Calls _assignSelected to assign
+    
+    Calls assignSelected to assign
     """
     if not nmrResidue:
       nmrResidue = self.current.nmrResidue
@@ -188,8 +203,10 @@ class PickAndAssignModule(CcpnModule):
       print('No current nmrResidue')
       return
 
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)', nmrResidue=nmrResidue)
+    self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)',
+                                              nmrResidue=nmrResidue)
     try:
+      peaks = []
       for module in self.project.spectrumDisplays:
         if len(module.axisCodes) > 2:
           for spectrumView in module.strips[0].spectrumViews:
@@ -198,10 +215,11 @@ class PickAndAssignModule(CcpnModule):
             if len(visiblePeakListViews) == 0:
               continue
             else:
-              peakList, peaks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
-                                               axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-              self.current.peaks = peaks
-              self._assignSelected()
+              peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
+                                                      axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
+              peaks = peaks + pks
+      self.current.peaks = peaks
+      self.assignSelected()
     finally:
       self.project._appBase._endCommandBlock()
 

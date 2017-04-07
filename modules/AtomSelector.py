@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-06 21:07:01 +0100 (Thu, April 06, 2017) $"
+__date__ = "$Date: 2017-04-07 14:05:12 +0100 (Fri, April 07, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -39,6 +39,8 @@ from ccpn.ui.gui.widgets.RadioButton import RadioButton
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 
+from ccpn.util.Logging import getLogger
+logger = getLogger()
 
 class AtomSelector(CcpnModule):
   """
@@ -64,23 +66,21 @@ class AtomSelector(CcpnModule):
     self.label1 = Label(self.settingsWidget, 'Backbone', grid=(0, 3), hAlign='l')
     self.radioButton2 = RadioButton(self.settingsWidget, grid=(0, 4), hAlign='r', callback=self._createSideChainButtons)
     self.label2 = Label(self.settingsWidget, 'Side chain', grid=(0, 5), hAlign='l')
-    # gridLine 1; dummy line for spacing TODO: do this better
-    #gridLine += 1
-    #newLabel = Label(self, '', grid=(gridLine, 0))
 
     gridLine = -1
-    # gridline 0: options
+    # gridline 0
     gridLine += 1
-    nmrResidueLabel = Label(self.mainWidget, 'Current NmrResidue:', grid=(gridLine, 0))
-    self.currentNmrResidueLabel = Label(self.mainWidget, grid=(gridLine, 1))
+    nmrResidueLabel = Label(self.mainWidget, 'Current NmrResidue:', grid=(gridLine, 0), vAlign='top')
+    self.currentNmrResidueLabel = Label(self.mainWidget, grid=(gridLine, 1), vAlign='top')
 
-    self.offsetLabel = Label(self.mainWidget, 'Offset:', grid=(gridLine, 2))
-    self.offsetSelector = PulldownList(self.mainWidget, grid=(gridLine, 3), texts = ['0', '-1', '+1'])
+    self.offsetLabel = Label(self.mainWidget, 'Offset:', grid=(gridLine, 2), vAlign='top')
+    self.offsetSelector = PulldownList(self.mainWidget, grid=(gridLine, 3), texts = ['0', '-1', '+1'], vAlign='top')
     self.offsetSelector.hide()
     self.offsetLabel.hide()
-    # gridLine 2
+
+    # gridLine 1
     gridLine += 1
-    self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(8,8))
+    self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(8,8), vAlign='top')
     #self.mainWidget.layout.addWidget(self.pickAndAssignWidget, gridLine, 0, 8, 8)
 
     self.buttons = {}
@@ -103,7 +103,8 @@ class AtomSelector(CcpnModule):
     if self.current.nmrResidue is not None:
       self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
     else:
-      self.currentNmrResidueLabel.setText('')
+      self.currentNmrResidueLabel.setText('<not-defined>')
+
     if self.radioButton1.isChecked():
       self._createBackBoneButtons()
     elif self.radioButton2.isChecked():
@@ -323,66 +324,76 @@ class AtomSelector(CcpnModule):
     that assignment prediction, green is very confident, orange is less confident.
     """
     self._returnButtonsToNormal()
-    if not self.current.nmrResidue or None in peaks:
+    if self.current.nmrResidue is None or len(peaks) == 0:
       return
 
-    else:
+    # leftover from SS
+    # if len(peaks) == 0:
+    #   for buttons in self.buttons.values():
+    #     for button in buttons:
+    #       button.clicked.connect(self._returnButtonsToNormal)
+    #   return
 
-      if len(peaks) == 0:
-        for buttons in self.buttons.values():
-          for button in buttons:
-            button.clicked.connect(self._returnButtonsToNormal)
+    if not peaksAreOnLine(peaks, 1):
+      logger.debug('peaksAreonLine=False')
+      return
 
-      else:
-        if peaksAreOnLine(peaks, 1):
-          types = set(peak.peakList.spectrum.experimentType for peak in peaks)
-          anyInterOnlyExperiments = any(isInterOnlyExpt(x) for x in types)
+    types = set(peak.peakList.spectrum.experimentType for peak in peaks)
+    anyInterOnlyExperiments = any(isInterOnlyExpt(x) for x in types)
 
-          for peak in peaks:
-            peakListViews = [peakListView for peakListView in self.project.peakListViews if peakListView.peakList == peak.peakList]
-            spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
-            isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
-            if self.radioButton1.isChecked():
-              predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True) for ccpCode in CCP_CODES]
-              refinedPreds = [[type[0][0][1], type[0][1]] for type in predictedAtomTypes if len(type) > 0]
-              atomPredictions = set()
-              for pred in refinedPreds:
-                if pred[1] > 90:
-                  atomPredictions.add(pred[0])
-              for atomPred in atomPredictions:
-                if atomPred == 'CB':
-                  if anyInterOnlyExperiments:
-                    self.buttons['CB'][0].setStyleSheet('background-color: green')
-                  else:
-                    self.buttons['CB'][0].setStyleSheet('background-color: green')
-                    self.buttons['CB'][1].setStyleSheet('background-color: green')
-                if atomPred == 'CA':
-                  if anyInterOnlyExperiments:
-                    self.buttons['CA'][0].setStyleSheet('background-color: green')
-                  else:
-                    self.buttons['CA'][0].setStyleSheet('background-color: green')
-                    self.buttons['CA'][1].setStyleSheet('background-color: green')
-            elif self.radioButton2.isChecked():
-              if self.current.nmrResidue.residueType == '':
-                predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode) for ccpCode in CCP_CODES]
-              else:
-                if self.offsetSelector.currentText() == '-1':
-                  nmrResidue = self.current.nmrResidue.previousNmrResidue
-                elif self.offsetSelector.currentText() == '+1':
-                  nmrResidue = self.current.nmrResidue.nextNmrResidue
-                else:
-                  nmrResidue = self.current.nmrResidue
-                predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
-              for type in predictedAtomTypes:
-                for atomType, buttons in self.buttons.items():
-                  if type[0][1] == atomType:
-                    for button in buttons:
-                      if type[1] >= 85:
-                        button.setStyleSheet('background-color: green')
-                      elif 50 < type[1] < 85:
-                        button.setStyleSheet('background-color: orange')
-                      if type[1] < 50:
-                        button.setStyleSheet('background-color: red')
+    logger.debug('peaks=%s' % (peaks,))
+    logger.debug('types=%s, anyInterOnlyExperiments=%s' % (types, anyInterOnlyExperiments))
+
+    for peak in peaks:
+      peakListViews = [peakListView for peakListView in self.project.peakListViews if peakListView.peakList == peak.peakList]
+      spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
+      isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
+
+      # backbone
+      if self.radioButton1.isChecked():
+        predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True)
+                              for ccpCode in CCP_CODES]
+        refinedPreds = [[type[0][0][1], type[0][1]] for type in predictedAtomTypes if len(type) > 0]
+        atomPredictions = set()
+        for pred in refinedPreds:
+          if pred[1] > 90:
+            atomPredictions.add(pred[0])
+        for atomPred in atomPredictions:
+          if atomPred == 'CB':
+            if anyInterOnlyExperiments:
+              self.buttons['CB'][0].setStyleSheet('background-color: green')
+            else:
+              self.buttons['CB'][0].setStyleSheet('background-color: green')
+              self.buttons['CB'][1].setStyleSheet('background-color: green')
+          if atomPred == 'CA':
+            if anyInterOnlyExperiments:
+              self.buttons['CA'][0].setStyleSheet('background-color: green')
+            else:
+              self.buttons['CA'][0].setStyleSheet('background-color: green')
+              self.buttons['CA'][1].setStyleSheet('background-color: green')
+
+      # sidechain
+      elif self.radioButton2.isChecked():
+        if self.current.nmrResidue.residueType == '':
+          predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode) for ccpCode in CCP_CODES]
+        else:
+          if self.offsetSelector.currentText() == '-1':
+            nmrResidue = self.current.nmrResidue.previousNmrResidue
+          elif self.offsetSelector.currentText() == '+1':
+            nmrResidue = self.current.nmrResidue.nextNmrResidue
+          else:
+            nmrResidue = self.current.nmrResidue
+          predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
+        for type in predictedAtomTypes:
+          for atomType, buttons in self.buttons.items():
+            if type[0][1] == atomType:
+              for button in buttons:
+                if type[1] >= 85:
+                  button.setStyleSheet('background-color: green')
+                elif 50 < type[1] < 85:
+                  button.setStyleSheet('background-color: orange')
+                if type[1] < 50:
+                  button.setStyleSheet('background-color: red')
 
 
 
