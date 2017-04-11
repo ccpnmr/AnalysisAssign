@@ -1,4 +1,12 @@
-"""Module Documentation here
+"""
+Do a restricted peak pick along the 'y-axis' of (a set of) spectra.
+Use settings to define the spectral displays, the active spectra and the tolerances for peak picking
+
+This module closely works with the Atom Selector module
+
+First version by SS
+Refactored by GWV to be responsible to active state on start; proper callbacks 
+and to include "Restricted pick and assign" button.
 
 """
 #=========================================================================================
@@ -15,7 +23,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-07 14:05:12 +0100 (Fri, April 07, 2017) $"
+__date__ = "$Date: 2017-04-11 01:15:41 +0100 (Tue, April 11, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -34,42 +42,58 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
+from ccpn.ui.gui.widgets.Frame import Frame
 
 from ccpn.util.Logging import getLogger
 logger = getLogger()
 
-class PickAndAssignModule(CcpnModule):
 
+class PickAndAssignModule(CcpnModule):
+  """
+  Do a restricted peak pick along the 'y-axis' of (a set of) spectra.
+  Use settings to define the spectral displays, the active spectra and the tolerances for peak picking
+
+  This module closely works with the Atom Selector module
+  """
   includeSettingsWidget = True
   maxSettingsState = 2
 
   def __init__(self, parent=None, project=None, name='Pick And Assign', **kw):
 
     CcpnModule.__init__(self, parent=parent, name=name)
+    # project, current, application and mainWindow are inherited from CcpnModule
+
+    # Main widget
+    self.restrictedPickButton = Button(self.mainWidget, text='Restricted Pick', grid=(0, 0),
+                                       callback=self.restrictedPick)
+    self.restrictedPickButton.setMinimumSize(120, 30)
+    self.assignSelectedButton = Button(self.mainWidget, text='Assign Selected', grid=(0, 1),
+                                       callback=self.assignSelected)
+    self.assignSelectedButton.setMinimumSize(120, 30)
+    self.restrictedPickAndAssignButton = Button(self.mainWidget, text='Restricted Pick and Assign', grid=(0, 2),
+                                                callback=self.restrictedPickAndAssign)
+    self.restrictedPickAndAssignButton.setMinimumSize(160, 30)
 
     self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self.goToPositionInModules,
-                                           grid=(0, 0), gridSpan=(1, 5), stretch=(1, 1))
-    self.restrictedPickButton = Button(self.nmrResidueTable, text='Restricted Pick',
-                                       callback=self.restrictedPick, grid=(0, 2))
-    self.assignSelectedButton = Button(self.nmrResidueTable, text='Assign Selected',
-                                       callback=self.assignSelected, grid=(0, 3))
-    self.restrictedPickAndAssignButton = Button(self.nmrResidueTable, text='Restricted Pick and Assign',
-                                                callback=self.restrictedPickAndAssign, grid=(0, 4))
+                                           grid=(1, 0), gridSpan=(1, 5), stretch=(1, 1))
 
-    displaysLabel = Label(self.settingsWidget, 'Selected Displays', grid=(0, 0))
-    self.displaysPulldown = PulldownList(self.settingsWidget, grid=(1, 0), callback=self._updateListWidget)
+    # Settings widget
+    dframe = Frame(self.settingsWidget, grid=(0, 0))
+    #self.displaysLabel = Label(self.settingsWidget, 'Selected Displays:', grid=(0, 0))
+    self.displaysPulldown = PulldownList(dframe, grid=(0, 0), callback=self._updateListWidget)
     self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])
-    self.displayList = ListWidget(self.settingsWidget, grid=(0, 1), gridSpan=(4, 1))
+    self.displayList = ListWidget(dframe, grid=(1,0), gridSpan=(2, 1))
     self.displayList.addItem('<All>')
-    self.displayList.setFixedWidth(self.displaysPulldown.width())
-    self.scrollArea = ScrollArea(self.settingsWidget, grid=(0, 2), gridSpan=(4, 4))
+    self.displayList.setFixedWidth(160)
+
+    self.scrollArea = Frame(self.settingsWidget, grid=(0, 1), gridSpan=(4, 4))
     self.spectrumSelectionWidget = SpectrumSelectionWidget(self.scrollArea, project, self.displayList)
-    self.scrollArea.setWidget(self.spectrumSelectionWidget)
+    #self.scrollArea.setWidget(self.spectrumSelectionWidget)
     self.displayList.removeItem = self._removeListWidgetItem
 
-    self.__registerNotifiers()
+    self._registerNotifiers()
 
-  def __registerNotifiers(self):
+  def _registerNotifiers(self):
     # wb104, 1 Nov 2016: not sure why the first four notifiers are as specified,
     # the widget is to do with displays not NmrResidues, and it breaks the function
     # because the argument would be an NmrResidue, not an item
@@ -79,18 +103,26 @@ class PickAndAssignModule(CcpnModule):
     self.project.registerNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrAtom', 'create', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrAtom', 'delete', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrAtom', 'modify', self._updateNmrResidueTable)
+    self.project.registerNotifier('NmrAtom', 'rename', self._updateNmrResidueTable)
 
-  def __unRegisterNotifiers(self):
+  def _unRegisterNotifiers(self):
     self.project.unRegisterNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrAtom', 'create', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrAtom', 'delete', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrAtom', 'modify', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrAtom', 'rename', self._updateNmrResidueTable)
 
   def _closeModule(self):
     """
     Unregister notifiers and close module.
     """
-    self.__unRegisterNotifiers()
+    self._unRegisterNotifiers()
     self.close()
 
   def _updateListWidget(self, item):
@@ -150,6 +182,7 @@ class PickAndAssignModule(CcpnModule):
               pValue = peak.position[ii]
               if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
                 peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
+      self.current.peaks = []
     finally:
       self.project._appBase._endCommandBlock()
 

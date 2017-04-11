@@ -14,9 +14,8 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 #=========================================================================================
 # Last code modification:
 #=========================================================================================
-__author__ = "$Author$"
-__date__ = "$Date$"
-__version__ = "$Revision$"
+__author__ = "$Author: Geerten Vuister $"
+__date__ = "$Date: 2017-04-11 01:15:41 +0100 (Tue, April 11, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -38,8 +37,15 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.util.Logging import getLogger
+from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
 logger = getLogger()
+
+def hasNmrResidue(nmrChain, residueCode):
+  "Simple function to check if sequenCode is found within the nmrResidues of nmrChain"
+  resCodes = [res.sequenceCode for res in nmrChain.nmrResidues]
+  return (residueCode in resCodes)
+
 
 class BackboneAssignmentModule(CcpnModule):
 
@@ -68,22 +74,31 @@ class BackboneAssignmentModule(CcpnModule):
                                                   )
     # Match module selection
     row += 1
-    modules = [display.pid for display in self.project.spectrumDisplays]
-    modules.insert(0, '') # just so that can select proper items (list only updated when pulldown selection changed)
+    # add 'empty' entry to reset the pulldown too after appending to the moduleList widget
+    modules = [''] + [display.pid for display in self.project.spectrumDisplays]
     self.modulesLabel = Label(self.settingsWidget, text="Match module(s):", grid=(row, 0), vAlign='top')
     self.modulePulldown = PulldownList(self.settingsWidget, grid=(row, 1), vAlign='top',
                                        callback=self._selectMatchModule,
                                        texts=modules)
     row += 1
     self.moduleList = ListWidget(self.settingsWidget, grid=(row,1), vAlign='top')
-    self.moduleList.setFixedHeight(80)
+    self.moduleList.setFixedHeight(40)
 
+    self._registerNotifiers()
+
+  def _registerNotifiers(self):
     # register notifiers for updating of pulldown lists and NmrResidueTable
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
 
+  def _unRegisterNotifiers(self):
+    # register notifiers for updating of pulldown lists and NmrResidueTable
+    self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
+    self.project.unRegisterNotifier('NmrChain', 'create', self._updateNmrChainPulldown)
+    self.project.unRegisterNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
+    self.project.unRegisterNotifier('NmrChain', 'create', self._updateNmrChainList)
 
   def _updateNmrChainList(self, nmrChain):
     """
@@ -93,7 +108,6 @@ class BackboneAssignmentModule(CcpnModule):
     if not nmrChain:
       logger.warn('No NmrChain specified')
       return
-
     self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
 
   def _updateNmrChainPulldown(self, nmrChain):
@@ -104,7 +118,6 @@ class BackboneAssignmentModule(CcpnModule):
     if not nmrChain:
       logger.warn('No NmrChain specified')
       return
-
     self.nmrResidueTable.nmrResidueTable.objectLists = self.project.nmrChains
     self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
 
@@ -113,11 +126,9 @@ class BackboneAssignmentModule(CcpnModule):
     Convenience function for notifiers to update the NmrResidueTable when notifier is called in
     response to creation, deletion and changes to the current.nmrResidue object.
     """
-
     if not nmrResidue:
       logger.warn('No NmrResidue specified')
       return
-
     if nmrResidue == self.current.nmrResidue:
       self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
       self.nmrResidueTable.nmrResidueTable.selector.select(nmrResidue.nmrChain)
@@ -135,9 +146,9 @@ class BackboneAssignmentModule(CcpnModule):
     """
     if not text:  # blank row
       return
-
     if text not in self._matchModules():
       self.moduleList.addItem(text)
+    self.modulePulldown.setIndex(0)
 
   def _startAssignment(self, nmrResidue:NmrResidue, row:int=None, col:int=None):
     """
@@ -146,6 +157,10 @@ class BackboneAssignmentModule(CcpnModule):
     """
     if not nmrResidue:
       logger.warn('No NmrResidue specified')
+      return
+    if len(self._matchModules()) == 0:
+      logger.warn('Undefined match module; select in settings first')
+      showWarning('startAssignment', 'Undefined match module; select in settings first')
       return
 
     self.project._startFunctionCommandBlock('_startAssignment', nmrResidue)
@@ -341,6 +356,7 @@ class BackboneAssignmentModule(CcpnModule):
     Re-implementation of the closeModule method of the CcpnModule class required to remove backboneModule
     attribute from mainWindow when the module closes.
     """
+    self._unRegisterNotifiers()
     delattr(self.parent, 'backboneModule')
     self.close()
 

@@ -14,9 +14,8 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 #=========================================================================================
 # Last code modification:
 #=========================================================================================
-__author__ = "$Author: skinnersp $"
-__date__ = "$Date: 2016-05-23 10:02:47 +0100 (Thu, 26 May 2016) $"
-__version__ = "$Revision: 9395 $"
+__author__ = "$Author: Geerten Vuister $"
+__date__ = "$Date: 2017-04-11 01:15:41 +0100 (Tue, April 11, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -160,7 +159,6 @@ class AssignmentLine(QtGui.QGraphicsLineItem):
   """
   Object to create lines between GuiNmrAtoms with specific style, width, colour and displacement.
   """
-
   def __init__(self, x1, y1, x2, y2, colour, width, style=None):
     QtGui.QGraphicsLineItem.__init__(self)
     self.pen = QtGui.QPen()
@@ -170,19 +168,21 @@ class AssignmentLine(QtGui.QGraphicsLineItem):
     if style and style == 'dash':
       self.pen.setStyle(QtCore.Qt.DotLine)
     self.setPen(self.pen)
-
     self.setLine(x1, y1, x2, y2)
 
 
 class SequenceGraph(CcpnModule):
   """
   A module for the display of stretches of sequentially linked and assigned stretches of
-  Nmr Residues.
+  NmrResidues.
   """
   def __init__(self, parent, project=None):
 
     super(SequenceGraph, self).__init__(name='Sequence Graph')
-    self.project = project
+    # project, current, application and mainWindow are inherited from CcpnModule
+    #self.project = project
+    #self.current = self.project._appBase.current
+
     self.scrollArea = QtGui.QScrollArea()
     self.scrollArea.setWidgetResizable(True)
     self.scene = QtGui.QGraphicsScene(self)
@@ -192,13 +192,16 @@ class SequenceGraph(CcpnModule):
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
     self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
     self.scrollArea.setWidget(self.scrollContents)
-    self.current = self.project._appBase.current
+
     self.residueCount = 0
-    self.modeLabel = Label(self, 'Mode  ', grid=(0, 0), hAlign='r')
-    self.modePulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setMode)
-    self.nmrChainLabel = Label(self, 'NmrChain  ', grid=(0, 2), hAlign='r')
-    self.nmrChainPulldown = PulldownList(self, grid=(0, 3), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
+
+    self.modeLabel = Label(self, 'Mode: ', grid=(0, 2), hAlign='r')
+    self.modePulldown = PulldownList(self, grid=(0, 3), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])  # TBD: , 'Assigned - All'])
+
+    self.nmrChainLabel = Label(self, 'NmrChain: ', grid=(0, 0), hAlign='r')
+    self.nmrChainPulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
+
     self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
     self.disconnectPreviousIcon = Icon('icons/previous')
@@ -221,16 +224,22 @@ class SequenceGraph(CcpnModule):
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
     self.editingToolbar.hide()
+    self.setMode('fragment')
+
+  def _registerNotifiers(self):
     self.project.registerNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
     self.project.registerNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
     self.project.registerNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
-    # self.modePulldown.select('fragment')
     self.project.registerNotifier('Peak', 'change', self._updateShownAssignments)
-    self.setMode('fragment')
 
-
+  def _unRegisterNotifiers(self):
+    self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
+    self.project.unRegisterNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
+    self.project.unRegisterNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
+    self.project.unRegisterNotifier('Peak', 'change', self._updateShownAssignments)
 
   def updateNmrResidueTable(self):
+    #TODO: not present and not used??==> remove (+ calls)
     if hasattr(self, 'nmrResidueTable'):
       self.nmrResidueTable.updateTable()
 
@@ -240,18 +249,17 @@ class SequenceGraph(CcpnModule):
       if mode == 'fragment':
         self.editingToolbar.show()
         self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
-        self.nmrChainLabel.setText('Nmr Chain')
+        self.nmrChainLabel.setText('NmrChain: ')
       elif mode == 'Assigned - backbone':
-        self.nmrChainLabel.setText('Chain')
+        self.nmrChainLabel.setText('Chain: ')
         self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains if self.project.getByPid('NC:%s' % chain.shortName)])
       self.modePulldown.select(mode)
       self.setNmrChainDisplay(self.nmrChainPulldown.currentText())
     else:
       self.project._logger.warn('No valid NmrChain is selected.')
 
-
   def setNmrChainDisplay(self, nmrChainPid):
-    self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay(nmrChainPid)', nmrChainPid=nmrChainPid)
+    self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
     try:
       self.current.nmrChain = self.project.getByPid(nmrChainPid)
       if not self.current.nmrChain:
@@ -272,7 +280,6 @@ class SequenceGraph(CcpnModule):
     finally:
       self.project._appBase._endCommandBlock()
 
-
   def resetSequenceGraph(self):
     # self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay()')
     # try:
@@ -284,7 +291,6 @@ class SequenceGraph(CcpnModule):
   def addNmrChainToPulldown(self, nmrChain):
     self.nmrChainPulldown.addItem(nmrChain.pid)
 
-
   def removeNmrChainFromPulldown(self, nmrChain):
     item = self.nmrChainPulldown.findText(nmrChain.pid)
     self.nmrChainPulldown.removeItem(item)
@@ -294,8 +300,8 @@ class SequenceGraph(CcpnModule):
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     self.updateNmrResidueTable()
 
-
   def _closeModule(self):
+    self._unRegisterNotifiers()
     delattr(self.parent, 'sequenceGraph')
     self.close()
 
@@ -308,7 +314,6 @@ class SequenceGraph(CcpnModule):
     self.current.nmrResidue.disconnect()
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     self.updateNmrResidueTable()
-
 
   def _resetNmrResiduePidForAssigner(self, nmrResidue, oldPid:str):
     """Reset pid for NmrResidue and all offset NmrResidues"""
@@ -330,7 +335,6 @@ class SequenceGraph(CcpnModule):
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
     self.scene.clear()
-
 
   def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -363,7 +367,6 @@ class SequenceGraph(CcpnModule):
     self.scene.addItem(self.nmrResidueLabel)
     self._addResiduePredictions(nmrResidue, atoms['CA'])
 
-
   def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
     residue = {}
     for k, v in ATOM_POSITION_DICT[nmrResidue.residueType].items():
@@ -380,7 +383,6 @@ class SequenceGraph(CcpnModule):
       atom2 = residue[boundAtomPair[1]]
       newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
       self.scene.addItem(newLine)
-
 
   def addResidue(self, nmrResidue:NmrResidue, direction:str, atomSpacing=None):
     """
@@ -438,7 +440,6 @@ class SequenceGraph(CcpnModule):
 
     self.residueCount += 1
 
-
   def _addResiduePredictions(self, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
     """
     Gets predictions for residue type based on BMRB statistics and determines label positions
@@ -474,7 +475,6 @@ class SequenceGraph(CcpnModule):
         if hasattr(self.project._appBase, 'sequenceModule'):
           self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
-
   def _updateShownAssignments(self, peak):
     self.setNmrChainDisplay(self.current.nmrChain.pid)
 
@@ -503,7 +503,6 @@ class SequenceGraph(CcpnModule):
       self._getAssignmentsFromSpectra()
     finally:
       self.project._appBase._endCommandBlock()
-
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom, colour:str, width:float, displacement:float, style:str=None):
     """
@@ -538,7 +537,6 @@ class SequenceGraph(CcpnModule):
     newLine = AssignmentLine(x1, y1, x2, y2, colour, width, style)
     self.scene.addItem(newLine)
     return newLine
-
 
   def _createGuiNmrAtom(self, atomType:str, position:tuple, nmrAtom:NmrAtom=None) -> GuiNmrAtom:
     """
