@@ -276,7 +276,7 @@ class SequenceGraph(CcpnModule):
         nmrChain = self.project.getByPid(nmrChainPid)
         self._showBackboneAssignments(nmrChain)
     finally:
-      self._endCommandEchoBlock()
+      self.project._endCommandEchoBlock()
 
 
   def resetSequenceGraph(self):
@@ -508,7 +508,7 @@ class SequenceGraph(CcpnModule):
           self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
       self._getAssignmentsFromSpectra()
     finally:
-      self._endCommandEchoBlock()
+      self.project._endCommandEchoBlock()
 
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom, colour:str, width:float, displacement:float, style:str=None):

@@ -171,7 +171,7 @@ class BackboneAssignmentModule(CcpnModule):
       self._navigateTo(nmrResidue, row, col)
 
     finally:
-      self._endCommandEchoBlock()
+      self.project._endCommandEchoBlock()
 
 
   def _navigateTo(self, nmrResidue:NmrResidue, row:int=None, col:int=None, strip:GuiStrip=None):
@@ -244,7 +244,7 @@ class BackboneAssignmentModule(CcpnModule):
         else:
           self.sequenceGraph.setNmrChainDisplay(nmrResidue.nmrChain.pid)
     finally:
-      self._endCommandEchoBlock()
+      self.project._endCommandEchoBlock()
 
 
 
