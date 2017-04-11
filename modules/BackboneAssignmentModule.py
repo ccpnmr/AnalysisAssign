@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-11 01:15:41 +0100 (Tue, April 11, 2017) $"
+__date__ = "$Date: 2017-04-11 22:04:46 +0100 (Tue, April 11, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -34,12 +34,13 @@ from ccpn.ui.gui.modules.GuiStrip import GuiStrip
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.widgets.Label import Label
-from ccpn.ui.gui.widgets.ListWidget import ListWidget
-from ccpn.ui.gui.widgets.PulldownList import PulldownList
+from ccpn.ui.gui.widgets.ListWidget import ListWidget, ListCompoundWidget
+from ccpn.ui.gui.widgets.PulldownList import PulldownList, PulldownListCompoundWidget
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
 logger = getLogger()
+
 
 def hasNmrResidue(nmrChain, residueCode):
   "Simple function to check if sequenCode is found within the nmrResidues of nmrChain"
@@ -53,35 +54,36 @@ class BackboneAssignmentModule(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, parent):
+  def __init__(self, parent=None):
 
-    super(BackboneAssignmentModule, self).__init__(parent=None, name='Backbone Assignment')
+    super(BackboneAssignmentModule, self).__init__(parent=parent, name='Backbone Assignment')
     # project, current, application and mainWindow are inherited from CcpnModule
 
     self.numberOfMatches = 5
     self.nmrChains = self.project.nmrChains
     self.nmrResidueTable = NmrResidueTable(self.mainWidget, self.project, callback=self._startAssignment)
-    self.parent = parent
 
-    ### Settings
+    ### Settings ###
 
+    minWidth = 175  # for labels of the compound widgets
     row = 0
     # Chemical shift list selection
-    self.chemicalShiftListLabel = Label(self.settingsWidget, text='ChemicalShiftList:', grid=(row, 0))
-    self.chemicalShiftListPulldown = PulldownList(self.settingsWidget, grid=(row,1), vAlign='top',
+    self.shiftListWidget = PulldownListCompoundWidget(self.settingsWidget, grid=(row,0), vAlign='top',
+                                                  minimumWidths=(minWidth,0),
+                                                  labelText='ChemicalShiftList:',
                                                   callback=self._setupShiftDicts,
                                                   texts=[shiftlist.pid for shiftlist in self.project.chemicalShiftLists]
                                                   )
+
     # Match module selection
     row += 1
-    # add 'empty' entry to reset the pulldown too after appending to the moduleList widget
-    modules = [''] + [display.pid for display in self.project.spectrumDisplays]
-    self.modulesLabel = Label(self.settingsWidget, text="Match module(s):", grid=(row, 0), vAlign='top')
-    self.modulePulldown = PulldownList(self.settingsWidget, grid=(row, 1), vAlign='top',
-                                       callback=self._selectMatchModule,
-                                       texts=modules)
-    row += 1
-    self.moduleList = ListWidget(self.settingsWidget, grid=(row,1), vAlign='top')
+    self.matchWidget = ListCompoundWidget(self.settingsWidget, grid=(row,0), vAlign='top',
+                                          minimumWidths=(minWidth, 0, 0),
+                                          labelText="Match module(s):",
+                                          texts=[display.pid for display in self.project.spectrumDisplays]
+                                         )
+    # for compatibility with previous implementation
+    self.moduleList = self.matchWidget.listWidget
     self.moduleList.setFixedHeight(40)
 
     self._registerNotifiers()
@@ -138,17 +140,17 @@ class BackboneAssignmentModule(CcpnModule):
 
     return [self.moduleList.item(i).text() for i in range(self.moduleList.count())]
 
-  def _selectMatchModule(self, text):
-    """
-    Call back to assign modules as match modules in reponse to a signal from the modulePulldown
-    above. Adds the item to a list containing match modules and adds the Pid of the module to the
-    moduleList ListWidget object.
-    """
-    if not text:  # blank row
-      return
-    if text not in self._matchModules():
-      self.moduleList.addItem(text)
-    self.modulePulldown.setIndex(0)
+  # def _selectMatchModule(self, text):
+  #   """
+  #   Call back to assign modules as match modules in response to a signal from the modulePulldown
+  #   above. Adds the item to a list containing match modules and adds the Pid of the module to the
+  #   moduleList ListWidget object.
+  #   """
+  #   if not text:  # blank row
+  #     return
+  #   if text not in self._matchModules():
+  #     self.moduleList.addItem(text)
+  #   self.modulePulldown.setIndex(0)
 
   def _startAssignment(self, nmrResidue:NmrResidue, row:int=None, col:int=None):
     """
@@ -255,8 +257,6 @@ class BackboneAssignmentModule(CcpnModule):
     finally:
       self.project._appBase._endCommandBlock()
 
-
-
   def _displayNmrResidueInStrip(self, nmrResidue, strip):
     """
     navigate strip position to position specified by nmrResidue and set spinSystemLabel to nmrResidue id
@@ -299,7 +299,7 @@ class BackboneAssignmentModule(CcpnModule):
 
     self.intraShifts = OrderedDict()
     self.interShifts = OrderedDict()
-    chemicalShiftList = self.project.getByPid(self.chemicalShiftListPulldown.currentText())
+    chemicalShiftList = self.project.getByPid(self.shiftListWidget.pulldownList.currentText())
 
     for nmrResidue in self.project.nmrResidues:
       nmrAtoms = [nmrAtom for nmrAtom in nmrResidue.nmrAtoms]
