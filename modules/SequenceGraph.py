@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-11 01:15:41 +0100 (Tue, April 11, 2017) $"
+__date__ = "$Date: 2017-04-13 12:24:47 +0100 (Thu, April 13, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -37,6 +37,9 @@ from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
+
+from ccpn.ui.gui.widgets.PulldownListsForObjects import nmrChainPulldown
+
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
@@ -180,8 +183,6 @@ class SequenceGraph(CcpnModule):
 
     super(SequenceGraph, self).__init__(name='Sequence Graph')
     # project, current, application and mainWindow are inherited from CcpnModule
-    #self.project = project
-    #self.current = self.project._appBase.current
 
     self.scrollArea = QtGui.QScrollArea()
     self.scrollArea.setWidgetResizable(True)
@@ -199,8 +200,10 @@ class SequenceGraph(CcpnModule):
     self.modePulldown = PulldownList(self, grid=(0, 3), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])  # TBD: , 'Assigned - All'])
 
-    self.nmrChainLabel = Label(self, 'NmrChain: ', grid=(0, 0), hAlign='r')
-    self.nmrChainPulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
+    #self.nmrChainLabel = Label(self, 'NmrChain: ', grid=(0, 0), hAlign='r')
+    #self.nmrChainPulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
+    self.nmrChainPulldown = nmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(2, 1),
+                                             callback=self.setNmrChainDisplay)
 
     self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
@@ -212,7 +215,7 @@ class SequenceGraph(CcpnModule):
     self.disconnectNextAction = self.editingToolbar.addAction("disconnectNext", self.disconnectNextNmrResidue)
     self.disconnectNextIcon = Icon('icons/next')
     self.disconnectNextAction.setIcon(self.disconnectNextIcon)
-    self.parent = parent
+    #self.parent = parent
 
     self.layout.addWidget(self.scrollArea, 4, 0, 1, 6)
     self.atomSpacing = 66
@@ -227,73 +230,89 @@ class SequenceGraph(CcpnModule):
     self.setMode('fragment')
 
   def _registerNotifiers(self):
+    self.current.registerNotify(self._updateModule, 'nmrChains')
+
     self.project.registerNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
-    self.project.registerNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
-    self.project.registerNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
+#    self.project.registerNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
+#    self.project.registerNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
     self.project.registerNotifier('Peak', 'change', self._updateShownAssignments)
 
   def _unRegisterNotifiers(self):
     self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
-    self.project.unRegisterNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
-    self.project.unRegisterNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
+#    self.project.unRegisterNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
+#    self.project.unRegisterNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
     self.project.unRegisterNotifier('Peak', 'change', self._updateShownAssignments)
 
-  def updateNmrResidueTable(self):
-    #TODO: not present and not used??==> remove (+ calls)
-    if hasattr(self, 'nmrResidueTable'):
-      self.nmrResidueTable.updateTable()
+  # def updateNmrResidueTable(self):
+  #   #TODO: not present and not used??==> remove (+ calls)
+  #   if hasattr(self, 'nmrResidueTable'):
+  #     self.nmrResidueTable.updateTable()
+
+  def _updateModule(self, nmrChains=None):
+    """
+    Update in reponse to change of nmrChains 
+    """
+    if nmrChains is None or len(nmrChains)==0: return
+    #self.sequenceGraph.clearAllItems()
+    self.sequenceGraph.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
+    self.setNmrChainDisplay(self.current.nmrChain.pid)
 
   def setMode(self, mode):
     if self.project.nmrChains:
       self.editingToolbar.hide()
       if mode == 'fragment':
         self.editingToolbar.show()
-        self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
-        self.nmrChainLabel.setText('NmrChain: ')
+        #self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
+        #self.nmrChainLabel.setText('NmrChain: ')
       elif mode == 'Assigned - backbone':
-        self.nmrChainLabel.setText('Chain: ')
-        self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains if self.project.getByPid('NC:%s' % chain.shortName)])
+        pass
+        #self.nmrChainLabel.setText('Chain: ')
+        #self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains if self.project.getByPid('NC:%s' % chain.shortName)])
       self.modePulldown.select(mode)
-      self.setNmrChainDisplay(self.nmrChainPulldown.currentText())
+      self.setNmrChainDisplay(self.nmrChainPulldown.getText())
     else:
       self.project._logger.warn('No valid NmrChain is selected.')
 
   def setNmrChainDisplay(self, nmrChainPid):
+
     self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
     try:
-      self.current.nmrChain = self.project.getByPid(nmrChainPid)
-      if not self.current.nmrChain:
-        self.project._logger.warn('No NmrChain selected.')
-        return
+      #self.current.nmrChain = self.project.getByPid(nmrChainPid)
+      #if not self.current.nmrChain:
+      #  self.project._logger.warn('No NmrChain selected.')
+      #  return
       self.clearAllItems()
-      if self.modePulldown.currentText() == 'fragment':
 
-        nmrChain = self.project.getByPid(nmrChainPid)
+      nmrChain = self.project.getByPid(nmrChainPid)
+      if self.modePulldown.currentText() == 'fragment':
         if nmrChain.isConnected:
           for nmrResidue in nmrChain.mainNmrResidues:
             self.addResidue(nmrResidue, '+1')
+        elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
+          self.addResidue(self.current.nmrResidue, '+1')
         if len(self.predictedStretch) > 2:
           self.predictSequencePosition(self.predictedStretch)
+
       elif self.modePulldown.currentText() == 'Assigned - backbone':
-        nmrChain = self.project.getByPid(nmrChainPid)
         self._showBackboneAssignments(nmrChain)
+
     finally:
       self.project._appBase._endCommandBlock()
 
   def resetSequenceGraph(self):
     # self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay()')
     # try:
-    self.nmrChainPulldown.select('NC:@-')
+    self.nmrChainPulldown.pulldownList.select('NC:@-')
     # self.setNmrChainDisplay('NC:@-')
     # finally:
     #   self.project._appBase._endCommandBlock()
 
-  def addNmrChainToPulldown(self, nmrChain):
-    self.nmrChainPulldown.addItem(nmrChain.pid)
-
-  def removeNmrChainFromPulldown(self, nmrChain):
-    item = self.nmrChainPulldown.findText(nmrChain.pid)
-    self.nmrChainPulldown.removeItem(item)
+  # def addNmrChainToPulldown(self, nmrChain):
+  #   self.nmrChainPulldown.addItem(nmrChain.pid)
+  #
+  # def removeNmrChainFromPulldown(self, nmrChain):
+  #   item = self.nmrChainPulldown.findText(nmrChain.pid)
+  #   self.nmrChainPulldown.removeItem(item)
 
   def disconnectPreviousNmrResidue(self):
     self.current.nmrResidue.disconnectPrevious()
@@ -302,7 +321,7 @@ class SequenceGraph(CcpnModule):
 
   def _closeModule(self):
     self._unRegisterNotifiers()
-    delattr(self.parent, 'sequenceGraph')
+    #delattr(self.parent, 'sequenceGraph')
     self.close()
 
   def disconnectNextNmrResidue(self):

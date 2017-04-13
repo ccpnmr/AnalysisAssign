@@ -5,7 +5,7 @@
 # Licence, Reference and Credits
 #=========================================================================================
 __copyright__ = "Copyright (C) CCPN project (www.ccpn.ac.uk) 2014 - $Date$"
-__credits__ = "Wayne Boucher, Rasmus H Fogh, Simon P Skinner, Geerten W Vuister"
+__credits__ = "Wayne Boucher, Rasmus H Fogh, Geerten W Vuister"
 __license__ = ("CCPN license. See www.ccpn.ac.uk/license"
               "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for license text")
 __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/license"
@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-11 22:04:46 +0100 (Tue, April 11, 2017) $"
+__date__ = "$Date: 2017-04-13 12:24:47 +0100 (Thu, April 13, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -36,9 +36,12 @@ from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget, ListCompoundWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList, PulldownListCompoundWidget
-from ccpn.util.Logging import getLogger
+from ccpn.ui.gui.widgets.PulldownListsForObjects import chemicalShiftListPulldown
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
+from ccpn.core.lib.Notifiers import Notifier
+
+from ccpn.util.Logging import getLogger
 logger = getLogger()
 
 
@@ -67,20 +70,26 @@ class BackboneAssignmentModule(CcpnModule):
 
     minWidth = 175  # for labels of the compound widgets
     row = 0
+
+    def getPids(fromObject, attributeName):
+      "Get a list of pids fromObject.attributeName or None on error"
+      if not hasattr(fromObject, attributeName): return None
+      return [obj.pid for obj in getattr(fromObject, attributeName)]
+
     # Chemical shift list selection
-    self.shiftListWidget = PulldownListCompoundWidget(self.settingsWidget, grid=(row,0), vAlign='top',
-                                                  minimumWidths=(minWidth,0),
-                                                  labelText='ChemicalShiftList:',
-                                                  callback=self._setupShiftDicts,
-                                                  texts=[shiftlist.pid for shiftlist in self.project.chemicalShiftLists]
-                                                  )
+    self.shiftListWidget = chemicalShiftListPulldown(self.settingsWidget, self.project,
+                                                     grid=(row,0), vAlign='top', minimumWidths=(minWidth,0),
+                                                     callback=self._setupShiftDicts
+                                                    )
 
     # Match module selection
     row += 1
+    # cannot set a notifier for displays, as these are not (yet?) implemented and the Notifier routines
+    # underpinning the addNotifier call do not allow for it either
     self.matchWidget = ListCompoundWidget(self.settingsWidget, grid=(row,0), vAlign='top',
                                           minimumWidths=(minWidth, 0, 0),
                                           labelText="Match module(s):",
-                                          texts=[display.pid for display in self.project.spectrumDisplays]
+                                          texts=[display.pid for display in self.mainWindow.spectrumDisplays]
                                          )
     # for compatibility with previous implementation
     self.moduleList = self.matchWidget.listWidget
@@ -93,24 +102,24 @@ class BackboneAssignmentModule(CcpnModule):
     self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
     self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainPulldown)
     self.project.registerNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
-    self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
+    #self.project.registerNotifier('NmrChain', 'create', self._updateNmrChainList)
 
   def _unRegisterNotifiers(self):
     # register notifiers for updating of pulldown lists and NmrResidueTable
     self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
     self.project.unRegisterNotifier('NmrChain', 'create', self._updateNmrChainPulldown)
     self.project.unRegisterNotifier('NmrChain', 'delete', self._updateNmrChainPulldown)
-    self.project.unRegisterNotifier('NmrChain', 'create', self._updateNmrChainList)
+    #self.project.unRegisterNotifier('NmrChain', 'create', self._updateNmrChainList)
 
-  def _updateNmrChainList(self, nmrChain):
-    """
-    Convenience function for notifiers to update the NmrResidueTable when notifier is called in
-    response to creation, deletion and changes to NmrChain objects.
-    """
-    if not nmrChain:
-      logger.warn('No NmrChain specified')
-      return
-    self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
+  # def _updateNmrChainList(self, nmrChain):
+  #   """
+  #   Convenience function for notifiers to update the NmrResidueTable when notifier is called in
+  #   response to creation, deletion and changes to NmrChain objects.
+  #   """
+  #   if not nmrChain:
+  #     logger.warn('No NmrChain specified')
+  #     return
+  #   self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
 
   def _updateNmrChainPulldown(self, nmrChain):
     """
@@ -136,9 +145,9 @@ class BackboneAssignmentModule(CcpnModule):
       self.nmrResidueTable.nmrResidueTable.selector.select(nmrResidue.nmrChain)
       self.nmrResidueTable.updateTable()
 
-  def _matchModules(self):
-
-    return [self.moduleList.item(i).text() for i in range(self.moduleList.count())]
+  # def _matchModules(self):
+  #
+  #   return [self.moduleList.item(i).text() for i in range(self.moduleList.count())]
 
   # def _selectMatchModule(self, text):
   #   """
@@ -148,7 +157,7 @@ class BackboneAssignmentModule(CcpnModule):
   #   """
   #   if not text:  # blank row
   #     return
-  #   if text not in self._matchModules():
+  #   if text not in self.matchWidget.getTexts():
   #     self.moduleList.addItem(text)
   #   self.modulePulldown.setIndex(0)
 
@@ -160,7 +169,7 @@ class BackboneAssignmentModule(CcpnModule):
     if not nmrResidue:
       logger.warn('No NmrResidue specified')
       return
-    if len(self._matchModules()) == 0:
+    if len(self.matchWidget.getTexts()) == 0:
       logger.warn('Undefined match module; select in settings first')
       showWarning('startAssignment', 'Undefined match module; select in settings first')
       return
@@ -169,17 +178,20 @@ class BackboneAssignmentModule(CcpnModule):
     try:
       self._setupShiftDicts()
 
-      self.current.nmrChain = nmrResidue.nmrChain
-      if hasattr(self, 'sequenceGraph'):
-        self.sequenceGraph.clearAllItems()
-        self.sequenceGraph.nmrChainPulldown.select(self.current.nmrChain.pid)
-      if self.current.nmrChain.isConnected:
+      # if hasattr(self, 'sequenceGraph'):
+      #   self.sequenceGraph.clearAllItems()
+      #   self.sequenceGraph.nmrChainPulldown.select(self.current.nmrChain.pid)
+
+      if nmrResidue.nmrChain.isConnected:
         if nmrResidue.sequenceCode.endswith('-1'):
-          nmrResidue = self.current.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
+          nmrResidue = nmrResidue.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
         else:
-          nmrResidue = self.current.nmrChain.mainNmrResidues[-1]
+          nmrResidue = nmrResidue.nmrChain.mainNmrResidues[-1]
 
       self._navigateTo(nmrResidue, row, col)
+      # update current (should trigger SequenceGraph)
+      self.current.nmrResidue = nmrResidue
+      self.current.nmrChain = nmrResidue.nmrChain
 
     finally:
       self.project._appBase._endCommandBlock()
@@ -200,14 +212,11 @@ class BackboneAssignmentModule(CcpnModule):
 
     self.project._startFunctionCommandBlock('_navigateTo', nmrResidue, strip)
     try:
-      if self.project._appBase.ui.mainWindow is not None:
-        mainWindow = self.project._appBase.ui.mainWindow
-      else:
-        mainWindow = self.project._appBase._mainWindow
+      mainWindow = self.mainWindow
       mainWindow.clearMarks()
       self.nmrResidueTable.nmrResidueTable.updateTable()
       selectedDisplays = [display for display in self.project.spectrumDisplays
-                          if display.pid not in self._matchModules()]
+                          if display.pid not in self.matchWidget.getTexts()]
 
 
       # If NmrResidue is a -1 offset NmrResidue, set queryShifts as value from self.interShifts dictionary
@@ -247,13 +256,13 @@ class BackboneAssignmentModule(CcpnModule):
         return
       self._createMatchStrips(assignMatrix)
 
-      if hasattr(self, 'sequenceGraph'):
-        if self.sequenceGraph.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
-          self.sequenceGraph.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
-        elif not nmrResidue.nmrChain.isConnected:
-          self.sequenceGraph.addResidue(iNmrResidue, direction)
-        else:
-          self.sequenceGraph.setNmrChainDisplay(nmrResidue.nmrChain.pid)
+      # if hasattr(self, 'sequenceGraph'):
+      #   if self.sequenceGraph.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
+      #     self.sequenceGraph.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
+      #   elif not nmrResidue.nmrChain.isConnected:
+      #     self.sequenceGraph.addResidue(iNmrResidue, direction)
+      #   else:
+      #     self.sequenceGraph.setNmrChainDisplay(nmrResidue.nmrChain.pid)
     finally:
       self.project._appBase._endCommandBlock()
 
@@ -331,7 +340,7 @@ class BackboneAssignmentModule(CcpnModule):
         iNmrResidue = matchResidue
       nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
-    for modulePid in self._matchModules():
+    for modulePid in self.matchWidget.getTexts():
       module = self.project.getByPid(modulePid)
       makeStripPlot(module, nmrAtomPairs)
 
@@ -341,15 +350,15 @@ class BackboneAssignmentModule(CcpnModule):
 
       self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
 
-  def _connectSequenceGraph(self, sequenceGraph:CcpnModule):
-    """
-    # CCPN INTERNAL - called in showSequenceGraph method of GuiMainWindow.
-    Connects Sequence Graph to this module.
-    """
-    self.sequenceGraph = sequenceGraph
-    self.project._appBase.current.assigner = sequenceGraph
-    self.sequenceGraph.nmrResidueTable = self.nmrResidueTable
-    self.sequenceGraph.setMode('fragment')
+  # def _connectSequenceGraph(self, sequenceGraph:CcpnModule):
+  #   """
+  #   # CCPN INTERNAL - called in showSequenceGraph method of GuiMainWindow.
+  #   Connects Sequence Graph to this module.
+  #   """
+  #   self.sequenceGraph = sequenceGraph
+  #   self.project._appBase.current.assigner = sequenceGraph
+  #   self.sequenceGraph.nmrResidueTable = self.nmrResidueTable
+  #   self.sequenceGraph.setMode('fragment')
 
   def _closeModule(self):
     """
@@ -357,7 +366,7 @@ class BackboneAssignmentModule(CcpnModule):
     attribute from mainWindow when the module closes.
     """
     self._unRegisterNotifiers()
-    delattr(self.parent, 'backboneModule')
+    #delattr(self.parent, 'backboneModule')
     self.close()
 
 

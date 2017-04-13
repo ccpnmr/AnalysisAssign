@@ -14,9 +14,8 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 #=========================================================================================
 # Last code modification:
 #=========================================================================================
-__author__ = "$Author$"
-__date__ = "$Date$"
-__version__ = "$Revision$"
+__author__ = "$Author: Geerten Vuister $"
+__date__ = "$Date: 2017-04-13 12:24:47 +0100 (Thu, April 13, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -80,8 +79,8 @@ class Assign(Framework):
     if hasattr(self, 'sequenceGraph'):
       return
     self.sequenceGraph = SequenceGraph(self, project=self.project)
-    if hasattr(self, 'backboneModule'):
-      self.backboneModule._connectSequenceGraph(self.sequenceGraph)
+    #if hasattr(self, 'backboneModule'):
+    #  self.backboneModule._connectSequenceGraph(self.sequenceGraph)
 
     if relativeTo is not None:
       self.ui.mainWindow.moduleArea.addModule(self.sequenceGraph, position=position, relativeTo=relativeTo)
@@ -110,8 +109,8 @@ class Assign(Framework):
     """
     from ccpn.AnalysisAssign.modules.BackboneAssignmentModule import BackboneAssignmentModule
 
-    if hasattr(self, 'backboneModule'):
-      return
+    #if hasattr(self, 'backboneModule'):
+    #  return
 
     self.backboneModule = BackboneAssignmentModule(self)
 
@@ -119,8 +118,8 @@ class Assign(Framework):
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showBackboneAssignmentModule()")
     self.project._logger.info("application.showBackboneAssignmentModule()")
-    if hasattr(self, 'sequenceGraph'):
-      self.backboneModule._connectSequenceGraph(self.sequenceGraph)
+    #if hasattr(self, 'sequenceGraph'):
+    #  self.backboneModule._connectSequenceGraph(self.sequenceGraph)
 
     return self.backboneModule
 
