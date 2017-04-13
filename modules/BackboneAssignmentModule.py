@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-13 12:24:47 +0100 (Thu, April 13, 2017) $"
+__date__ = "$Date: 2017-04-13 20:44:04 +0100 (Thu, April 13, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -36,7 +36,7 @@ from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget, ListCompoundWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList, PulldownListCompoundWidget
-from ccpn.ui.gui.widgets.PulldownListsForObjects import chemicalShiftListPulldown
+from ccpn.ui.gui.widgets.PulldownListsForObjects import ChemicalShiftListPulldown
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
 from ccpn.core.lib.Notifiers import Notifier
@@ -77,7 +77,7 @@ class BackboneAssignmentModule(CcpnModule):
       return [obj.pid for obj in getattr(fromObject, attributeName)]
 
     # Chemical shift list selection
-    self.shiftListWidget = chemicalShiftListPulldown(self.settingsWidget, self.project,
+    self.shiftListWidget = ChemicalShiftListPulldown(self.settingsWidget, self.project,
                                                      grid=(row,0), vAlign='top', minimumWidths=(minWidth,0),
                                                      callback=self._setupShiftDicts
                                                     )

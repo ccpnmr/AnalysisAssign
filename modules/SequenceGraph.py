@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-13 12:24:47 +0100 (Thu, April 13, 2017) $"
+__date__ = "$Date: 2017-04-13 20:44:04 +0100 (Thu, April 13, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -37,8 +37,9 @@ from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
+from ccpn.ui.gui.widgets.Frame import Frame
 
-from ccpn.ui.gui.widgets.PulldownListsForObjects import nmrChainPulldown
+from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 
 
 
@@ -47,7 +48,6 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
   A graphical object specifying the position and name of an atom when created by the Assigner.
   Can be linked to a Nmr Atom.
   """
-
   def __init__(self, project, text, pos=None, nmrAtom=None):
 
     super(GuiNmrAtom, self).__init__()
@@ -179,11 +179,17 @@ class SequenceGraph(CcpnModule):
   A module for the display of stretches of sequentially linked and assigned stretches of
   NmrResidues.
   """
+
+  includeSettingsWidget = True
+  maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+  settingsOnTop = True
+
   def __init__(self, parent, project=None):
 
-    super(SequenceGraph, self).__init__(name='Sequence Graph')
+    CcpnModule.__init__(self, parent=parent, name='Sequence Graph')
     # project, current, application and mainWindow are inherited from CcpnModule
 
+    frame = Frame(parent=self.mainWidget)
     self.scrollArea = QtGui.QScrollArea()
     self.scrollArea.setWidgetResizable(True)
     self.scene = QtGui.QGraphicsScene(self)
@@ -193,16 +199,18 @@ class SequenceGraph(CcpnModule):
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
     self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
     self.scrollArea.setWidget(self.scrollContents)
+    self.addWidget(self.scrollArea, 4, 0, 1, 6)
+    #frame.addWidget(self.scrollArea, 4, 0, 1, 6)
 
     self.residueCount = 0
 
-    self.modeLabel = Label(self, 'Mode: ', grid=(0, 2), hAlign='r')
-    self.modePulldown = PulldownList(self, grid=(0, 3), gridSpan=(1, 1), callback=self.setMode)
-    self.modePulldown.setData(['fragment', 'Assigned - backbone'])  # TBD: , 'Assigned - All'])
+    self.modeLabel = Label(self, 'Mode: ', grid=(0, 3))
+    self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
+    self.modePulldown.setData(['fragment', 'Assigned - backbone'])
 
     #self.nmrChainLabel = Label(self, 'NmrChain: ', grid=(0, 0), hAlign='r')
     #self.nmrChainPulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
-    self.nmrChainPulldown = nmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(2, 1),
+    self.nmrChainPulldown = NmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(2, 1),
                                              callback=self.setNmrChainDisplay)
 
     self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
@@ -215,9 +223,8 @@ class SequenceGraph(CcpnModule):
     self.disconnectNextAction = self.editingToolbar.addAction("disconnectNext", self.disconnectNextNmrResidue)
     self.disconnectNextIcon = Icon('icons/next')
     self.disconnectNextAction.setIcon(self.disconnectNextIcon)
-    #self.parent = parent
+    #self.editingToolbar.hide()
 
-    self.layout.addWidget(self.scrollArea, 4, 0, 1, 6)
     self.atomSpacing = 66
     self.guiResiduesShown = []
     self.predictedStretch = []
@@ -226,8 +233,9 @@ class SequenceGraph(CcpnModule):
     self.scene.dragEnterEvent = self.dragEnterEvent
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
-    self.editingToolbar.hide()
-    self.setMode('fragment')
+
+    self.setMode('fragment')  # cannot be moved up!
+    self._registerNotifiers()
 
   def _registerNotifiers(self):
     self.current.registerNotify(self._updateModule, 'nmrChains')
@@ -254,7 +262,7 @@ class SequenceGraph(CcpnModule):
     """
     if nmrChains is None or len(nmrChains)==0: return
     #self.sequenceGraph.clearAllItems()
-    self.sequenceGraph.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
+    self.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
     self.setNmrChainDisplay(self.current.nmrChain.pid)
 
   def setMode(self, mode):
