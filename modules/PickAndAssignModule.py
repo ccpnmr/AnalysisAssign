@@ -23,7 +23,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-11 01:15:41 +0100 (Tue, April 11, 2017) $"
+__date__ = "$Date: 2017-04-18 15:19:26 +0100 (Tue, April 18, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -46,6 +46,7 @@ from ccpn.ui.gui.widgets.Frame import Frame
 
 from ccpn.util.Logging import getLogger
 logger = getLogger()
+
 
 
 class PickAndAssignModule(CcpnModule):

@@ -1,4 +1,7 @@
-"""Module Documentation here
+"""
+AnalysisAssign Program
+
+Please cite:  Skinner et al, J Biomol NMR (2016) 66:111–124; DOI 10.1007/s10858-016-0060-y 
 
 """
 #=========================================================================================
@@ -15,7 +18,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-13 12:24:47 +0100 (Thu, April 13, 2017) $"
+__date__ = "$Date: 2017-04-18 15:19:26 +0100 (Tue, April 18, 2017) $"
 
 #=========================================================================================
 # Start of code

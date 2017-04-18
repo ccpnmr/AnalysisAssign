@@ -15,7 +15,7 @@ __reference__ = ("For publications, please use reference from www.ccpn.ac.uk/lic
 # Last code modification:
 #=========================================================================================
 __author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-13 20:44:04 +0100 (Thu, April 13, 2017) $"
+__date__ = "$Date: 2017-04-18 15:19:26 +0100 (Tue, April 18, 2017) $"
 
 #=========================================================================================
 # Start of code
@@ -40,7 +40,7 @@ from ccpn.ui.gui.widgets.ToolBar import ToolBar
 from ccpn.ui.gui.widgets.Frame import Frame
 
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
-
+from ccpnmodel.ccpncore.lib.Constants import ccpnmrJsonData
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
@@ -142,7 +142,7 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
         drag = QtGui.QDrag(event.widget())
         mimeData = QtCore.QMimeData()
         itemData = json.dumps({'pids': [nmrChain.pid]})
-        mimeData.setData('ccpnmr-json', itemData)
+        mimeData.setData(ccpnmrJsonData, itemData)
         mimeData.setText(itemData)
         drag.setMimeData(mimeData)
 
@@ -335,12 +335,12 @@ class SequenceGraph(CcpnModule):
   def disconnectNextNmrResidue(self):
     self.current.nmrResidue.disconnectNext()
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    self.updateNmrResidueTable()
+    #self.updateNmrResidueTable()
 
   def disconnectNmrResidue(self):
     self.current.nmrResidue.disconnect()
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    self.updateNmrResidueTable()
+    #self.updateNmrResidueTable()
 
   def _resetNmrResiduePidForAssigner(self, nmrResidue, oldPid:str):
     """Reset pid for NmrResidue and all offset NmrResidues"""
@@ -503,7 +503,8 @@ class SequenceGraph(CcpnModule):
           self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
   def _updateShownAssignments(self, peak):
-    self.setNmrChainDisplay(self.current.nmrChain.pid)
+    if self.current.nmrChain is not None:
+      self.setNmrChainDisplay(self.current.nmrChain.pid)
 
   def _showBackboneAssignments(self, nmrChain):
     self.project._startFunctionCommandBlock('_showBackboneAssignments', nmrChain)
