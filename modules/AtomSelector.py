@@ -18,19 +18,26 @@ TODO: Needs complete refactoring:
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-__copyright__ = "Copyright (C) CCPN project (www.ccpn.ac.uk) 2014 - $Date$"
-__credits__ = "Wayne Boucher, Rasmus H Fogh, Simon P Skinner, Geerten W Vuister"
-__license__ = ("CCPN license. See www.ccpn.ac.uk/license"
-              "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for license text")
-__reference__ = ("For publications, please use reference from www.ccpn.ac.uk/license"
-                " or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
+__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2017"
+__credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timothy J Ragan"
+               "Simon P Skinner & Geerten W Vuister")
+__licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license"
+               "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
+__reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license"
+               "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
 
 #=========================================================================================
-# Last code modification:
+# Last code modification
 #=========================================================================================
-__author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-18 15:19:26 +0100 (Tue, April 18, 2017) $"
+__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__dateModified__ = "$dateModified: 2017-04-07 11:40:21 +0100 (Fri, April 07, 2017) $"
+__version__ = "$Revision: 3.0.b1 $"
+#=========================================================================================
+# Created
+#=========================================================================================
+__author__ = "$Author: CCPN $"
 
+__date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 #=========================================================================================
 # Start of code
 #=========================================================================================
@@ -332,7 +339,7 @@ class AtomSelector(CcpnModule):
               peak.assignDimension(axisCode, nmrAtoms)
       self.current.peaks = []
     finally:
-      self.project._appBase._endCommandBlock()
+      self.project._endCommandEchoBlock()
       self._returnButtonsToNormal()
 
   def _returnButtonsToNormal(self):

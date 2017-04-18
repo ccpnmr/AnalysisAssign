@@ -4,19 +4,26 @@
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-__copyright__ = "Copyright (C) CCPN project (www.ccpn.ac.uk) 2014 - $Date: 2016-05-23 10:02:47 +0100 (Mon, 23 May 2016) $"
-__credits__ = "Wayne Boucher, Rasmus H Fogh, Simon P Skinner, Geerten W Vuister"
-__license__ = ("CCPN license. See www.ccpn.ac.uk/license"
-              "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for license text")
-__reference__ = ("For publications, please use reference from www.ccpn.ac.uk/license"
-                " or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
+__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2017"
+__credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timothy J Ragan"
+               "Simon P Skinner & Geerten W Vuister")
+__licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license"
+               "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
+__reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license"
+               "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
 
 #=========================================================================================
-# Last code modification:
+# Last code modification
 #=========================================================================================
-__author__ = "$Author: Geerten Vuister $"
-__date__ = "$Date: 2017-04-18 15:19:26 +0100 (Tue, April 18, 2017) $"
+__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__dateModified__ = "$dateModified: 2017-04-07 11:40:22 +0100 (Fri, April 07, 2017) $"
+__version__ = "$Revision: 3.0.b1 $"
+#=========================================================================================
+# Created
+#=========================================================================================
+__author__ = "$Author: skinnersp $"
 
+__date__ = "$Date: 2016-05-23 10:02:47 +0100 (Thu, 26 May 2016) $"
 #=========================================================================================
 # Start of code
 #=========================================================================================
@@ -305,7 +312,7 @@ class SequenceGraph(CcpnModule):
         self._showBackboneAssignments(nmrChain)
 
     finally:
-      self.project._appBase._endCommandBlock()
+      self.project._endCommandEchoBlock()
 
   def resetSequenceGraph(self):
     # self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay()')
@@ -313,7 +320,7 @@ class SequenceGraph(CcpnModule):
     self.nmrChainPulldown.pulldownList.select('NC:@-')
     # self.setNmrChainDisplay('NC:@-')
     # finally:
-    #   self.project._appBase._endCommandBlock()
+    #   self.project._endCommandEchoBlock()
 
   # def addNmrChainToPulldown(self, nmrChain):
   #   self.nmrChainPulldown.addItem(nmrChain.pid)
@@ -507,7 +514,7 @@ class SequenceGraph(CcpnModule):
       self.setNmrChainDisplay(self.current.nmrChain.pid)
 
   def _showBackboneAssignments(self, nmrChain):
-    self.project._startFunctionCommandBlock('_showBackboneAssignments', nmrChain)
+    self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
     try:
       if self.project._appBase.colourScheme == 'dark':
         lineColour = '#f7ffff'
@@ -530,7 +537,7 @@ class SequenceGraph(CcpnModule):
           self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
       self._getAssignmentsFromSpectra()
     finally:
-      self.project._appBase._endCommandBlock()
+      self.project._endCommandEchoBlock()
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom, colour:str, width:float, displacement:float, style:str=None):
     """
