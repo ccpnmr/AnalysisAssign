@@ -44,7 +44,7 @@ from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
-from ccpn.ui.gui.widgets.Frame import Frame
+###from ccpn.ui.gui.widgets.Frame import Frame
 
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 from ccpnmodel.ccpncore.lib.Constants import ccpnmrJsonData
@@ -65,12 +65,14 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     self.project = project
     self.current = project._appBase.current
     self.nmrAtom = nmrAtom
-    if nmrAtom:
-      self.name = nmrAtom.name
+    ###if nmrAtom:
+    ###  self.name = nmrAtom.name
     self.connectedAtoms = 0
 
+    # wb104: not sure why below is needed rather than setFlags() but it is
     self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-    self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
+    ###self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
+    #self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
 
     if project._appBase.colourScheme == 'dark':
       colour1 = '#F7FFFF'
@@ -99,7 +101,7 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     """
     CCPN INTERNAL - re-implementation of mouse press event
     """
-    print('>>pressEvent')
+    ###print('>>pressEvent')
     if self.nmrAtom is not None:
       self.current.nmrAtom = self.nmrAtom
       self.current.nmrResidue = self.nmrAtom.nmrResidue
@@ -129,7 +131,8 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     elif project._appBase.colourScheme == 'light':
       self.setDefaultTextColor(QtGui.QColor('#555D85'))
     self.setPos(caAtom.x()-caAtom.boundingRect().width()/2, caAtom.y()+30)
-    self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
+    ###self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
+    self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
     self.parent = parent
     self.nmrResidue = nmrResidue
     self.mousePressEvent = self._mousePressEvent
@@ -175,7 +178,8 @@ class AssignmentLine(QtGui.QGraphicsLineItem):
     self.pen.setColor(QtGui.QColor(colour))
     self.pen.setCosmetic(True)
     self.pen.setWidth(width)
-    if style and style == 'dash':
+    ###if style and style == 'dash':
+    if style == 'dash':
       self.pen.setStyle(QtCore.Qt.DotLine)
     self.setPen(self.pen)
     self.setLine(x1, y1, x2, y2)
@@ -196,7 +200,7 @@ class SequenceGraph(CcpnModule):
     CcpnModule.__init__(self, parent=parent, name='Sequence Graph')
     # project, current, application and mainWindow are inherited from CcpnModule
 
-    frame = Frame(parent=self.mainWidget)
+    ###frame = Frame(parent=self.mainWidget)
     self.scrollArea = QtGui.QScrollArea()
     self.scrollArea.setWidgetResizable(True)
     self.scene = QtGui.QGraphicsScene(self)
@@ -204,7 +208,7 @@ class SequenceGraph(CcpnModule):
     self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
     self.scrollContents.setInteractive(True)
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
-    self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
+    ###self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
     self.scrollArea.setWidget(self.scrollContents)
     self.addWidget(self.scrollArea, 4, 0, 1, 6)
     #frame.addWidget(self.scrollArea, 4, 0, 1, 6)
@@ -401,6 +405,7 @@ class SequenceGraph(CcpnModule):
     self.scene.addItem(self.nmrResidueLabel)
     self._addResiduePredictions(nmrResidue, atoms['CA'])
 
+  """
   def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
     residue = {}
     for k, v in ATOM_POSITION_DICT[nmrResidue.residueType].items():
@@ -417,6 +422,7 @@ class SequenceGraph(CcpnModule):
       atom2 = residue[boundAtomPair[1]]
       newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
       self.scene.addItem(newLine)
+"""
 
   def addResidue(self, nmrResidue:NmrResidue, direction:str, atomSpacing=None):
     """
@@ -527,14 +533,17 @@ class SequenceGraph(CcpnModule):
             newNmrResidue.fetchNmrAtom(name=atom.name)
         self.addResidue(residue.nmrResidue, direction='+1')
       for ii, res in enumerate(self.guiResiduesShown):
+        """
         if ii % 10 == 0:
           if self.project._appBase.ui.mainWindow is not None:
             mainWindow = self.project._appBase.ui.mainWindow
           else:
             mainWindow = self.project._appBase._mainWindow
           mainWindow.pythonConsole.writeConsoleCommand('%s residues added' % str(ii))
-        if ii+1 < len(self.guiResiduesShown)-1:
-          self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
+"""
+        ###if ii+1 < len(self.guiResiduesShown)-1:
+        if ii + 1 < len(self.guiResiduesShown):
+            self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
       self._getAssignmentsFromSpectra()
     finally:
       self.project._endCommandEchoBlock()
