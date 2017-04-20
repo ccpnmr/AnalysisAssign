@@ -65,6 +65,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
+  settingsMinimumSizes = (500, 200)
 
   className = 'BackboneAssignmentModule'
 
@@ -76,7 +77,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     # BackBoneAssignmentModule/CcpnModule
 
     self.nmrChains = self.project.nmrChains
-    self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable, grid=(0,2), checked=False, text='Find matches')
+    self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable._widget,
+                                        grid=(0,2), checked=True, text='Find matches')
 
     ### Settings ###
 
@@ -130,10 +132,19 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     If matchCheckbox is checked, also call findAndDisplayMatches
     """
     displays = self._getDisplays()
-    if len(displays) == 0: return
+    if len(displays) == 0:
+      logger.warn('Undefined display module(s); select in settings first')
+      showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
+      return
+
+    if self.matchCheckBoxWidget.isChecked() and len(self.matchWidget.getTexts()) == 0:
+      logger.warn('Undefined match module; select in settings first or unselect "Find matches"')
+      showWarning('startAssignment', 'Undefined match module;\nselect in settings first or unselect "Find matches"')
+      return
+
 
     self.application._startCommandBlock(
-        'BackboneAssignmentModule.navigateToResidue(project.getByPid(%r)' % nmrResidue.pid)
+        'BackboneAssignmentModule.navigateToResidue(project.getByPid(%r))' % nmrResidue.pid)
     try:
       # optionally clear the marks
       if self.autoClearMarksWidget.checkBox.isChecked():
@@ -176,11 +187,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
   def findAndDisplayMatches(self, nmrResidue):
     "Find and displays the matches to nmrResidue"
 
-    if len(self.matchWidget.getTexts()) == 0:
-      logger.warn('Undefined match module; select in settings first')
-      showWarning('startAssignment', 'Undefined match module; select in settings first')
-      return
-
     # If NmrResidue is a -1 offset NmrResidue, set queryShifts as value from self.interShifts dictionary
     # Set matchShifts as self.intraShifts
     if nmrResidue.sequenceCode.endswith('-1'):
@@ -207,193 +213,29 @@ class BackboneAssignmentModule(NmrResidueTableModule):
   def _processDroppedNmrResidue(self, data, nmrResidue):
     "Process the dropped NmrResidue id"
 
-    #print('_processDroppedNmrResidue>>', data)
-    droppedNmrResidue = self.project.getByPid('NR:'+data['ids'][0])
-    print('>_processDroppedNmrResidue>', nmrResidue, droppedNmrResidue)
+    droppedNmrResidue = None
+    if DropBase.IDS in data and len(data[DropBase.IDS]) > 0:
+      droppedNmrResidue = self.project.getByPid('NR:'+data[DropBase.IDS][0])
+    if droppedNmrResidue is None:
+      logger.info('Backbone assigned: invalid "id" of dropped item')
+      raise Warning('Backbone assigned: invalid "id" of dropped item')
+
+    logger.debug('nmrResidue:%s, droppedNmrResidue:%s', nmrResidue, droppedNmrResidue)
     if droppedNmrResidue == nmrResidue:
       logger.warning('Cannot connect residue to itself')
       return
 
+    # silence the updat of the nmrResidueTable as we will to an explicit update later
+    self.nmrResidueTable.setUpdateSilence(True)
     if data['shiftLeftMouse']:
       # leftShift drag; connect to previous
       nmrResidue.connectPrevious(droppedNmrResidue)
     else:
       nmrResidue.connectNext(droppedNmrResidue)
+    self.nmrResidueTable.setUpdateSilence(False)
 
-    # this should trigger the update of the Sequence Graph
-    self.current.nmrResidue = droppedNmrResidue
-    self.current.nmrChain = droppedNmrResidue.nmrChain
-    self._updateNmrResidueTable(droppedNmrResidue.nmrChain)
-
-  # def _updateNmrChainList(self, nmrChain):
-  #   """
-  #   Convenience function for notifiers to update the NmrResidueTable when notifier is called in
-  #   response to creation, deletion and changes to NmrChain objects.
-  #   """
-  #   if not nmrChain:
-  #     logger.warn('No NmrChain specified')
-  #     return
-  #   self.nmrResidueTable.nmrResidueTable.objectLists.append(nmrChain)
-
-  # def _updateNmrChainPulldown(self, nmrChain):
-  #   """
-  #   Convenience function for notifiers to update the NmrResidueTable when notifier is called in
-  #   response to creation, deletion and changes to NmrChain objects.
-  #   """
-  #   if not nmrChain:
-  #     logger.warn('No NmrChain specified')
-  #     return
-  #   self.nmrResidueTable.nmrResidueTable.objectLists = self.project.nmrChains
-  #   self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
-
-  def _updateNmrResidueTable(self, nmrChain):
-    """
-    Convenience function to update the nmrResidueTable.
-    """
-    if not nmrChain:
-      logger.warn('No NmrChain specified')
-      return
-#    self.nmrResidueTable.selectNmrChain(nmrChain)
-    self.nmrResidueTable.ncWidget.pulldownList.select(nmrChain)
-    self.nmrResidueTable.nmrResidueTable.objectLists = self.project.nmrChains
-    self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
-#    self.nmrResidueTable.updateTable()
-
-  # def _matchModules(self):
-  #
-  #   return [self.moduleList.item(i).text() for i in range(self.moduleList.count())]
-
-  # def _selectMatchModule(self, text):
-  #   """
-  #   Call back to assign modules as match modules in response to a signal from the modulePulldown
-  #   above. Adds the item to a list containing match modules and adds the Pid of the module to the
-  #   moduleList ListWidget object.
-  #   """
-  #   if not text:  # blank row
-  #     return
-  #   if text not in self.matchWidget.getTexts():
-  #     self.moduleList.addItem(text)
-  #   self.modulePulldown.setIndex(0)
-
-  # def _startAssignment(self, nmrResidue:NmrResidue, row:int=None, col:int=None):
-  #   """
-  #   Initiates assignment procedure when triggered by selection of an NmrResidue from the nmrResidueTable
-  #   inside the module.
-  #   """
-  #   if not nmrResidue:
-  #     logger.warn('No NmrResidue specified')
-  #     return
-  #   if len(self.matchWidget.getTexts()) == 0:
-  #     logger.warn('Undefined match module; select in settings first')
-  #     showWarning('startAssignment', 'Undefined match module; select in settings first')
-  #     return
-  #
-  #   self.project._startFunctionCommandBlock('_startAssignment', nmrResidue)
-  #   try:
-  #     self._setupShiftDicts()
-  #
-  #     # if hasattr(self, 'sequenceGraph'):
-  #     #   self.sequenceGraph.clearAllItems()
-  #     #   self.sequenceGraph.nmrChainPulldown.select(self.current.nmrChain.pid)
-  #
-  #     if nmrResidue.nmrChain.isConnected:
-  #       if nmrResidue.sequenceCode.endswith('-1'):
-  #         nmrResidue = nmrResidue.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
-  #       else:
-  #         nmrResidue = nmrResidue.nmrChain.mainNmrResidues[-1]
-  #
-  #     self._navigateTo(nmrResidue, row, col)
-  #     # update current (should trigger SequenceGraph)
-  #     self.current.nmrResidue = nmrResidue
-  #     self.current.nmrChain = nmrResidue.nmrChain
-  #
-  #   finally:
-  #     self.project._appBase._endCommandBlock()
-  #
-  #
-  # def _navigateTo(self, nmrResidue:NmrResidue, row:int=None, col:int=None, strip:GuiStrip=None):
-  #   """
-  #   Takes an NmrResidue and an optional GuiStrip and changes z position(s) of all available displays
-  #   to chemical shift value NmrAtoms in the NmrResidue. Takes corresponding value from inter-residual
-  #   or intra-residual chemical shift dictionaries, using the NmrResidue pid as the key.
-  #   Determines which nmrResidue(s) match the query NmrResidue and creates up to five strips, one for
-  #   each of the match NmrResidue, and marks the carbon positions.
-  #   """
-  #
-  #   if not nmrResidue:
-  #     logger.warn('No NmrResidue specified')
-  #     return
-  #
-  #   self.project._startFunctionCommandBlock('_navigateTo', nmrResidue, strip)
-  #   try:
-  #     mainWindow = self.mainWindow
-  #     mainWindow.clearMarks()
-  #     self.nmrResidueTable.nmrResidueTable.updateTable()
-  #     selectedDisplays = [display for display in self.project.spectrumDisplays
-  #                         if display.pid not in self.matchWidget.getTexts()]
-  #
-  #
-  #     # If NmrResidue is a -1 offset NmrResidue, set queryShifts as value from self.interShifts dictionary
-  #     # Set matchShifts as self.intraShifts
-  #     if nmrResidue.sequenceCode.endswith('-1'):
-  #       direction = '-1'
-  #       iNmrResidue = nmrResidue.mainNmrResidue
-  #       queryShifts = [shift for shift in self.interShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
-  #       matchShifts = self.intraShifts
-  #
-  #     # If NmrResidue is not an offset NmrResidue, set queryShifts as value from self.intraShifts dictionary
-  #     # Set matchShifts as self.interShifts
-  #     else:
-  #       direction = '+1'
-  #       iNmrResidue = nmrResidue
-  #       queryShifts = [shift for shift in self.intraShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
-  #       matchShifts = self.interShifts
-  #
-  #     self.current.nmrResidue = iNmrResidue
-  #     # If a strip is not specified, use the first strip in the each of the spectrumDisplays in selectedDisplays.
-  #     if not strip:
-  #       strips = [display.strips[0] for display in selectedDisplays]
-  #     else:
-  #       strips = [strip]
-  #     for strip in strips:
-  #       self._displayNmrResidueInStrip(iNmrResidue, strip)
-  #       if len(strip.axisCodes) > 2:
-  #         self._centreStripForNmrResidue(nmrResidue, strip)
-  #       amidePair = [iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')]
-  #       carbonAtoms = [x for x in nmrResidue.nmrAtoms if x.isotopeCode == '13C']
-  #       axisCodePositionDict = matchAxesAndNmrAtoms(strip, nmrAtoms=set((amidePair+carbonAtoms)))
-  #       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
-  #
-  #     assignMatrix = getNmrResidueMatches(queryShifts, matchShifts, 'averageQScore')
-  #     if not assignMatrix.values():
-  #       logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
-  #       return
-  #     self._createMatchStrips(assignMatrix)
-  #
-  #     # if hasattr(self, 'sequenceGraph'):
-  #     #   if self.sequenceGraph.nmrChainPulldown.currentText() != nmrResidue.nmrChain.pid:
-  #     #     self.sequenceGraph.nmrChainPulldown.select(nmrResidue.nmrChain.pid)
-  #     #   elif not nmrResidue.nmrChain.isConnected:
-  #     #     self.sequenceGraph.addResidue(iNmrResidue, direction)
-  #     #   else:
-  #     #     self.sequenceGraph.setNmrChainDisplay(nmrResidue.nmrChain.pid)
-  #   finally:
-  #     self.project._appBase._endCommandBlock()
-
-  # def _displayNmrResidueInStrip(self, nmrResidue, strip):
-  #   """
-  #   navigate strip position to position specified by nmrResidue and set spinSystemLabel to nmrResidue id
-  #   """
-  #   if not nmrResidue:
-  #     logger.warn('No NmrResidue specified')
-  #     return
-  #
-  #   if not strip:
-  #     logger.warn('No Strip specified')
-  #     return
-  #
-  #   navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=['default']*len(strip.axisCodes))
-  #   strip.planeToolbar.spinSystemLabel.setText(nmrResidue._id)
+    self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
+    self.navigateToNmrResidue(droppedNmrResidue)
 
   def _centreStripForNmrResidue(self, nmrResidue, strip):
     """
@@ -477,9 +319,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     Re-implementation of the closeModule method of the CcpnModule class required 
     """
     # TODO: use proper subclassing
-    for notifier in self._notifiers:
+    for notifier in self._stripNotifiers:
       notifier.unRegister()
-    self._notifiers = []
+    self._stripNotifiers = []
     self.close()
 
 

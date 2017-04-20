@@ -40,7 +40,7 @@ from PyQt4 import QtGui
 from ccpn.ui.gui.lib import PeakList
 from ccpn.ui.gui.lib import Strip
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
-from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable
+from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable, NmrResidueTableModule
 from ccpn.ui.gui.widgets.Base import Base
 from ccpn.ui.gui.widgets.Button import Button
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
@@ -50,13 +50,13 @@ from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 from ccpn.ui.gui.widgets.Frame import Frame
+from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, DoubleSpinBoxCompoundWidget
 
 from ccpn.util.Logging import getLogger
 logger = getLogger()
 
 
-
-class PickAndAssignModule(CcpnModule):
+class PickAndAssignModule(NmrResidueTableModule):
   """
   Do a restricted peak pick along the 'y-axis' of (a set of) spectra.
   Use settings to define the spectral displays, the active spectra and the tolerances for peak picking
@@ -65,100 +65,48 @@ class PickAndAssignModule(CcpnModule):
   """
   includeSettingsWidget = True
   maxSettingsState = 2
+  settingsMinimumSizes = (500, 200)
 
   def __init__(self, parent=None, project=None, name='Pick And Assign', **kw):
 
-    CcpnModule.__init__(self, parent=parent, name=name)
+    super(PickAndAssignModule, self).__init__(parent=parent, name=name)
     # project, current, application and mainWindow are inherited from CcpnModule
 
     # Main widget
-    self.restrictedPickButton = Button(self.mainWidget, text='Restricted Pick', grid=(0, 0),
+    self.restrictedPickButton = Button(self.nmrResidueTable._widget, text='Restricted Pick', grid=(0, 2),
                                        callback=self.restrictedPick)
     self.restrictedPickButton.setMinimumSize(120, 30)
-    self.assignSelectedButton = Button(self.mainWidget, text='Assign Selected', grid=(0, 1),
+    self.assignSelectedButton = Button(self.nmrResidueTable._widget, text='Assign Selected', grid=(0, 3),
                                        callback=self.assignSelected)
     self.assignSelectedButton.setMinimumSize(120, 30)
-    self.restrictedPickAndAssignButton = Button(self.mainWidget, text='Restricted Pick and Assign', grid=(0, 2),
+    self.restrictedPickAndAssignButton = Button(self.nmrResidueTable._widget, text='Restricted Pick and Assign', grid=(0, 4),
                                                 callback=self.restrictedPickAndAssign)
     self.restrictedPickAndAssignButton.setMinimumSize(160, 30)
 
-    self.nmrResidueTable = NmrResidueTable(self.mainWidget, project=project, callback=self.goToPositionInModules,
-                                           grid=(1, 0), gridSpan=(1, 5), stretch=(1, 1))
-
     # Settings widget
-    dframe = Frame(self.settingsWidget, grid=(0, 0))
-    #self.displaysLabel = Label(self.settingsWidget, 'Selected Displays:', grid=(0, 0))
-    self.displaysPulldown = PulldownList(dframe, grid=(0, 0), callback=self._updateListWidget)
-    self.displaysPulldown.setData([sd.pid for sd in project.spectrumDisplays])
-    self.displayList = ListWidget(dframe, grid=(1,0), gridSpan=(2, 1))
-    self.displayList.addItem('<All>')
-    self.displayList.setFixedWidth(160)
 
-    self.scrollArea = Frame(self.settingsWidget, grid=(0, 1), gridSpan=(4, 4))
-    self.spectrumSelectionWidget = SpectrumSelectionWidget(self.scrollArea, project, self.displayList)
-    #self.scrollArea.setWidget(self.spectrumSelectionWidget)
-    self.displayList.removeItem = self._removeListWidgetItem
+    # change some of the defaults setting inherited from NmrResidueTableModule
+    self.sequentialStripsWidget.checkBox.setChecked(False)
+    self.displaysWidget.addPulldownItem(0)
 
-    self._registerNotifiers()
+    # create row's of spectrum information
+    self._spectraWidget = Frame(self.settingsWidget, grid=(0, 1), gridSpan=(4,1))
+    self.spectrumLabel = Label(self._spectraWidget, 'Spectrum', bold=True, grid=(0,0), hAlign='left')
+    self.useLabel = Label(self._spectraWidget, 'Use?', bold=True, grid=(0, 1), hAlign='left')
 
-  def _registerNotifiers(self):
-    # wb104, 1 Nov 2016: not sure why the first four notifiers are as specified,
-    # the widget is to do with displays not NmrResidues, and it breaks the function
-    # because the argument would be an NmrResidue, not an item
-    # GWV: 5/4/2017 agree and removed
-    # GWV: should NmrResidueTable not take care of this??
-    self.project.registerNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrAtom', 'create', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrAtom', 'delete', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrAtom', 'modify', self._updateNmrResidueTable)
-    self.project.registerNotifier('NmrAtom', 'rename', self._updateNmrResidueTable)
-
-  def _unRegisterNotifiers(self):
-    self.project.unRegisterNotifier('NmrResidue', 'create', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrResidue', 'delete', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrResidue', 'modify', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrResidue', 'rename', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrAtom', 'create', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrAtom', 'delete', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrAtom', 'modify', self._updateNmrResidueTable)
-    self.project.unRegisterNotifier('NmrAtom', 'rename', self._updateNmrResidueTable)
+    self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
+    spectra = list(set([sp for dp in self.mainWindow.spectrumDisplays for sp in dp.strips[0].spectra]))
+    for row, spectrum in enumerate(self.project.spectra):
+      f = _SpectrumRow(self._spectraWidget, spectrum,
+                       grid=(row+1,0), gridSpan=(1,1+len(spectrum.axisCodes)), vAlign='top')
+      self._spectraWidgets[spectrum.pid] = f
 
   def _closeModule(self):
     """
     Unregister notifiers and close module.
     """
-    self._unRegisterNotifiers()
+    #self._unRegisterNotifiers()
     self.close()
-
-  def _updateListWidget(self, item):
-
-    if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
-      self.displayList.takeItem(0)
-    self.displayList.addItem(self.project.getByPid(item).pid)
-    self.spectrumSelectionWidget.update()
-
-  def _updateNmrResidueTable(self, nmrResidue):
-    self.nmrResidueTable.nmrResidueTable.updateTable()
-    self.nmrResidueTable.nmrResidueTable._updateSelectorContents()
-
-  def _removeListWidgetItem(self):
-    self.displayList.takeItem(self.displayList.currentRow())
-
-    if self.displayList.count() == 0:
-      self.displayList.addItem('<All>')
-    self.spectrumSelectionWidget.update()
-
-  def _toggleWidget2(self):
-    if self.settingsButton.isChecked():
-      self.settingsWidget.show()
-    else:
-      self.settingsWidget.hide()
-
-  def _refresh(self):
-    pass
 
   def assignSelected(self):
     "Assign current.peaks on the bases of nmrAtoms of current.nmrResidue"
@@ -191,6 +139,9 @@ class PickAndAssignModule(CcpnModule):
               if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
                 peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
       self.current.peaks = []
+      # update the NmrResidue table
+      self.nmrResidueTable._update(self.current.nmrResidue.nmrChain)
+
     finally:
       self.project._endCommandEchoBlock()
 
@@ -225,6 +176,9 @@ class PickAndAssignModule(CcpnModule):
                                                         axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
               peaks = peaks + pks
       self.current.peaks = peaks
+      # update the NmrResidue table
+      self.nmrResidueTable._update(nmrResidue.nmrChain)
+
     finally:
       self.project._appBase._endCommandBlock()
 
@@ -261,6 +215,9 @@ class PickAndAssignModule(CcpnModule):
               peaks = peaks + pks
       self.current.peaks = peaks
       self.assignSelected()
+      # update the NmrResidue table
+      self.nmrResidueTable._update(nmrResidue.nmrChain)
+
     finally:
       self.project._endCommandEchoBlock()
 
@@ -290,18 +247,45 @@ class PickAndAssignModule(CcpnModule):
       self.project._endCommandEchoBlock()
 
 
-class SpectrumSelectionWidget(QtGui.QWidget, Base):
+class _SpectrumRow(Frame):
+  "Class to make a spectrum row"
 
-  def __init__(self, parent, project, displayList, **kw):
+  def __init__(self, parent, spectrum, **kwds):
+
+    super(_SpectrumRow, self).__init__(parent, **kwds)
+
+    col = 0
+    self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1,1), hAlign='left',
+                                           checked=True, labelText=spectrum.pid,
+                                           minimumWidths = [100,20] )
+
+    self.spinBoxes = []
+    for ii, axisCode in enumerate(spectrum.axisCodes):
+      decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
+      col += 1; ds = DoubleSpinBoxCompoundWidget(
+                                   self, grid=(0, col), gridSpan=(1,1), hAlign='left',
+                                   minimumWidths=[30, 50], maximumWidths=[30, 50],
+                                   labelText = axisCode,
+                                   value = spectrum.assignmentTolerances[ii],
+                                   decimals=decimals, step=step, range=(0, None))
+      self.spinBoxes.append(ds)
+
+
+class SpectrumSelectionWidget(QtGui.QWidget, Base):
+  "Class to make a widget with spectral settings"
+  def __init__(self, parent, project, getDisplays, **kw):
+
     QtGui.QWidget.__init__(self, parent)
     Base.__init__(self, **kw)
     self.project = project
+    self._getDisplays = getDisplays # function to get the displays
+
+
     self.spectrumLabel = Label(self, 'Spectrum')
     self.layout().addWidget(self.spectrumLabel, 0, 0)
     self.useLabel = Label(self, 'Use?', grid=(0, 1), hAlign='c')
     self.refreshBox = CheckBox(self, grid=(0, 4))
     self.checkBoxLabel = Label(self, 'Auto Refresh', grid=(0, 5))
-    self.displayList = displayList
     self.update = self._update
     self.setObjectName('spectrumSelectionWidget')
     self.update()
@@ -325,7 +309,8 @@ class SpectrumSelectionWidget(QtGui.QWidget, Base):
             item.widget().hide()
         self.layout().removeItem(item)
     # if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
-    activeDisplays = self.getActiveDisplays()
+#    activeDisplays = self.getActiveDisplays()
+    activeDisplays = self._getDisplays()
     spectra = set([spectrumView.spectrum for spectrumDisplay in activeDisplays
                    for spectrumView in spectrumDisplay.spectrumViews])
 
