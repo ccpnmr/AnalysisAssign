@@ -46,7 +46,9 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
 ###from ccpn.ui.gui.widgets.Frame import Frame
 
+from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
+
 from ccpnmodel.ccpncore.lib.Constants import ccpnmrJsonData
 
 
@@ -215,14 +217,24 @@ class SequenceGraph(CcpnModule):
 
     self.residueCount = 0
 
+    """
     self.modeLabel = Label(self, 'Mode: ', grid=(0, 3))
     self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])
-
+"""
     #self.nmrChainLabel = Label(self, 'NmrChain: ', grid=(0, 0), hAlign='r')
     #self.nmrChainPulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
     self.nmrChainPulldown = NmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(2, 1),
                                              callback=self.setNmrChainDisplay)
+
+    self.refreshCheckBox = CheckBoxCompoundWidget(self, labelText='Auto refresh NmrChain:',
+                                                  tipText='Update display when current.nmrChain changes',
+                                                  grid=(0, 2), gridSpan=(2,1))
+
+    self.assignmentsCheckBox = CheckBoxCompoundWidget(self, labelText='Show assignments:',
+                                    tipText='Show peak assignments on display coloured by positiveContourColour',
+                                    callback=self._updateShownAssignments,
+                                    grid=(0, 4), gridSpan=(2,1))
 
     self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
@@ -245,7 +257,7 @@ class SequenceGraph(CcpnModule):
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
 
-    self.setMode('fragment')  # cannot be moved up!
+    ###self.setMode('fragment')  # cannot be moved up!
     self._registerNotifiers()
 
   def _registerNotifiers(self):
@@ -269,13 +281,24 @@ class SequenceGraph(CcpnModule):
 
   def _updateModule(self, nmrChains=None):
     """
-    Update in reponse to change of nmrChains 
+    Update in reponse to change of current.nmrChains
     """
-    if nmrChains is None or len(nmrChains)==0: return
-    #self.sequenceGraph.clearAllItems()
-    self.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
-    self.setNmrChainDisplay(self.current.nmrChain.pid)
 
+    #if nmrChains is None or len(nmrChains)==0: return
+    nmrChain = self.current.nmrChain
+    if not nmrChain:
+      return
+
+    if not self.refreshCheckBox.isChecked():
+      return
+
+    #self.sequenceGraph.clearAllItems()
+    ###self.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
+    self.nmrChainPulldown.pulldownList.select(nmrChain.pid)
+    ###self.setNmrChainDisplay(nmrChain.pid)
+    self.setNmrChainDisplay(nmrChain)
+
+  """
   def setMode(self, mode):
     if self.project.nmrChains:
       self.editingToolbar.hide()
@@ -291,10 +314,17 @@ class SequenceGraph(CcpnModule):
       self.setNmrChainDisplay(self.nmrChainPulldown.getText())
     else:
       self.project._logger.warn('No valid NmrChain is selected.')
+"""
 
-  def setNmrChainDisplay(self, nmrChainPid):
+  def setNmrChainDisplay(self, nmrChainOrPid):
 
-    self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
+    if isinstance(nmrChainOrPid, str):
+      nmrChain = self.project.getByPid(nmrChainOrPid)
+    else:
+      nmrChain = nmrChainOrPid
+
+    ###self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
+    self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
     try:
       #self.current.nmrChain = self.project.getByPid(nmrChainPid)
       #if not self.current.nmrChain:
@@ -302,18 +332,42 @@ class SequenceGraph(CcpnModule):
       #  return
       self.clearAllItems()
 
-      nmrChain = self.project.getByPid(nmrChainPid)
-      if self.modePulldown.currentText() == 'fragment':
+      ###nmrChain = self.project.getByPid(nmrChainPid)
+      ###if self.modePulldown.currentText() == 'fragment':
+      if True:
+        """
         if nmrChain.isConnected:
           for nmrResidue in nmrChain.mainNmrResidues:
             self.addResidue(nmrResidue, '+1')
         elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
           self.addResidue(self.current.nmrResidue, '+1')
+"""
+        nmrResidue = self.current.nmrResidue
+        if nmrResidue in nmrChain.nmrResidues:
+          while nmrResidue.previousNmrResidue: # go to start of connected stretch
+            nmrResidue = nmrResidue.previousNmrResidue
+        elif nmrChain.isConnected or nmrChain.chain: # either NC:# or NC:A type nmrChains but not NC:@
+          nmrResidue = nmrChain.mainNmrResidues[0]
+
+        while nmrResidue:  # add all of connected stretch
+          self.addResidue(nmrResidue, '+1')
+          nmrResidue = nmrResidue.nextNmrResidue
+
         if len(self.predictedStretch) > 2:
           self.predictSequencePosition(self.predictedStretch)
 
-      elif self.modePulldown.currentText() == 'Assigned - backbone':
-        self._showBackboneAssignments(nmrChain)
+      ###elif self.modePulldown.currentText() == 'Assigned - backbone':
+      ###  self._showBackboneAssignments(nmrChain)
+
+      if self.project._appBase.colourScheme == 'dark':
+        lineColour = '#f7ffff'
+      elif self.project._appBase.colourScheme == 'light':
+        lineColour = ''  #TODO: check if correct
+      for ii, res in enumerate(self.guiResiduesShown[:-1]):
+        self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], lineColour, 1.0, 0)
+
+      if self.assignmentsCheckBox.isChecked():
+        self._getAssignmentsFromSpectra()
 
     finally:
       self.project._endCommandEchoBlock()
@@ -336,7 +390,7 @@ class SequenceGraph(CcpnModule):
   def disconnectPreviousNmrResidue(self):
     self.current.nmrResidue.disconnectPrevious()
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    self.updateNmrResidueTable()
+    ###self.updateNmrResidueTable()
 
   def _closeModule(self):
     self._unRegisterNotifiers()
@@ -515,10 +569,15 @@ class SequenceGraph(CcpnModule):
         if hasattr(self.project._appBase, 'sequenceModule'):
           self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
-  def _updateShownAssignments(self, peak):
-    if self.current.nmrChain is not None:
-      self.setNmrChainDisplay(self.current.nmrChain.pid)
+  def _updateShownAssignments(self, peak=None):
+    ###if self.current.nmrChain is not None:
+    ###  self.setNmrChainDisplay(self.current.nmrChain.pid)
 
+    nmrChainPid = self.nmrChainPulldown.getText()
+    if nmrChainPid:
+      self.setNmrChainDisplay(nmrChainPid)
+
+  """
   def _showBackboneAssignments(self, nmrChain):
     self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
     try:
@@ -533,20 +592,20 @@ class SequenceGraph(CcpnModule):
             newNmrResidue.fetchNmrAtom(name=atom.name)
         self.addResidue(residue.nmrResidue, direction='+1')
       for ii, res in enumerate(self.guiResiduesShown):
-        """
         if ii % 10 == 0:
           if self.project._appBase.ui.mainWindow is not None:
             mainWindow = self.project._appBase.ui.mainWindow
           else:
             mainWindow = self.project._appBase._mainWindow
           mainWindow.pythonConsole.writeConsoleCommand('%s residues added' % str(ii))
-"""
         ###if ii+1 < len(self.guiResiduesShown)-1:
         if ii + 1 < len(self.guiResiduesShown):
             self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
+
       self._getAssignmentsFromSpectra()
     finally:
       self.project._endCommandEchoBlock()
+"""
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom, colour:str, width:float, displacement:float, style:str=None):
     """
