@@ -52,7 +52,7 @@ from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
-from ccpn.ui.gui.DropBase import DropBase
+from ccpn.ui.gui.widgets.DropBase import DropBase
 
 from ccpn.util.Logging import getLogger
 logger = getLogger()
