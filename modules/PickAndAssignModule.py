@@ -69,7 +69,7 @@ class PickAndAssignModule(NmrResidueTableModule):
 
   def __init__(self, parent, application):
 
-    super(PickAndAssignModule, self).__init__(parent=parent, name='Pick And Assign')
+    super(PickAndAssignModule, self).__init__(parent=parent, application=application, name='Pick And Assign')
 
     # derive project, current, and mainWindow from application
     self.application = application

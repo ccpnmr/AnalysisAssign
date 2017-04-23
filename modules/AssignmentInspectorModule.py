@@ -102,8 +102,9 @@ class AssignmentInspectorModule(CcpnModule):
     if self.application.current.nmrResidue is not None:
       self._updateModuleCallback([self.application.current.nmrResidue])
 
-  def __del__(self):
+  def _closeModule(self):
     self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
+    super(AssignmentInspectorModule, self)._closeModule()
 
   def _updateModuleCallback(self, nmrResidues):
     """
@@ -151,7 +152,7 @@ class AssignmentInspectorModule(CcpnModule):
       self.peaksLabel.setText('Assigned peaks of NmrAtoms(s): %s' % self.ALL)
     else:
       pid = 'NA:'+ id
-      nmrAtom = self.project.getByPid(pid)
+      nmrAtom = self.application.project.getByPid(pid)
       #print('>>', pid, nmrAtom)
       if nmrAtom is not None:
         self.assignedPeaksTable.setObjects(nmrAtom.assignedPeaks)
@@ -164,7 +165,7 @@ class AssignmentInspectorModule(CcpnModule):
     columns = [Column('Peak', 'id')]
     tipTexts = []
     # get the maxmimum number of dimensions from all spectra in the project
-    numDim = max([sp.dimensionCount for sp in self.project.spectra] + [1])
+    numDim = max([sp.dimensionCount for sp in self.application.project.spectra] + [1])
 
     for i in range(numDim):
       j = i + 1
