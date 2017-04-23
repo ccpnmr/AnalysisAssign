@@ -67,10 +67,12 @@ class PickAndAssignModule(NmrResidueTableModule):
   maxSettingsState = 2
   settingsMinimumSizes = (500, 200)
 
-  def __init__(self, parent=None, project=None, name='Pick And Assign', **kw):
+  def __init__(self, parent, application):
 
-    super(PickAndAssignModule, self).__init__(parent=parent, name=name)
-    # project, current, application and mainWindow are inherited from CcpnModule
+    super(PickAndAssignModule, self).__init__(parent=parent, name='Pick And Assign')
+
+    # derive project, current, and mainWindow from application
+    self.application = application
 
     # Main widget
     self.restrictedPickButton = Button(self.nmrResidueTable._widget, text='Restricted Pick', grid=(0, 2),
@@ -95,8 +97,7 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.useLabel = Label(self._spectraWidget, 'Use?', bold=True, grid=(0, 1), hAlign='left')
 
     self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
-    spectra = list(set([sp for dp in self.mainWindow.spectrumDisplays for sp in dp.strips[0].spectra]))
-    for row, spectrum in enumerate(self.project.spectra):
+    for row, spectrum in enumerate(self.application.project.spectra):
       f = _SpectrumRow(self._spectraWidget, spectrum,
                        grid=(row+1,0), gridSpan=(1,1+len(spectrum.axisCodes)), vAlign='top')
       self._spectraWidgets[spectrum.pid] = f
@@ -111,24 +112,24 @@ class PickAndAssignModule(NmrResidueTableModule):
   def assignSelected(self):
     "Assign current.peaks on the bases of nmrAtoms of current.nmrResidue"
 
-    if self.current.nmrResidue is None:
+    if self.application.current.nmrResidue is None:
       logger.error('Undefined nmrResidue; select one first before proceeding')
       return
 
-    if len(self.current.peaks) == 0:
+    if len(self.application.current.peaks) == 0:
       logger.error('Undefined peak(s); select one or more before proceeding')
       return
 
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule.assignSelected()')
+    self.application.project._appBase._startCommandBlock('application.pickAndAssignModule.assignSelected()')
     try:
       shiftDict = {}
-      for atom in self.current.nmrResidue.nmrAtoms:
+      for atom in self.application.current.nmrResidue.nmrAtoms:
         shiftDict[atom.isotopeCode] = []
 
-      for peak in self.current.peaks:
+      for peak in self.application.current.peaks:
         shiftList = peak.peakList.spectrum.chemicalShiftList
         spectrum = peak.peakList.spectrum
-        for nmrAtom in self.current.nmrResidue.nmrAtoms:
+        for nmrAtom in self.application.current.nmrResidue.nmrAtoms:
           if nmrAtom.isotopeCode in shiftDict.keys():
             shiftDict[nmrAtom.isotopeCode].append((nmrAtom, shiftList.getChemicalShift(nmrAtom.id).value))
         for ii, isotopeCode in enumerate(spectrum.isotopeCodes):
@@ -138,13 +139,14 @@ class PickAndAssignModule(NmrResidueTableModule):
               pValue = peak.position[ii]
               if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
                 peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
-      self.current.peaks = []
+      self.application.current.peaks = []
       # update the NmrResidue table
-      self.nmrResidueTable._update(self.current.nmrResidue.nmrChain)
+      self.nmrResidueTable._update(self.application.current.nmrResidue.nmrChain)
 
     finally:
-      self.project._endCommandEchoBlock()
+      self.application._endCommandEchoBlock()
 
+  #TODO:GEERTEN: compact the two routines
   def restrictedPick(self, nmrResidue=None):
     """
     Routine refactored in revision 9381.
@@ -154,17 +156,17 @@ class PickAndAssignModule(NmrResidueTableModule):
     centre points with tolerances and the y as the long axis to pick the whole region.
     """
     if not nmrResidue:
-      nmrResidue = self.current.nmrResidue
+      nmrResidue = self.application.current.nmrResidue
 
     if nmrResidue is None:
       logger.error('Undefined nmrResidue; select one first before proceeding')
       return
 
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
+    self.application._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
                                              nmrResidue=nmrResidue)
     try:
       peaks = []
-      for module in self.project.spectrumDisplays:
+      for module in self.application.project.spectrumDisplays:
         if len(module.axisCodes) > 2:
           for spectrumView in module.strips[0].spectrumViews:
             visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
@@ -175,12 +177,12 @@ class PickAndAssignModule(NmrResidueTableModule):
               peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                         axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
               peaks = peaks + pks
-      self.current.peaks = peaks
+      self.application.current.peaks = peaks
       # update the NmrResidue table
       self.nmrResidueTable._update(nmrResidue.nmrChain)
 
     finally:
-      self.project._appBase._endCommandBlock()
+      self.application._endCommandBlock()
 
   def restrictedPickAndAssign(self, nmrResidue=None):
     """
@@ -193,16 +195,16 @@ class PickAndAssignModule(NmrResidueTableModule):
     Calls assignSelected to assign
     """
     if not nmrResidue:
-      nmrResidue = self.current.nmrResidue
-    elif not self.current.nmrResidue:
+      nmrResidue = self.application.current.nmrResidue
+    elif not self.application.current.nmrResidue:
       print('No current nmrResidue')
       return
 
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)',
+    self.application._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)',
                                               nmrResidue=nmrResidue)
     try:
       peaks = []
-      for module in self.project.spectrumDisplays:
+      for module in self.application.project.spectrumDisplays:
         if len(module.axisCodes) > 2:
           for spectrumView in module.strips[0].spectrumViews:
             visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
@@ -213,25 +215,22 @@ class PickAndAssignModule(NmrResidueTableModule):
               peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
                                                       axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
               peaks = peaks + pks
-      self.current.peaks = peaks
+      self.application.current.peaks = peaks
       self.assignSelected()
       # update the NmrResidue table
       self.nmrResidueTable._update(nmrResidue.nmrChain)
 
     finally:
-      self.project._endCommandEchoBlock()
+      self.application._endCommandEchoBlock()
 
   def goToPositionInModules(self, nmrResidue=None, row=None, col=None):
     "Go to the positions defined my NmrAtoms of nmrResidue in the active displays"
 
     activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
-    self.project._appBase._startCommandBlock('application.pickAndAssignModule.goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
+    self.application._startCommandBlock('application.pickAndAssignModule.goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
     try:
       if nmrResidue is not None:
-        if self.project._appBase.ui.mainWindow is not None:
-          mainWindow = self.project._appBase.ui.mainWindow
-        else:
-          mainWindow = self.project._appBase._mainWindow
+        mainWindow = self.application.ui.mainWindow
         mainWindow.clearMarks()
         for display in activeDisplays:
           strip = display.strips[0]
@@ -242,9 +241,9 @@ class PickAndAssignModule(NmrResidueTableModule):
           else:
             widths = ['default', 'full'] + (n-2)*['']
           Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
-        self.current.nmrResidue = nmrResidue
+        self.application.current.nmrResidue = nmrResidue
     finally:
-      self.project._endCommandEchoBlock()
+      self.application._endCommandEchoBlock()
 
 
 class _SpectrumRow(Frame):
@@ -264,89 +263,8 @@ class _SpectrumRow(Frame):
       decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
       col += 1; ds = DoubleSpinBoxCompoundWidget(
                                    self, grid=(0, col), gridSpan=(1,1), hAlign='left',
-                                   minimumWidths=[30, 50], maximumWidths=[30, 50],
+                                   minimumWidths=(30, 50), maximumWidths=(30, 50),
                                    labelText = axisCode,
                                    value = spectrum.assignmentTolerances[ii],
                                    decimals=decimals, step=step, range=(0, None))
       self.spinBoxes.append(ds)
-
-
-class SpectrumSelectionWidget(QtGui.QWidget, Base):
-  "Class to make a widget with spectral settings"
-  def __init__(self, parent, project, getDisplays, **kw):
-
-    QtGui.QWidget.__init__(self, parent)
-    Base.__init__(self, **kw)
-    self.project = project
-    self._getDisplays = getDisplays # function to get the displays
-
-
-    self.spectrumLabel = Label(self, 'Spectrum')
-    self.layout().addWidget(self.spectrumLabel, 0, 0)
-    self.useLabel = Label(self, 'Use?', grid=(0, 1), hAlign='c')
-    self.refreshBox = CheckBox(self, grid=(0, 4))
-    self.checkBoxLabel = Label(self, 'Auto Refresh', grid=(0, 5))
-    self.update = self._update
-    self.setObjectName('spectrumSelectionWidget')
-    self.update()
-    # self.setStyleSheet()
-
-  def getActiveDisplays(self):
-    if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
-      return self.project.spectrumDisplays
-    else:
-      return [self.project.getByPid(self.displayList.item(ii).text()) for ii in range(self.displayList.count())]
-
-  def _update(self):
-    rowCount = self.layout().rowCount()
-    colCount = self.layout().columnCount()
-
-    for r in range(1, rowCount):
-      for m in range(colCount):
-        item = self.layout().itemAtPosition(r, m)
-        if item:
-          if item.widget():
-            item.widget().hide()
-        self.layout().removeItem(item)
-    # if self.displayList.count() == 1 and self.displayList.item(0).text() == '<All>':
-#    activeDisplays = self.getActiveDisplays()
-    activeDisplays = self._getDisplays()
-    spectra = set([spectrumView.spectrum for spectrumDisplay in activeDisplays
-                   for spectrumView in spectrumDisplay.spectrumViews])
-
-
-    for ii, spectrum in enumerate(spectra):
-      for tol in spectrum.assignmentTolerances:
-        if tol is None:
-          index = spectrum.assignmentTolerances.index(tol)
-          tolerance = spectrum.spectralWidths[index]/spectrum.pointCounts[index]
-          spectrumTolerances = list(spectrum.assignmentTolerances)
-          spectrumTolerances[index] = tolerance
-          spectrum.assignmentTolerances = spectrumTolerances
-
-      spectrumLabel1 = Label(self, spectrum.pid, grid=(ii+1, 0), vAlign='t')
-      spectrumCheckBox1 = CheckBox(self, grid=(ii+1, 1), hAlign='c', vAlign='t')
-      spectrumCheckBox1.setChecked(True)
-      spectrumTol1 = Label(self, spectrum.axisCodes[0], grid=(ii+1, 2), vAlign='t')
-      spectrumTol1Value = DoubleSpinbox(self, grid=(ii+1, 3), vAlign='t')
-      spectrumTol1Value.setDecimals(3)
-      spectrumTol1Value.setSingleStep(0.001)
-      spectrumTol1Value.setValue(spectrum.assignmentTolerances[0])
-
-      spectrumTol2 = Label(self, spectrum.axisCodes[1], grid=(ii+1, 4), vAlign='t')
-      spectrumTol2Value = DoubleSpinbox(self, grid=(ii+1, 5), vAlign='t')
-      spectrumTol2Value.setDecimals(3)
-      spectrumTol2Value.setSingleStep(0.001)
-      spectrumTol2Value.setValue(spectrum.assignmentTolerances[1])
-
-      if spectrum.dimensionCount > 2:
-        for jj in range(spectrum.dimensionCount-2):
-          spectrumTol3 = Label(self, spectrum.axisCodes[2+jj], grid=(ii+1+jj, 6), vAlign='t')
-          spectrumTol3Value = DoubleSpinbox(self, grid=(ii+jj+1, 7), vAlign='t')
-          spectrumTol3Value.setDecimals(3)
-          spectrumTol3Value.setSingleStep(0.001)
-          spectrumTol3Value.setValue(spectrum.assignmentTolerances[2+jj])
-
-
-
-

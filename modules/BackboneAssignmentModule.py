@@ -69,14 +69,15 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
   className = 'BackboneAssignmentModule'
 
-  def __init__(self, parent=None):
+  def __init__(self, parent, application):
 
-    super(BackboneAssignmentModule, self).__init__(parent=parent, name='Backbone Assignment',
-                                                   callback=self.navigateToNmrResidue)
-    # project, current, application and mainWindow are inherited from
-    # BackBoneAssignmentModule/CcpnModule
+    super(BackboneAssignmentModule, self).__init__(parent=parent, application=application,
+                                                   name='Backbone Assignment'
+                                                  )
+    # derive project, current, and mainWindow from application
+    self.application = application
 
-    self.nmrChains = self.project.nmrChains
+    self.nmrChains = self.application.project.nmrChains
     self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable._widget,
                                         grid=(0,2), checked=True, text='Find matches')
 
@@ -98,12 +99,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                           minimumWidths=(minWidth, 0, 0),
                                           orientation='left',
                                           labelText="Match module(s):",
-                                          texts=[display.pid for display in self.mainWindow.spectrumDisplays]
+                                          texts=[display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
                                          )
 
     # Chemical shift list selection
     row += 1
-    self.shiftListWidget = ChemicalShiftListPulldown(self.settingsWidget, self.project,
+    self.shiftListWidget = ChemicalShiftListPulldown(self.settingsWidget, self.application.project,
                                                      grid=(row,col), vAlign='top', minimumWidths=(minWidth,0),
                                                      callback=self._setupShiftDicts, default=0
                                                     )
@@ -121,7 +122,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     if len(dGids) == 0: return displays
     mGids = self.matchWidget.getTexts() # gid of the match displays
     if ALL in dGids:
-        displays = [dp for dp in self.mainWindow.spectrumDisplays if dp.pid not in mGids]
+        displays = [dp for dp in self.application.ui.mainWindow.spectrumDisplays if dp.pid not in mGids]
     else:
         displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
     return displays
@@ -148,7 +149,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     try:
       # optionally clear the marks
       if self.autoClearMarksWidget.checkBox.isChecked():
-        self.mainWindow.clearMarks()
+        self.application.ui.mainWindow.clearMarks()
 
       # clear any notifiers of previous strips
       for notifier in self._stripNotifiers:
@@ -177,11 +178,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self.findAndDisplayMatches(nmrResidue)
 
       # update current (should trigger SequenceGraph)
-      self.current.nmrResidue = nmrResidue
-      self.current.nmrChain = nmrResidue.nmrChain
+      self.application.current.nmrResidue = nmrResidue
+      self.application.current.nmrChain = nmrResidue.nmrChain
 
     finally:
-      self.project._endCommandEchoBlock()
       self.application._endCommandBlock()
 
   def findAndDisplayMatches(self, nmrResidue):
@@ -215,7 +215,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     droppedNmrResidue = None
     if DropBase.IDS in data and len(data[DropBase.IDS]) > 0:
-      droppedNmrResidue = self.project.getByPid('NR:'+data[DropBase.IDS][0])
+      droppedNmrResidue = self.application.project.getByPid('NR:'+data[DropBase.IDS][0])
     if droppedNmrResidue is None:
       logger.info('Backbone assigned: invalid "id" of dropped item')
       raise Warning('Backbone assigned: invalid "id" of dropped item')
@@ -263,9 +263,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     """
     self.intraShifts = OrderedDict()
     self.interShifts = OrderedDict()
-    chemicalShiftList = self.project.getByPid(self.shiftListWidget.pulldownList.currentText())
+    chemicalShiftList = self.application.project.getByPid(self.shiftListWidget.pulldownList.currentText())
 
-    for nmrResidue in self.project.nmrResidues:
+    for nmrResidue in self.application.project.nmrResidues:
       nmrAtoms = [nmrAtom for nmrAtom in nmrResidue.nmrAtoms]
       shifts = [chemicalShiftList.getChemicalShift(atom.id) for atom in nmrAtoms]
       if nmrResidue.sequenceCode.endswith('-1'):
@@ -295,7 +295,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
     for modulePid in self.matchWidget.getTexts():
-      module = self.project.getByPid(modulePid)
+      module = self.application.project.getByPid(modulePid)
       makeStripPlot(module, nmrAtomPairs)
 
       for ii, strip in enumerate(module.strips):
@@ -303,16 +303,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         strip.planeToolbar.spinSystemLabel.setText(nmrResidueId)
 
       self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
-
-  # def _connectSequenceGraph(self, sequenceGraph:CcpnModule):
-  #   """
-  #   # CCPN INTERNAL - called in showSequenceGraph method of GuiMainWindow.
-  #   Connects Sequence Graph to this module.
-  #   """
-  #   self.sequenceGraph = sequenceGraph
-  #   self.project._appBase.current.assigner = sequenceGraph
-  #   self.sequenceGraph.nmrResidueTable = self.nmrResidueTable
-  #   self.sequenceGraph.setMode('fragment')
 
   def _closeModule(self):
     """

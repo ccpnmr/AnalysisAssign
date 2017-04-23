@@ -102,11 +102,13 @@ class Assign(Framework):
 
 
   def showPickAndAssignModule(self, position:str='bottom', relativeTo:CcpnModule=None):
+    """
+    Displays Pick and Assign module.
+    """
     from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
-    """Displays Pick and Assign module."""
     mainWindow = self.ui.mainWindow
-    self.pickAndAssignModule = PickAndAssignModule(mainWindow.moduleArea, self.project)
+    self.pickAndAssignModule = PickAndAssignModule(parent=mainWindow.moduleArea, application=self)
     mainWindow.moduleArea.addModule(self.pickAndAssignModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showPickAndAssignModule()")
     self.project._logger.info("application.showPickAndAssignModule()")
@@ -119,18 +121,11 @@ class Assign(Framework):
     """
     from ccpn.AnalysisAssign.modules.BackboneAssignmentModule import BackboneAssignmentModule
 
-    #if hasattr(self, 'backboneModule'):
-    #  return
-
-    self.backboneModule = BackboneAssignmentModule(self)
-
     mainWindow = self.ui.mainWindow
+    self.backboneModule = BackboneAssignmentModule(parent=mainWindow.moduleArea, application=self)
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showBackboneAssignmentModule()")
     self.project._logger.info("application.showBackboneAssignmentModule()")
-    #if hasattr(self, 'sequenceGraph'):
-    #  self.backboneModule._connectSequenceGraph(self.sequenceGraph)
-
     return self.backboneModule
 
 
@@ -183,14 +178,8 @@ class Assign(Framework):
   def showAssignmentInspectorModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
     from ccpn.AnalysisAssign.modules.AssignmentInspectorModule import AssignmentInspectorModule
 
-    if not nmrAtom and len(self.project.nmrAtoms) == 0:
-      self.project._logger.warn('No NmrAtom selected or defined. The Modify Assignments Module requires an NmrAtom to be functional')
-      #MessageDialog.showWarning('No NmrAtom selected or defined.',
-      #                          'The Modify Assignments Module requires an NmrAtom to be functional')
-      #return
-
     mainWindow = self.ui.mainWindow
-    self.assignmentInspectorModule = AssignmentInspectorModule(mainWindow.moduleArea)
+    self.assignmentInspectorModule = AssignmentInspectorModule(parent=mainWindow.moduleArea, application=self)
     mainWindow.moduleArea.addModule(self.assignmentInspectorModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentInspectorModule()")
     self.project._logger.info("application.showAssignmentInspectorModule()")
