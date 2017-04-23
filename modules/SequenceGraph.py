@@ -197,10 +197,13 @@ class SequenceGraph(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, parent, project=None):
+  def __init__(self, parent, application):
 
     CcpnModule.__init__(self, parent=parent, name='Sequence Graph')
-    # project, current, application and mainWindow are inherited from CcpnModule
+    # derive project, current, and mainWindow from application
+    self.application = application
+    self.current = self.application.current
+    self.project = self.application.project
 
     ###frame = Frame(parent=self.mainWidget)
     self.scrollArea = QtGui.QScrollArea()

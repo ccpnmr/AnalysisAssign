@@ -78,27 +78,20 @@ class Assign(Framework):
     from ccpn.ui.gui.popups.SetupNmrResiduesPopup import SetupNmrResiduesPopup
     popup = SetupNmrResiduesPopup(self.ui.mainWindow, self.project)
     popup.exec_()
-
-
-  def showSequenceGraph(self, position:str='bottom', relativeTo:CcpnModule=None):
-    """
-    Displays sequence graph at the bottom of the screen, relative to another module if nextTo is specified.
-    """
-    from ccpn.AnalysisAssign.modules.SequenceGraph import SequenceGraph
-
-    if hasattr(self, 'sequenceGraph'):
-      return
-    self.sequenceGraph = SequenceGraph(self, project=self.project)
-    #if hasattr(self, 'backboneModule'):
-    #  self.backboneModule._connectSequenceGraph(self.sequenceGraph)
-
-    if relativeTo is not None:
-      self.ui.mainWindow.moduleArea.addModule(self.sequenceGraph, position=position, relativeTo=relativeTo)
-    else:
-      self.ui.mainWindow.moduleArea.addModule(self.sequenceGraph, position=position)
-    self.ui.mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()")
-    self.project._logger.info("application.showSequenceGraph()")
-    return self.sequenceGraph
+  #
+  #
+  # def showSequenceGraph(self, position:str='bottom', relativeTo:CcpnModule=None):
+  #   """
+  #   Displays sequence graph at the bottom of the screen, relative to another module if nextTo is specified.
+  #   """
+  #   from ccpn.AnalysisAssign.modules.SequenceGraph import SequenceGraph
+  #
+  #   mainWindow = self.ui.mainWindow
+  #   self.sequenceGraph = SequenceGraph(self, parent=mainWindow, application=self)
+  #   mainWindow.moduleArea.addModule(self.sequenceGraph, position=position, relativeTo=relativeTo)
+  #   mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()")
+  #   self.project._logger.info("application.showSequenceGraph()")
+  #   return self.sequenceGraph
 
 
   def showPickAndAssignModule(self, position:str='bottom', relativeTo:CcpnModule=None):
