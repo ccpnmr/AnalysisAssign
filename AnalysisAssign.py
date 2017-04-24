@@ -78,21 +78,6 @@ class Assign(Framework):
     from ccpn.ui.gui.popups.SetupNmrResiduesPopup import SetupNmrResiduesPopup
     popup = SetupNmrResiduesPopup(self.ui.mainWindow, self.project)
     popup.exec_()
-  #
-  #
-  # def showSequenceGraph(self, position:str='bottom', relativeTo:CcpnModule=None):
-  #   """
-  #   Displays sequence graph at the bottom of the screen, relative to another module if nextTo is specified.
-  #   """
-  #   from ccpn.AnalysisAssign.modules.SequenceGraph import SequenceGraph
-  #
-  #   mainWindow = self.ui.mainWindow
-  #   self.sequenceGraph = SequenceGraph(self, parent=mainWindow, application=self)
-  #   mainWindow.moduleArea.addModule(self.sequenceGraph, position=position, relativeTo=relativeTo)
-  #   mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()")
-  #   self.project._logger.info("application.showSequenceGraph()")
-  #   return self.sequenceGraph
-
 
   def showPickAndAssignModule(self, position:str='bottom', relativeTo:CcpnModule=None):
     """

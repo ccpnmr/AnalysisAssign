@@ -144,7 +144,7 @@ class PickAndAssignModule(NmrResidueTableModule):
       self.nmrResidueTable._update(self.application.current.nmrResidue.nmrChain)
 
     finally:
-      self.application._endCommandEchoBlock()
+      self.application._endCommandBlock()
 
   #TODO:GEERTEN: compact the two routines
   def restrictedPick(self, nmrResidue=None):
@@ -221,7 +221,7 @@ class PickAndAssignModule(NmrResidueTableModule):
       self.nmrResidueTable._update(nmrResidue.nmrChain)
 
     finally:
-      self.application._endCommandEchoBlock()
+      self.application._endCommandBlock()
 
   def goToPositionInModules(self, nmrResidue=None, row=None, col=None):
     "Go to the positions defined my NmrAtoms of nmrResidue in the active displays"
@@ -243,7 +243,7 @@ class PickAndAssignModule(NmrResidueTableModule):
           Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
         self.application.current.nmrResidue = nmrResidue
     finally:
-      self.application._endCommandEchoBlock()
+      self.application._endCommandBlock()
 
 
 class _SpectrumRow(Frame):

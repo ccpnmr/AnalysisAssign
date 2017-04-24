@@ -7,7 +7,10 @@ made flexible in the settings tab). Options other than 'protein' are not yet imp
 
 Original by SS
 First rework by GWV
-TODO: Needs complete refactoring:
+"""
+
+#TODO:GEERTEN Needs complete refactoring:
+"""
 - buttons are destroyed (!?) and create with every refresh; 
 - atom type prediction in sidechain mode (when type of nmrResidue is not yet known) gives
   the result of the last residue (i.e. Tyr), rather then an average
@@ -36,7 +39,6 @@ __version__ = "$Revision: 3.0.b1 $"
 # Created
 #=========================================================================================
 __author__ = "$Author: CCPN $"
-
 __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 #=========================================================================================
 # Start of code
@@ -64,7 +66,6 @@ from ccpn.util.Logging import getLogger
 logger = getLogger()
 
 
-
 class AtomSelector(CcpnModule):
   """
   Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
@@ -75,8 +76,14 @@ class AtomSelector(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, parent, project=None):
+  def __init__(self, parent, application):
     CcpnModule.__init__(self, parent=parent, name='Atom Selector')
+
+    # derive project, current and mainWindow from application
+    self.application = application
+    self.project = application.project
+    self.current = application.current
+    self.mainWindow = application.ui.mainWindow
 
     self.current.registerNotify(self._predictAssignments, 'peaks')
     self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
