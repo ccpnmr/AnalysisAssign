@@ -201,7 +201,7 @@ class SequenceGraph(CcpnModule):
 
   def __init__(self, mainWindow):
 
-    CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Sequence Graph')
+    CcpnModule.__init__(self, mainWindow=mainWindow, name='Sequence Graph')
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow

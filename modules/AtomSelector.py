@@ -77,7 +77,7 @@ class AtomSelector(CcpnModule):
   settingsOnTop = True
 
   def __init__(self, mainWindow):
-    CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Atom Selector')
+    CcpnModule.__init__(self, mainWindow=mainWindow, name='Atom Selector')
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
