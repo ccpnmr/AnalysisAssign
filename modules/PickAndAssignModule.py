@@ -29,8 +29,7 @@ __version__ = "$Revision: 3.0.b1 $"
 #=========================================================================================
 # Created
 #=========================================================================================
-__author__ = "$Author: CCPN $"
-
+__author__ = "$Author: Geerten Vuister $"
 __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 #=========================================================================================
 # Start of code
@@ -63,16 +62,21 @@ class PickAndAssignModule(NmrResidueTableModule):
 
   This module closely works with the Atom Selector module
   """
+  className = 'PickAndAssignModule'
+
   includeSettingsWidget = True
   maxSettingsState = 2
   settingsMinimumSizes = (500, 200)
 
-  def __init__(self, parent, application):
+  def __init__(self, mainWindow):
 
-    super(PickAndAssignModule, self).__init__(parent=parent, application=application, name='Pick And Assign')
+    super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name='Pick And Assign')
 
-    # derive project, current, and mainWindow from application
-    self.application = application
+    # Derive application, project, and current from mainWindow
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
 
     # Main widget
     self.restrictedPickButton = Button(self.nmrResidueTable._widget, text='Restricted Pick', grid=(0, 2),

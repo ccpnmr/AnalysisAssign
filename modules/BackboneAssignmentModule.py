@@ -62,20 +62,22 @@ ALL = '<all>'
 
 class BackboneAssignmentModule(NmrResidueTableModule):
 
+  className = 'BackboneAssignmentModule'
+
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
   settingsMinimumSizes = (500, 200)
 
-  className = 'BackboneAssignmentModule'
+  def __init__(self, mainWindow):
 
-  def __init__(self, parent, application):
+    super(BackboneAssignmentModule, self).__init__(mainWindow=mainWindow, name='Backbone Assignment')
 
-    super(BackboneAssignmentModule, self).__init__(parent=parent, application=application,
-                                                   name='Backbone Assignment'
-                                                  )
-    # derive project, current, and mainWindow from application
-    self.application = application
+    # Derive application, project, and current from mainWindow
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
 
     self.nmrChains = self.application.project.nmrChains
     self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable._widget,

@@ -76,14 +76,14 @@ class AtomSelector(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, parent, application):
-    CcpnModule.__init__(self, parent=parent, name='Atom Selector')
+  def __init__(self, mainWindow):
+    CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Atom Selector')
 
-    # derive project, current and mainWindow from application
-    self.application = application
-    self.project = application.project
-    self.current = application.current
-    self.mainWindow = application.ui.mainWindow
+    # Derive application, project, and current from mainWindow
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
 
     self.current.registerNotify(self._predictAssignments, 'peaks')
     self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')

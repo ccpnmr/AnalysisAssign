@@ -51,6 +51,9 @@ class AssignmentInspectorModule(CcpnModule):
   are displayed.
 
   """
+  includeSettingsWidget = False
+  className = 'AssignmentInspectorModule'
+
   ALL = '<all>'
 
   # overide in specific module implementations
@@ -58,12 +61,15 @@ class AssignmentInspectorModule(CcpnModule):
   maxSettingsState = 3  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, parent, application):
+  def __init__(self, mainWindow):
 
-    CcpnModule.__init__(self, parent=parent, name='Assignment Inspector')
+    CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Assignment Inspector')
 
-    # derive project, current, and mainWindow from application
-    self.application = application
+    # Derive application, project, and current from mainWindow
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
 
     self.sampledDims = {} #GWV: not sure what this is supposed to do
     self.ids = []  # list of currently displayed NmrAtom ids + <all>

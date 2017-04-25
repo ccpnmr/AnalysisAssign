@@ -86,7 +86,7 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
     mainWindow = self.ui.mainWindow
-    self.pickAndAssignModule = PickAndAssignModule(parent=mainWindow.moduleArea, application=self)
+    self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.pickAndAssignModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showPickAndAssignModule()")
     self.project._logger.info("application.showPickAndAssignModule()")
@@ -100,7 +100,7 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.BackboneAssignmentModule import BackboneAssignmentModule
 
     mainWindow = self.ui.mainWindow
-    self.backboneModule = BackboneAssignmentModule(parent=mainWindow.moduleArea, application=self)
+    self.backboneModule = BackboneAssignmentModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showBackboneAssignmentModule()")
     self.project._logger.info("application.showBackboneAssignmentModule()")
@@ -157,7 +157,7 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.AssignmentInspectorModule import AssignmentInspectorModule
 
     mainWindow = self.ui.mainWindow
-    self.assignmentInspectorModule = AssignmentInspectorModule(parent=mainWindow.moduleArea, application=self)
+    self.assignmentInspectorModule = AssignmentInspectorModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentInspectorModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentInspectorModule()")
     self.project._logger.info("application.showAssignmentInspectorModule()")

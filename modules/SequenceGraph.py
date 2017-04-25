@@ -193,17 +193,21 @@ class SequenceGraph(CcpnModule):
   NmrResidues.
   """
 
+  className = 'SequenceGraph'
+
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, parent, application):
+  def __init__(self, mainWindow):
 
-    CcpnModule.__init__(self, parent=parent, name='Sequence Graph')
-    # derive project, current, and mainWindow from application
-    self.application = application
-    self.current = self.application.current
-    self.project = self.application.project
+    CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Sequence Graph')
+
+    # Derive application, project, and current from mainWindow
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
 
     ###frame = Frame(parent=self.mainWidget)
     self.scrollArea = QtGui.QScrollArea()
