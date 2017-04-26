@@ -39,7 +39,6 @@ from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
-from ccpn.ui.gui.lib.Window import markPositions
 from ccpn.ui.gui.modules.GuiStrip import GuiStrip
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable, NmrResidueTableModule
