@@ -131,7 +131,7 @@ class Assign(Framework):
     from ccpn.ui.gui.modules.PeakAssigner import PeakAssigner
 
     mainWindow = self.ui.mainWindow
-    self.assignmentModule = PeakAssigner(mainWindow)
+    self.assignmentModule = PeakAssigner(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentModule()")
     self.project._logger.info("application.showAssignmentModule()")

@@ -170,7 +170,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                       )
           # activate a callback notifiers; allow dropping onto the NmrResidueLabel
           for strip in strips:
-            notifier = GuiNotifier(strip.planeToolbar.spinSystemLabel,
+            notifier = GuiNotifier(strip.stripLabel,
                                    [GuiNotifier.DROPEVENT], [DropBase.IDS],
                                    self._processDroppedNmrResidue, nmrResidue=nr)
             self._stripNotifiers.append(notifier)
