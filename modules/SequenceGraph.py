@@ -41,15 +41,12 @@ from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 from ccpn.ui.gui.guiSettings import textFont, textFontBold
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
-from ccpn.ui.gui.widgets.Label import Label
-from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
-###from ccpn.ui.gui.widgets.Frame import Frame
 
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 
-from ccpnmodel.ccpncore.lib.Constants import ccpnmrJsonData
+from ccpn.util.Constants import ccpnmrJsonData
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
