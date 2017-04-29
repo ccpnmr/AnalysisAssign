@@ -224,24 +224,32 @@ class SequenceGraph(CcpnModule):
 
     self.residueCount = 0
 
+    #TODO:GEERTEN: StyleSheet
+    if self.application.colourScheme == 'dark':
+      self._lineColour = '#f7ffff'
+    elif self.application.colourScheme == 'light':
+      self._lineColour = ''  # TODO: check if correct
+
     """
     self.modeLabel = Label(self, 'Mode: ', grid=(0, 3))
     self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])
 """
-    #self.nmrChainLabel = Label(self, 'NmrChain: ', grid=(0, 0), hAlign='r')
-    #self.nmrChainPulldown = PulldownList(self, grid=(0, 1), gridSpan=(1, 1), callback=self.setNmrChainDisplay)
-    self.nmrChainPulldown = NmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(2, 1),
+    self.nmrChainPulldown = NmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(1, 1),
                                              callback=self.setNmrChainDisplay)
 
-    self.refreshCheckBox = CheckBoxCompoundWidget(self, labelText='Auto refresh NmrChain:',
+    self.refreshCheckBox = CheckBoxCompoundWidget(self,
+                                                  labelText='Auto refresh NmrChain:',
+                                                  checked=True,
                                                   tipText='Update display when current.nmrChain changes',
-                                                  grid=(0, 2), gridSpan=(2,1))
+                                                  grid=(0, 1), gridSpan=(1,1))
 
-    self.assignmentsCheckBox = CheckBoxCompoundWidget(self, labelText='Show assignments:',
-                                    tipText='Show peak assignments on display coloured by positiveContourColour',
-                                    callback=self._updateShownAssignments,
-                                    grid=(0, 4), gridSpan=(2,1))
+    self.assignmentsCheckBox = CheckBoxCompoundWidget(self,
+                                                      labelText='Show peak assignments:',
+                                                      checked=False,
+                                                      tipText='Show peak assignments on display coloured by positiveContourColour',
+                                                      callback=self._updateShownAssignments,
+                                                      grid=(0, 2), gridSpan=(1,1))
 
     self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
@@ -281,16 +289,10 @@ class SequenceGraph(CcpnModule):
 #    self.project.unRegisterNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
     self.project.unRegisterNotifier('Peak', 'change', self._updateShownAssignments)
 
-  # def updateNmrResidueTable(self):
-  #   #TODO: not present and not used??==> remove (+ calls)
-  #   if hasattr(self, 'nmrResidueTable'):
-  #     self.nmrResidueTable.updateTable()
-
   def _updateModule(self, nmrChains=None):
     """
     Update in reponse to change of current.nmrChains
     """
-
     #if nmrChains is None or len(nmrChains)==0: return
     nmrChain = self.current.nmrChain
     if not nmrChain:
@@ -301,7 +303,7 @@ class SequenceGraph(CcpnModule):
 
     #self.sequenceGraph.clearAllItems()
     ###self.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
-    self.nmrChainPulldown.pulldownList.select(nmrChain.pid)
+    self.nmrChainPulldown.select(nmrChain.pid)
     ###self.setNmrChainDisplay(nmrChain.pid)
     self.setNmrChainDisplay(nmrChain)
 
@@ -366,12 +368,8 @@ class SequenceGraph(CcpnModule):
       ###elif self.modePulldown.currentText() == 'Assigned - backbone':
       ###  self._showBackboneAssignments(nmrChain)
 
-      if self.project._appBase.colourScheme == 'dark':
-        lineColour = '#f7ffff'
-      elif self.project._appBase.colourScheme == 'light':
-        lineColour = ''  #TODO: check if correct
       for ii, res in enumerate(self.guiResiduesShown[:-1]):
-        self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], lineColour, 1.0, 0)
+        self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
 
       if self.assignmentsCheckBox.isChecked():
         self._getAssignmentsFromSpectra()
@@ -380,19 +378,8 @@ class SequenceGraph(CcpnModule):
       self.project._endCommandEchoBlock()
 
   def resetSequenceGraph(self):
-    # self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay()')
-    # try:
-    self.nmrChainPulldown.pulldownList.select('NC:@-')
-    # self.setNmrChainDisplay('NC:@-')
-    # finally:
-    #   self.project._endCommandEchoBlock()
 
-  # def addNmrChainToPulldown(self, nmrChain):
-  #   self.nmrChainPulldown.addItem(nmrChain.pid)
-  #
-  # def removeNmrChainFromPulldown(self, nmrChain):
-  #   item = self.nmrChainPulldown.findText(nmrChain.pid)
-  #   self.nmrChainPulldown.removeItem(item)
+    self.nmrChainPulldown.pulldownList.select('NC:@-')
 
   def disconnectPreviousNmrResidue(self):
     self.current.nmrResidue.disconnectPrevious()
@@ -440,27 +427,25 @@ class SequenceGraph(CcpnModule):
     Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
     creates a graphical representation of a residue in the assigner
     """
-    if self.project._appBase.colourScheme == 'dark':
-      lineColour = '#f7ffff'
-    elif self.project._appBase.colourScheme == 'light':
-      lineColour = ''
+
     for item in atoms.values():
       self.scene.addItem(item)
+
     nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
     if "CB" in list(atoms.keys()):
-      self._addConnectingLine(atoms['CA'], atoms['CB'], lineColour, 1.0, 0)
+      self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
     if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
-      self._addConnectingLine(atoms['H'], atoms['N'], lineColour, 1.0, 0)
+      self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
     if nmrResidue.residueType != 'PRO':
-        self._addConnectingLine(atoms['H'], atoms['N'], lineColour, 1.0, 0)
+        self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
     else:
       self.scene.removeItem(atoms['H'])
     # if not 'CB' in nmrAtoms:
     #   self.scene.removeItem(atoms['CB'])
     #   self.scene.removeItem(cbLine)
 
-    self._addConnectingLine(atoms['N'], atoms['CA'], lineColour, 1.0, 0)
-    self._addConnectingLine(atoms['CO'], atoms['CA'], lineColour, 1.0, 0)
+    self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
+    self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
     self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
     self.guiNmrResidues.append(self.nmrResidueLabel)
     self.scene.addItem(self.nmrResidueLabel)
@@ -588,10 +573,7 @@ class SequenceGraph(CcpnModule):
   def _showBackboneAssignments(self, nmrChain):
     self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
     try:
-      if self.project._appBase.colourScheme == 'dark':
-        lineColour = '#f7ffff'
-      elif self.project._appBase.colourScheme == 'light':
-        lineColour = ''  #TODO: check if correct
+
       for residue in nmrChain.chain.residues:
         if not residue.nmrResidue:
           newNmrResidue = nmrChain.fetchNmrResidue(sequenceCode=residue.sequenceCode, residueType=residue.residueType)
@@ -607,7 +589,7 @@ class SequenceGraph(CcpnModule):
           mainWindow.pythonConsole.writeConsoleCommand('%s residues added' % str(ii))
         ###if ii+1 < len(self.guiResiduesShown)-1:
         if ii + 1 < len(self.guiResiduesShown):
-            self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], lineColour, 1.0, 0)
+            self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], self._lineColour, 1.0, 0)
 
       self._getAssignmentsFromSpectra()
     finally:
