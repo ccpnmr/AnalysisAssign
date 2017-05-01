@@ -79,30 +79,33 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.current = mainWindow.application.current
 
     # Main widget
-    self.restrictedPickButton = Button(self.nmrResidueTable._widget, text='Restricted Pick', grid=(0, 2),
-                                       callback=self.restrictedPick)
-    self.restrictedPickButton.setMinimumSize(120, 30)
-    self.assignSelectedButton = Button(self.nmrResidueTable._widget, text='Assign Selected', grid=(0, 3),
-                                       callback=self.assignSelected)
-    self.assignSelectedButton.setMinimumSize(120, 30)
-    self.restrictedPickAndAssignButton = Button(self.nmrResidueTable._widget, text='Restricted Pick and Assign', grid=(0, 4),
+    self.restrictedPickButton = Button(text='Restricted Pick', callback=self.restrictedPick)
+    self.restrictedPickButton.setMinimumWidth(120)
+    self.nmrResidueTable.addWidgetToTop(self.restrictedPickButton, col=2)
+
+    self.assignSelectedButton = Button(text='Assign Selected', callback=self.assignSelected)
+    self.assignSelectedButton.setMinimumWidth(120)
+    self.nmrResidueTable.addWidgetToTop(self.assignSelectedButton, col=3)
+
+    self.restrictedPickAndAssignButton = Button(text='Restricted Pick and Assign',
                                                 callback=self.restrictedPickAndAssign)
-    self.restrictedPickAndAssignButton.setMinimumSize(160, 30)
+    self.restrictedPickAndAssignButton.setMinimumWidth(160)
+    self.nmrResidueTable.addWidgetToTop(self.restrictedPickAndAssignButton, col=4)
 
     # Settings widget
 
     # change some of the defaults setting inherited from NmrResidueTableModule
     self.sequentialStripsWidget.checkBox.setChecked(False)
-    self.displaysWidget.addPulldownItem(0)
+    self.displaysWidget.addPulldownItem(0)  # select the <all> option
 
     # create row's of spectrum information
-    self._spectraWidget = Frame(self.settingsWidget, grid=(0, 1), gridSpan=(4,1))
-    self.spectrumLabel = Label(self._spectraWidget, 'Spectrum', bold=True, grid=(0,0), hAlign='left')
-    self.useLabel = Label(self._spectraWidget, 'Use?', bold=True, grid=(0, 1), hAlign='left')
+    self._spectraWidget = Frame(parent=self.settingsWidget, setLayout=True, grid=(0, 1), gridSpan=(4,1))
+    self.spectrumLabel = Label(parent=self._spectraWidget, text='Spectrum', bold=True, grid=(0,0), hAlign='left')
+    self.useLabel = Label(parent=self._spectraWidget, text='Use?', bold=True, grid=(0, 1), hAlign='left')
 
     self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
     for row, spectrum in enumerate(self.application.project.spectra):
-      f = _SpectrumRow(self._spectraWidget, spectrum,
+      f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
                        grid=(row+1,0), gridSpan=(1,1+len(spectrum.axisCodes)), vAlign='top')
       self._spectraWidgets[spectrum.pid] = f
 
