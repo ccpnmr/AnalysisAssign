@@ -75,9 +75,13 @@ class Assign(Framework):
     Framework._closeExtraWindows(self)
 
   def showSetupNmrResiduesPopup(self):
-    from ccpn.ui.gui.popups.SetupNmrResiduesPopup import SetupNmrResiduesPopup
-    popup = SetupNmrResiduesPopup(self.ui.mainWindow, self.project)
-    popup.exec_()
+    if not self.project.peakLists:
+      self.project._logger.warn('No peaklists in project. Cannot assign peaklists.')
+      MessageDialog.showWarning('No peaklists in project.', 'Cannot assign peaklists.')
+    else:
+      from ccpn.ui.gui.popups.SetupNmrResiduesPopup import SetupNmrResiduesPopup
+      popup = SetupNmrResiduesPopup(self.ui.mainWindow, self.project)
+      popup.exec_()
 
   def showPickAndAssignModule(self, position:str='bottom', relativeTo:CcpnModule=None):
     """
@@ -86,7 +90,7 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
     mainWindow = self.ui.mainWindow
-    self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow)
+    self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow, name='Pick and Assign')
     mainWindow.moduleArea.addModule(self.pickAndAssignModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showPickAndAssignModule()")
     self.project._logger.info("application.showPickAndAssignModule()")
@@ -111,14 +115,18 @@ class Assign(Framework):
     """
     Displays Backbone Assignment module.
     """
+    MessageDialog.showWarning('PickandAssignModule',
+                              'SideChainAssignmentModule.py (16-20)\n'
+                              'Not implemented yet')
+    return
+
     from ccpn.AnalysisAssign.modules.SideChainAssignmentModule import SideChainAssignmentModule
 
     if hasattr(self, 'sidechainAssignmentModule'):
       return
 
-    self.sidechainAssignmentModule = SideChainAssignmentModule(self, self.project)
-
     mainWindow = self.ui.mainWindow
+    self.sidechainAssignmentModule = SideChainAssignmentModule(mainWindow=mainWindow)   # ejb self, self.project)
     mainWindow.moduleArea.addModule(self.sidechainAssignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showSidechainAssignmentModule()")
     self.project._logger.info("application.showSidechainAssignmentModule()")

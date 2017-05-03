@@ -7,15 +7,15 @@ from ccpn.ui.gui.lib.Window import markPositions
 
 class SideChainAssignmentModule(PickAndAssignModule):
 
-  def __init__(self, parent=None, project=None):
+  def __init__(self, mainWindow):
 
-    PickAndAssignModule.__init__(self, parent, project, name='Sidechain Assignment')
+    PickAndAssignModule.__init__(self, mainWindow=mainWindow, name='Sidechain Assignment')
 
-    self.refreshButton.show()
-    self.refreshButton.setCallback(self._startAssignment)
-    self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
-    self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
-    self.mode = 'pairs'
+    # self.refreshButton.show()             # ejb - not working
+    # self.refreshButton.setCallback(self._startAssignment)
+    # self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
+    # self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
+    # self.mode = 'pairs'
 
   def _mediateRefresh(self):
     """
