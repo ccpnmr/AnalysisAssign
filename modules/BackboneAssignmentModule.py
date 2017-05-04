@@ -54,7 +54,6 @@ from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
 from ccpn.ui.gui.widgets.DropBase import DropBase
 
 from ccpn.util.Logging import getLogger
-logger = getLogger()
 
 ALL = '<all>'
 
@@ -100,7 +99,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                           minimumWidths=(minWidth, 0, 0),
                                           orientation='left',
                                           labelText="Match module(s):",
-                                          texts=[display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
+                                          texts=[display.pid for display in self.mainWindow.spectrumDisplays]
                                          )
 
     # Chemical shift list selection
@@ -112,7 +111,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self._setupShiftDicts()
 
     # for compatibility with previous implementation
-    self.moduleList = self.matchWidget.listWidget
+    #self.moduleList = self.matchWidget.listWidget
 
     self._stripNotifiers = []  # list to store GuiNotifiers for strips
 
@@ -135,12 +134,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     """
     displays = self._getDisplays()
     if len(displays) == 0:
-      logger.warn('Undefined display module(s); select in settings first')
+      getLogger().warn('Undefined display module(s); select in settings first')
       showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
       return
 
     if self.matchCheckBoxWidget.isChecked() and len(self.matchWidget.getTexts()) == 0:
-      logger.warn('Undefined match module; select in settings first or unselect "Find matches"')
+      getLogger().warn('Undefined match module; select in settings first or unselect "Find matches"')
       showWarning('startAssignment', 'Undefined match module;\nselect in settings first or unselect "Find matches"')
       return
 
@@ -150,7 +149,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     try:
       # optionally clear the marks
       if self.autoClearMarksWidget.checkBox.isChecked():
-        self.application.ui.mainWindow.clearMarks()
+        self.mainWindow.clearMarks()
 
       # clear any notifiers of previous strips
       for notifier in self._stripNotifiers:
@@ -170,10 +169,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                       )
           # activate a callback notifiers; allow dropping onto the NmrResidueLabel
           for strip in strips:
-            notifier = GuiNotifier(strip.stripLabel,
-                                   [GuiNotifier.DROPEVENT], [DropBase.IDS],
-                                   self._processDroppedNmrResidue, nmrResidue=nr)
-            self._stripNotifiers.append(notifier)
+            if strip is not None:
+              notifier = GuiNotifier(strip.getStripLabel(),
+                                     [GuiNotifier.DROPEVENT], [DropBase.PIDS],
+                                     self._processDroppedNmrResidue, nmrResidue=nr)
+              self._stripNotifiers.append(notifier)
 
       if self.matchCheckBoxWidget.isChecked():
         self.findAndDisplayMatches(nmrResidue)
@@ -206,7 +206,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     assignMatrix = getNmrResidueMatches(queryShifts, matchShifts, 'averageQScore')
     if not assignMatrix.values():
-      logger.info('No matches found for NmrResidue: %s' % nmrResidue.pid)
+      getLogger().info('No matches found for NmrResidue: %s' % nmrResidue.pid)
       return
     self._createMatchStrips(assignMatrix)
     return
@@ -215,18 +215,18 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     "Process the dropped NmrResidue id"
 
     droppedNmrResidue = None
-    if DropBase.IDS in data and len(data[DropBase.IDS]) > 0:
-      droppedNmrResidue = self.application.project.getByPid('NR:'+data[DropBase.IDS][0])
+    if DropBase.PIDS in data and len(data[DropBase.PIDS]) > 0:
+      droppedNmrResidue = self.application.project.getByPid(data[DropBase.PIDS][0])
     if droppedNmrResidue is None:
-      logger.info('Backbone assigned: invalid "id" of dropped item')
-      raise Warning('Backbone assigned: invalid "id" of dropped item')
+      getLogger().info('Backbone assignment: invalid "pid" of dropped item')
+      raise Warning('Backbone assignment: invalid "pid" of dropped item')
 
-    logger.debug('nmrResidue:%s, droppedNmrResidue:%s', nmrResidue, droppedNmrResidue)
+    getLogger().debug('nmrResidue:%s, droppedNmrResidue:%s', nmrResidue, droppedNmrResidue)
     if droppedNmrResidue == nmrResidue:
-      logger.warning('Cannot connect residue to itself')
+      getLogger().warning('Cannot connect residue to itself')
       return
 
-    # silence the updat of the nmrResidueTable as we will to an explicit update later
+    # silence the update of the nmrResidueTable as we will to an explicit update later
     self.nmrResidueTable.setUpdateSilence(True)
     if data['shiftLeftMouse']:
       # leftShift drag; connect to previous
@@ -235,6 +235,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       nmrResidue.connectNext(droppedNmrResidue)
     self.nmrResidueTable.setUpdateSilence(False)
 
+    # update the NmrResidueTable
     self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
     self.navigateToNmrResidue(droppedNmrResidue)
 
@@ -243,11 +244,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     Centre y-axis of strip based on chemical shifts of from NmrResidue.nmrAtoms
     """
     if not nmrResidue:
-      logger.warn('No NmrResidue specified')
+      getLogger().warn('No NmrResidue specified')
       return
 
     if not strip:
-      logger.warn('No Strip specified')
+      getLogger().warn('No Strip specified')
       return
 
     yShifts = matchAxesAndNmrAtoms(strip, nmrResidue.nmrAtoms)[strip.axisOrder[1]]
@@ -280,7 +281,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     in the assignMatrix.
     """
     if not assignMatrix:
-      logger.warn('No assignment matrix specified')
+      getLogger().warn('No assignment matrix specified')
       return
 
     # Assignment score has format {score: nmrResidue} where score is a float
@@ -300,8 +301,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       makeStripPlot(module, nmrAtomPairs)
 
       for ii, strip in enumerate(module.strips):
-        nmrResidueId = nmrAtomPairs[ii][0].nmrResidue._id
-        strip.planeToolbar.spinSystemLabel.setText(nmrResidueId)
+        nmrResiduePid = nmrAtomPairs[ii][0].nmrResidue.pid
+        print('>>', ii, nmrResiduePid, strip)
+        strip.setStripLabelText(nmrResiduePid)
+        strip.showStripLabel()
 
       self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
 
