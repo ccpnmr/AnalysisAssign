@@ -99,9 +99,13 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.displaysWidget.addPulldownItem(0)  # select the <all> option
 
     # create row's of spectrum information
-    self._spectraWidget = Frame(parent=self.settingsWidget, setLayout=True, grid=(0, 1), gridSpan=(4,1))
-    self.spectrumLabel = Label(parent=self._spectraWidget, text='Spectrum', bold=True, grid=(0,0), hAlign='left')
-    self.useLabel = Label(parent=self._spectraWidget, text='Use?', bold=True, grid=(0, 1), hAlign='left')
+    self._spectraWidget = Frame(parent=self.settingsWidget,
+                                setLayout=True, showBorder=True, hPolicy='minimal',
+                                grid=(0, 1), gridSpan=(4,1), vAlign='top', hAlign='left')
+    self._spectrumLabel = Label(parent=self._spectraWidget, text='Spectrum', bold=True,
+                                grid=(0,0), hAlign='left', vAlign='top')
+    self._useLabel = Label(parent=self._spectraWidget, text='Use?', bold=True,
+                           grid=(0, 1), hAlign='left', vAlign='top')
 
     self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
     for row, spectrum in enumerate(self.application.project.spectra):
@@ -263,14 +267,14 @@ class _SpectrumRow(Frame):
     col = 0
     self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1,1), hAlign='left',
                                            checked=True, labelText=spectrum.pid,
-                                           minimumWidths = [100,20] )
+                                           fixedWidths = [100,50] )
 
     self.spinBoxes = []
     for ii, axisCode in enumerate(spectrum.axisCodes):
       decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
       col += 1; ds = DoubleSpinBoxCompoundWidget(
                                    self, grid=(0, col), gridSpan=(1,1), hAlign='left',
-                                   minimumWidths=(30, 50), maximumWidths=(30, 50),
+                                   fixedWidths=(30, 50),
                                    labelText = axisCode,
                                    value = spectrum.assignmentTolerances[ii],
                                    decimals=decimals, step=step, range=(0, None))
