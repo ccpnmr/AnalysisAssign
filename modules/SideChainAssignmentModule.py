@@ -110,6 +110,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
         makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
       nmrAtoms = [x for y in nmrAtomPairs for x in y]
       axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
+      #TODO: routine moved to mainWindow
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
 
@@ -145,6 +146,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
       makeStripPlotFromSingles(display, list(nmrAtoms))
       axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], list(nmrAtoms))
+      #TODO: routine moved to mainWindow
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
 

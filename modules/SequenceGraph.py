@@ -207,17 +207,17 @@ class SequenceGraph(CcpnModule):
     self.current = mainWindow.application.current
 
     ###frame = Frame(parent=self.mainWidget)
-    self.scrollArea = QtGui.QScrollArea()
-    self.scrollArea.setWidgetResizable(True)
+    self._sequenceGraphScrollArea = QtGui.QScrollArea()
+    self._sequenceGraphScrollArea.setWidgetResizable(True)
     self.scene = QtGui.QGraphicsScene(self)
     self.scrollContents = QtGui.QGraphicsView(self.scene, self)
     self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
     self.scrollContents.setInteractive(True)
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
     ###self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
-    self.scrollArea.setWidget(self.scrollContents)
-    self.addWidget(self.scrollArea, 4, 0, 1, 6)
-    #frame.addWidget(self.scrollArea, 4, 0, 1, 6)
+    self._sequenceGraphScrollArea.setWidget(self.scrollContents)
+    self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
+    #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
     self.residueCount = 0
 
@@ -232,23 +232,24 @@ class SequenceGraph(CcpnModule):
     self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])
 """
-    self.nmrChainPulldown = NmrChainPulldown(self, self.project, grid=(0, 0), gridSpan=(1, 1),
+    self.nmrChainPulldown = NmrChainPulldown(self.mainWidget, self.project, grid=(0, 0), gridSpan=(1, 1),
                                              callback=self.setNmrChainDisplay)
 
-    self.refreshCheckBox = CheckBoxCompoundWidget(self,
+    self.refreshCheckBox = CheckBoxCompoundWidget(self.mainWidget,
                                                   labelText='Auto refresh NmrChain:',
                                                   checked=True,
                                                   tipText='Update display when current.nmrChain changes',
                                                   grid=(0, 1), gridSpan=(1,1))
 
-    self.assignmentsCheckBox = CheckBoxCompoundWidget(self,
+    self.assignmentsCheckBox = CheckBoxCompoundWidget(self.mainWidget,
                                                       labelText='Show peak assignments:',
                                                       checked=False,
                                                       tipText='Show peak assignments on display coloured by positiveContourColour',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 2), gridSpan=(1,1))
 
-    self.editingToolbar = ToolBar(self, grid=(0, 5), gridSpan=(1, 1), hAlign='r')
+    self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 5), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
+
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
     self.disconnectPreviousIcon = Icon('icons/previous')
     self.disconnectPreviousAction.setIcon(self.disconnectPreviousIcon)

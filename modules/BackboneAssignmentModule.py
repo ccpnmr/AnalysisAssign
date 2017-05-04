@@ -22,7 +22,6 @@ __version__ = "$Revision: 3.0.b1 $"
 # Created
 #=========================================================================================
 __author__ = "$Author: CCPN $"
-
 __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 #=========================================================================================
 # Start of code
@@ -90,7 +89,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     colWidth = 140  # for labels of the compound widgets
     self.numberOfMatches = 5
 
-    row = 4
+    row = 4 ## Number of widgets of NmrResidueTable
     col = 0
     # Match module selection
     row += 1
