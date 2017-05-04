@@ -87,27 +87,30 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self.sequentialStripsWidget.checkBox.setChecked(True)
     self.displaysWidget.addPulldownItem(0)
 
-    minWidth = 150  # for labels of the compound widgets
+    colWidth = 140  # for labels of the compound widgets
     self.numberOfMatches = 5
 
-    row = -1
-    col = 1
+    row = 4
+    col = 0
     # Match module selection
     row += 1
     # cannot set a notifier for displays, as these are not (yet?) implemented
-    self.matchWidget = ListCompoundWidget(self.settingsWidget, grid=(row,col), vAlign='top',
-                                          minimumWidths=(minWidth, 0, 0),
+    self.matchWidget = ListCompoundWidget(self.settingsWidget,
+                                          grid=(row,col), vAlign='top', hAlign='left',
+                                          fixedWidths=(colWidth, colWidth, colWidth),
                                           orientation='left',
                                           labelText="Match module(s):",
                                           texts=[display.pid for display in self.mainWindow.spectrumDisplays]
-                                         )
+                                          )
+    self.matchWidget.setFixedHeigths((None, None, 40))
 
     # Chemical shift list selection
     row += 1
     self.shiftListWidget = ChemicalShiftListPulldown(self.settingsWidget, self.application.project,
-                                                     grid=(row,col), vAlign='top', minimumWidths=(minWidth,0),
+                                                     grid=(row,col), vAlign='top', hAlign='left',
+                                                     fixedWidths=(colWidth, colWidth),
                                                      callback=self._setupShiftDicts, default=0
-                                                    )
+                                                     )
     self._setupShiftDicts()
 
     # for compatibility with previous implementation
@@ -171,7 +174,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
           for strip in strips:
             if strip is not None:
               notifier = GuiNotifier(strip.getStripLabel(),
-                                     [GuiNotifier.DROPEVENT], [DropBase.PIDS],
+                                     [GuiNotifier.DROPEVENT], [DropBase.TEXT],
                                      self._processDroppedNmrResidue, nmrResidue=nr)
               self._stripNotifiers.append(notifier)
 
@@ -215,11 +218,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     "Process the dropped NmrResidue id"
 
     droppedNmrResidue = None
-    if DropBase.PIDS in data and len(data[DropBase.PIDS]) > 0:
-      droppedNmrResidue = self.application.project.getByPid(data[DropBase.PIDS][0])
+    if DropBase.TEXT in data and len(data[DropBase.TEXT]) > 0:
+      droppedNmrResidue = self.application.project.getByPid(data[DropBase.TEXT])
     if droppedNmrResidue is None:
       getLogger().info('Backbone assignment: invalid "pid" of dropped item')
-      raise Warning('Backbone assignment: invalid "pid" of dropped item')
 
     getLogger().debug('nmrResidue:%s, droppedNmrResidue:%s', nmrResidue, droppedNmrResidue)
     if droppedNmrResidue == nmrResidue:
@@ -302,7 +304,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
       for ii, strip in enumerate(module.strips):
         nmrResiduePid = nmrAtomPairs[ii][0].nmrResidue.pid
-        print('>>', ii, nmrResiduePid, strip)
         strip.setStripLabelText(nmrResiduePid)
         strip.showStripLabel()
 
