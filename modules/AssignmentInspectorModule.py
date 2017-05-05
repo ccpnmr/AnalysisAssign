@@ -62,8 +62,8 @@ class AssignmentInspectorModule(CcpnModule):
   settingsOnTop = True
 
   def __init__(self, mainWindow):
-
-    CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Assignment Inspector')
+    # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Assignment Inspector')
+    CcpnModule.__init__(self, mainWindow=mainWindow, name='Assignment Inspector')    # ejb
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
@@ -78,7 +78,7 @@ class AssignmentInspectorModule(CcpnModule):
 
     # Frame-1: NmrAtoms
     width = 130
-    self.frame1 = Frame(self.mainWidget, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain')
+    self.frame1 = Frame(self.mainWidget, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
     self.frame1.setFixedWidth(width)
     self.nmrAtomLabel = Label(self.frame1, 'NmrAtom(s):', bold=True,
                               grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
@@ -91,7 +91,7 @@ class AssignmentInspectorModule(CcpnModule):
 
 
     # Frame-2: peaks
-    self.frame2 = Frame(self.mainWidget, grid=(0,1), gridSpan=(1,5), **policies, fShape='styledPanel', fShadow='plain')
+    self.frame2 = Frame(self.mainWidget, grid=(0,1), gridSpan=(1,5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
     self.peaksLabel = Label(self.frame2, 'Peaks assigned to NmrAtom(s):', bold=True,
                             grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
     self.assignedPeaksTable = ObjectTable(self.frame2, self.getColumns(),
