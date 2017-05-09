@@ -90,6 +90,9 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 
     mainWindow = self.ui.mainWindow
+    #FIXME:ED - crashes sometimes opening a module
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea    # ejb
     self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow, name='Pick and Assign')
     mainWindow.moduleArea.addModule(self.pickAndAssignModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showPickAndAssignModule()")
@@ -104,6 +107,9 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.BackboneAssignmentModule import BackboneAssignmentModule
 
     mainWindow = self.ui.mainWindow
+    #FIXME:ED - crashes sometimes opening a module
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea    # ejb
     self.backboneModule = BackboneAssignmentModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showBackboneAssignmentModule()")
@@ -126,6 +132,9 @@ class Assign(Framework):
       return
 
     mainWindow = self.ui.mainWindow
+    #FIXME:ED - crashes sometimes opening a module
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea    # ejb
     self.sidechainAssignmentModule = SideChainAssignmentModule(mainWindow=mainWindow)   # ejb self, self.project)
     mainWindow.moduleArea.addModule(self.sidechainAssignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showSidechainAssignmentModule()")
@@ -139,6 +148,9 @@ class Assign(Framework):
     from ccpn.ui.gui.modules.PeakAssigner import PeakAssigner
 
     mainWindow = self.ui.mainWindow
+    #FIXME:ED - crashes sometimes opening a module
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea    # ejb
     self.assignmentModule = PeakAssigner(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentModule()")
@@ -155,8 +167,11 @@ class Assign(Framework):
       return
 
     mainWindow = self.ui.mainWindow
-    mainWindow.moduleArea.addModule(ResidueInformation(self, self.project), position=position,
-                              relativeTo=relativeTo)
+    #FIXME:ED - crashes sometimes opening a module
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea    # ejb
+    self.residueModule = ResidueInformation(mainWindow=mainWindow)
+    mainWindow.moduleArea.addModule(self.residueModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showResidueInformation()")
     self.project._logger.info("application.showResidueInformation()")
 
@@ -165,6 +180,9 @@ class Assign(Framework):
     from ccpn.AnalysisAssign.modules.AssignmentInspectorModule import AssignmentInspectorModule
 
     mainWindow = self.ui.mainWindow
+    #FIXME:ED - crashes sometimes opening a module
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea    # ejb
     self.assignmentInspectorModule = AssignmentInspectorModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentInspectorModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentInspectorModule()")
