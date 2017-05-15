@@ -38,10 +38,10 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column
 from ccpn.util.Logging import getLogger
+from core.lib.peakUtils import getPeakPosition, getPeakAnnotation
 
 logger = getLogger()
 
-from ccpn.ui.gui.modules.peakUtils import getPeakPosition, getPeakAnnotation
 
 class AssignmentInspectorModule(CcpnModule):
   """
