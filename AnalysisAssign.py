@@ -93,7 +93,7 @@ class Assign(Framework):
     #FIXME:ED - crashes sometimes opening a module
     if not relativeTo:
       relativeTo = mainWindow.moduleArea    # ejb
-    self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow, name='Pick and Assign')
+    self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.pickAndAssignModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showPickAndAssignModule()")
     self.project._logger.info("application.showPickAndAssignModule()")

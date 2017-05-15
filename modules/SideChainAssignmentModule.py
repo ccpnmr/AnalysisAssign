@@ -3,13 +3,12 @@ from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot, makeStripPlotFromSingles
 
 from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
-from ccpn.ui.gui.lib.Window import markPositions
 
 class SideChainAssignmentModule(PickAndAssignModule):
 
   def __init__(self, mainWindow):
 
-    PickAndAssignModule.__init__(self, mainWindow=mainWindow, name='Sidechain Assignment')
+    PickAndAssignModule.__init__(self, mainWindow=mainWindow,)
 
     # self.refreshButton.show()             # ejb - not working
     # self.refreshButton.setCallback(self._startAssignment)
@@ -52,8 +51,9 @@ class SideChainAssignmentModule(PickAndAssignModule):
     self.project.registerNotifier('NmrAtom', 'delete', self._updateModules)
 
   def _closeModule(self):
-    if self.spectrumSelectionWidget.refreshBox.isChecked():
-      self.__unRegisterNotifiers()
+    # Fixme 'SideChainAssignmentModule' object has no attribute 'spectrumSelectionWidget'
+    # if self.spectrumSelectionWidget.refreshBox.isChecked():
+    #   self.__unRegisterNotifiers()
     super(SideChainAssignmentModule, self)._closeModule()
 
   def _startAssignment(self):
@@ -110,6 +110,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
       nmrAtoms = [x for y in nmrAtomPairs for x in y]
       axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
       #TODO: routine moved to mainWindow
+      from ccpn.ui.gui.lib.Window import markPositions
       markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
 
