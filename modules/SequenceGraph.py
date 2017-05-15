@@ -386,7 +386,7 @@ class SequenceGraph(CcpnModule):
   def _closeModule(self):
     self._unRegisterNotifiers()
     #delattr(self.parent, 'sequenceGraph')
-    self.close()
+    super(SequenceGraph, self)._closeModule()
 
   def disconnectNextNmrResidue(self):
     self.current.nmrResidue.disconnectNext()

@@ -54,8 +54,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
   def _closeModule(self):
     if self.spectrumSelectionWidget.refreshBox.isChecked():
       self.__unRegisterNotifiers()
-    self.close()
-
+    super(SideChainAssignmentModule, self)._closeModule()
 
   def _startAssignment(self):
     self.project._appBase.ui.mainWindow.clearMarks()

@@ -316,8 +316,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     for notifier in self._stripNotifiers:
       notifier.unRegister()
     self._stripNotifiers = []
-    self.close()
-
+    super(BackboneAssignmentModule, self)._closeModule()
 
 
 #=====  Just some code to 'save' =====

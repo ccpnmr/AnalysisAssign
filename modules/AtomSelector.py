@@ -136,7 +136,7 @@ class AtomSelector(CcpnModule):
   def _closeModule(self):
     self.current.unRegisterNotify(self._predictAssignments, 'peaks')
     self.current.unRegisterNotify(self._nmrResidueCallBack, 'nmrResidues')
-    self.close()
+    super(AtomSelector, self)._closeModule()
 
   def _nmrResidueCallBack(self, nmrResidues=None):
     "Callback if current.nmrResidue changes"
