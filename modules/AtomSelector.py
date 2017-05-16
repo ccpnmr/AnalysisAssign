@@ -76,8 +76,8 @@ class AtomSelector(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, mainWindow):
-    CcpnModule.__init__(self, mainWindow=mainWindow, name='Atom Selector')
+  def __init__(self, mainWindow, name='Atom Selector'):
+    CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow

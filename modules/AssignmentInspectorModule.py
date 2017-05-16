@@ -51,19 +51,18 @@ class AssignmentInspectorModule(CcpnModule):
   are displayed.
 
   """
-  includeSettingsWidget = False
-  className = 'AssignmentInspectorModule'
 
   ALL = '<all>'
 
   # overide in specific module implementations
+  className = 'AssignmentInspectorModule'
   includeSettingsWidget = False
   maxSettingsState = 3  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, mainWindow):
-    # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name='Assignment Inspector')
-    CcpnModule.__init__(self, mainWindow=mainWindow, name='Assignment Inspector')    # ejb
+  def __init__(self, mainWindow, name='Assignment Inspector'):
+    # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
+    CcpnModule.__init__(self, mainWindow=mainWindow, name=name)    # ejb
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow

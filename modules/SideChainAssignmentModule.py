@@ -6,9 +6,9 @@ from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
 
 class SideChainAssignmentModule(PickAndAssignModule):
 
-  def __init__(self, mainWindow):
+  def __init__(self, mainWindow, name='Pick and Assign'):
 
-    PickAndAssignModule.__init__(self, mainWindow=mainWindow,)
+    PickAndAssignModule.__init__(self, mainWindow=mainWindow, name=name)
 
     # self.refreshButton.show()             # ejb - not working
     # self.refreshButton.setCallback(self._startAssignment)

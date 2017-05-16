@@ -68,9 +68,9 @@ class PickAndAssignModule(NmrResidueTableModule):
   maxSettingsState = 2
   settingsMinimumSizes = (500, 200)
 
-  def __init__(self, mainWindow):
+  def __init__(self, mainWindow, name='Pick and Assign'):
 
-    super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name='Pick and Assign')   # ejb ='Pick And Assign')
+    super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name=name)   # ejb ='Pick And Assign')
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
