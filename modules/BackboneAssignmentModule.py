@@ -63,7 +63,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsOnTop = True
+  settingsPosition = 'top'
   settingsMinimumSizes = (500, 200)
 
   def __init__(self, mainWindow, name='Backbone Assignment'):
