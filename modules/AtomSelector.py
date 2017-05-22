@@ -66,7 +66,7 @@ from ccpn.util.Logging import getLogger
 logger = getLogger()
 
 
-class AtomSelector(CcpnModule):
+class AtomSelectorModule(CcpnModule):
   """
   Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
   to peak dimensions
@@ -76,7 +76,7 @@ class AtomSelector(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, mainWindow, name='Atom Selector'):
+  def __init__(self, mainWindow=None, name='Atom Selector', nmrAtom=None):
     CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
     # Derive application, project, and current from mainWindow
@@ -136,7 +136,7 @@ class AtomSelector(CcpnModule):
   def _closeModule(self):
     self.current.unRegisterNotify(self._predictAssignments, 'peaks')
     self.current.unRegisterNotify(self._nmrResidueCallBack, 'nmrResidues')
-    super(AtomSelector, self)._closeModule()
+    super(AtomSelectorModule, self)._closeModule()
 
   def _nmrResidueCallBack(self, nmrResidues=None):
     "Callback if current.nmrResidue changes"

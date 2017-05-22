@@ -44,8 +44,12 @@ from ccpn.ui.gui.widgets.ToolBar import ToolBar
 
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
+from ccpn.core.NmrChain import NmrChain
 
 from ccpn.util.Constants import ccpnmrJsonData
+from ccpn.util.Logging import getLogger
+
+logger = getLogger()
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
@@ -183,7 +187,7 @@ class AssignmentLine(QtGui.QGraphicsLineItem):
     self.setLine(x1, y1, x2, y2)
 
 
-class SequenceGraph(CcpnModule):
+class SequenceGraphModule(CcpnModule):
   """
   A module for the display of stretches of sequentially linked and assigned stretches of
   NmrResidues.
@@ -195,7 +199,7 @@ class SequenceGraph(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsOnTop = True
 
-  def __init__(self, mainWindow, name='Sequence Graph'):
+  def __init__(self, mainWindow, name='Sequence Graph', nmrChain=None):
 
     CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
@@ -230,8 +234,9 @@ class SequenceGraph(CcpnModule):
     self.modeLabel = Label(self, 'Mode: ', grid=(0, 3))
     self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])
-"""
+    """
     self.nmrChainPulldown = NmrChainPulldown(self.mainWidget, self.project, grid=(0, 0), gridSpan=(1, 1),
+                                             showSelectName=True,
                                              callback=self.setNmrChainDisplay)
 
     self.refreshCheckBox = CheckBoxCompoundWidget(self.mainWidget,
@@ -271,6 +276,26 @@ class SequenceGraph(CcpnModule):
 
     ###self.setMode('fragment')  # cannot be moved up!
     self._registerNotifiers()
+
+    if nmrChain is not None:
+      self.selectSequence(nmrChain)
+
+  def selectSequence(self, nmrChain=None):
+    """
+    Manually select a Sequence from the pullDown
+    """
+    if nmrChain is None:
+      logger.warning('select: No Sequence selected')
+      raise ValueError('select: No Sequence selected')
+    else:
+      if not isinstance(nmrChain, NmrChain):
+        logger.warning('select: Object is not of type Sequence')
+        raise TypeError('select: Object is not of type Sequence')
+      else:
+        for widgetObj in self.nmrChainPulldown.textList:
+          if nmrChain.pid == widgetObj:
+            self.nmrChainPulldown.select(nmrChain.pid)
+            self.setNmrChainDisplay(nmrChain)
 
   def _registerNotifiers(self):
     self.current.registerNotify(self._updateModule, 'nmrChains')
@@ -319,7 +344,7 @@ class SequenceGraph(CcpnModule):
       self.modePulldown.select(mode)
       self.setNmrChainDisplay(self.nmrChainPulldown.getText())
     else:
-      self.project._logger.warn('No valid NmrChain is selected.')
+      logger.warning('No valid NmrChain is selected.')
 """
 
   def setNmrChainDisplay(self, nmrChainOrPid):
@@ -334,7 +359,7 @@ class SequenceGraph(CcpnModule):
     try:
       #self.current.nmrChain = self.project.getByPid(nmrChainPid)
       #if not self.current.nmrChain:
-      #  self.project._logger.warn('No NmrChain selected.')
+      #  logger.warning('No NmrChain selected.')
       #  return
       self.clearAllItems()
 
@@ -386,7 +411,7 @@ class SequenceGraph(CcpnModule):
   def _closeModule(self):
     self._unRegisterNotifiers()
     #delattr(self.parent, 'sequenceGraph')
-    super(SequenceGraph, self)._closeModule()
+    super(SequenceGraphModule, self)._closeModule()
 
   def disconnectNextNmrResidue(self):
     self.current.nmrResidue.disconnectNext()
