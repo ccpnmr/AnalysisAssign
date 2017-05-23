@@ -324,7 +324,8 @@ class AtomSelectorModule(CcpnModule):
     if not self.current.nmrResidue:
       return
 
-    self.project._appBase._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
+    # self.project._appBase._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
+    self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
     try:
       name = atomType
       if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
@@ -346,7 +347,8 @@ class AtomSelectorModule(CcpnModule):
               peak.assignDimension(axisCode, nmrAtoms)
       self.current.peaks = []
     finally:
-      self.project._endCommandEchoBlock()
+      # self.project._endCommandEchoBlock()
+      self.application._endCommandBlock()
       self._returnButtonsToNormal()
 
   def _returnButtonsToNormal(self):
