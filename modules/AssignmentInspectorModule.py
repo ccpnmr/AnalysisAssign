@@ -58,7 +58,7 @@ class AssignmentInspectorModule(CcpnModule):
   className = 'AssignmentInspectorModule'
   includeSettingsWidget = False
   maxSettingsState = 3  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsOnTop = True
+  settingsPosition = 'top'
 
   def __init__(self, mainWindow, name='Assignment Inspector'):
     # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)

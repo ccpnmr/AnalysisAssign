@@ -197,7 +197,7 @@ class SequenceGraphModule(CcpnModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsOnTop = True
+  settingsPosition = 'top'
 
   def __init__(self, mainWindow, name='Sequence Graph', nmrChain=None):
 
