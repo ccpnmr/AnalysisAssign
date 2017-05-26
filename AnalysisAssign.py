@@ -64,6 +64,12 @@ class Assign(Framework):
                           ])
     self.addApplicationMenuSpec(menuSpec)
 
+    viewMenuItems = [ ("Sequence Graph", self.showSequenceGraph, [('shortcut', 'sg')]),
+                      ("Atom Selector", self.showAtomSelector, [('shortcut', 'as')]),
+                      ()
+                    ]
+    self.addApplicationMenuItems('View', viewMenuItems, position=7)
+
   # overrides superclass
   def _closeExtraWindows(self):
 
@@ -187,3 +193,36 @@ class Assign(Framework):
     mainWindow.moduleArea.addModule(self.assignmentInspectorModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentInspectorModule()")
     self.project._logger.info("application.showAssignmentInspectorModule()")
+
+
+  def showSequenceGraph(self, position: str = 'bottom', relativeTo: CcpnModule = None, nmrChain=None):
+    """
+    Displays sequence graph at the bottom of the screen, relative to another module if nextTo is specified.
+    """
+    from ccpn.AnalysisAssign.modules.SequenceGraph import SequenceGraphModule
+
+    mainWindow = self.ui.mainWindow
+    # FIXME:ED - sometimes crashes
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea  # ejb
+    self.sequenceGraphModule = SequenceGraphModule(mainWindow=mainWindow, nmrChain=nmrChain)
+    mainWindow.moduleArea.addModule(self.sequenceGraphModule, position=position, relativeTo=relativeTo)
+    mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()\n")
+    getLogger().info("application.showSequenceGraph()")
+    return self.sequenceGraphModule
+
+
+  def showAtomSelector(self, position: str = 'bottom', relativeTo: CcpnModule = None, nmrAtom=None):
+    """Displays Atom Selector."""
+    from ccpn.AnalysisAssign.modules.AtomSelector import AtomSelectorModule
+
+    mainWindow = self.ui.mainWindow
+    # FIXME:ED - sometimes crashes
+    if not relativeTo:
+      relativeTo = mainWindow.moduleArea  # ejb
+    self.atomSelectorModule = AtomSelectorModule(mainWindow=mainWindow, nmrAtom=nmrAtom)
+    mainWindow.moduleArea.addModule(self.atomSelectorModule, position=position, relativeTo=relativeTo)
+    mainWindow.pythonConsole.writeConsoleCommand("application.showAtomSelector()\n")
+    getLogger().info("application.showAtomSelector()")
+    return self.atomSelectorModule
+
