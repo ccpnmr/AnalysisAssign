@@ -8,24 +8,21 @@ Please cite:  Skinner et al, J Biomol NMR (2016) 66:111–124; DOI 10.1007/s1085
 # Licence, Reference and Credits
 #=========================================================================================
 __copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2017"
-__credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timothy J Ragan"
-               "Simon P Skinner & Geerten W Vuister")
+__credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timothy J Ragan & Geerten W Vuister")
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license"
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license"
                "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
-
 #=========================================================================================
 # Last code modification
 #=========================================================================================
-__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__modifiedBy__ = "$modifiedBy: CCPN $"
 __dateModified__ = "$dateModified: 2017-04-07 11:40:21 +0100 (Fri, April 07, 2017) $"
 __version__ = "$Revision: 3.0.b1 $"
 #=========================================================================================
 # Created
 #=========================================================================================
 __author__ = "$Author: CCPN $"
-
 __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 #=========================================================================================
 # Start of code
@@ -40,7 +37,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 from ccpn.framework.Framework import Framework
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets import MessageDialog
-
+from ccpn.util.Logging import getLogger
 
 class Assign(Framework):
   """Root class for Assign application"""
@@ -82,7 +79,7 @@ class Assign(Framework):
 
   def showSetupNmrResiduesPopup(self):
     if not self.project.peakLists:
-      self.project._logger.warn('No peaklists in project. Cannot assign peaklists.')
+      getLogger().warning('No peaklists in project. Cannot assign peaklists.')
       MessageDialog.showWarning('No peaklists in project.', 'Cannot assign peaklists.')
     else:
       from ccpn.ui.gui.popups.SetupNmrResiduesPopup import SetupNmrResiduesPopup
@@ -102,7 +99,7 @@ class Assign(Framework):
     self.pickAndAssignModule = PickAndAssignModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.pickAndAssignModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showPickAndAssignModule()")
-    self.project._logger.info("application.showPickAndAssignModule()")
+    getLogger().info("application.showPickAndAssignModule()")
     return self.pickAndAssignModule
 
 
@@ -119,7 +116,7 @@ class Assign(Framework):
     self.backboneModule = BackboneAssignmentModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.backboneModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showBackboneAssignmentModule()")
-    self.project._logger.info("application.showBackboneAssignmentModule()")
+    getLogger().info("application.showBackboneAssignmentModule()")
     return self.backboneModule
 
 
@@ -144,7 +141,7 @@ class Assign(Framework):
     self.sidechainAssignmentModule = SideChainAssignmentModule(mainWindow=mainWindow)   # ejb self, self.project)
     mainWindow.moduleArea.addModule(self.sidechainAssignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showSidechainAssignmentModule()")
-    self.project._logger.info("application.showSidechainAssignmentModule()")
+    getLogger().info("application.showSidechainAssignmentModule()")
 
     return self.sidechainAssignmentModule
 
@@ -160,14 +157,14 @@ class Assign(Framework):
     self.assignmentModule = PeakAssigner(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentModule()")
-    self.project._logger.info("application.showAssignmentModule()")
+    getLogger().info("application.showAssignmentModule()")
 
 
   def showResidueInformation(self, position: str='bottom', relativeTo:CcpnModule=None):
     """Displays Residue Information module."""
     from ccpn.ui.gui.modules.ResidueInformation import ResidueInformation
     if not self.project.residues:
-      self.project._logger.warn('No Residues in project. Residue Information Module requires Residues in the project to launch.')
+      getLogger().warning('No Residues in project. Residue Information Module requires Residues in the project to launch.')
       MessageDialog.showWarning('No Residues in project.',
                                 'Residue Information Module requires Residues in the project to launch.')
       return
@@ -179,7 +176,7 @@ class Assign(Framework):
     self.residueModule = ResidueInformation(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.residueModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showResidueInformation()")
-    self.project._logger.info("application.showResidueInformation()")
+    getLogger().info("application.showResidueInformation()")
 
 
   def showAssignmentInspectorModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
@@ -192,7 +189,7 @@ class Assign(Framework):
     self.assignmentInspectorModule = AssignmentInspectorModule(mainWindow=mainWindow)
     mainWindow.moduleArea.addModule(self.assignmentInspectorModule, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAssignmentInspectorModule()")
-    self.project._logger.info("application.showAssignmentInspectorModule()")
+    getLogger().info("application.showAssignmentInspectorModule()")
 
 
   def showSequenceGraph(self, position: str = 'bottom', relativeTo: CcpnModule = None, nmrChain=None):
