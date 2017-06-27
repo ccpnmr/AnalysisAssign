@@ -167,9 +167,11 @@ class AtomSelectorModule(CcpnModule):
     self._cleanupPickAndAssignWidget()
     for w in self._sidechainModifiers: w.hide()
 
+    # wb104 27 Jun 2017: changed _cleanupPickAndAssignWidget so removes widgets in reverse order
+    # not sure if there was anything else leading to this cludge (and one below) though
     # cludge: don't know why I have to do this for the button to appear: TODO: fix this
-    _Label = Label(self, text='')
-    self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
+    ###_Label = Label(self, text='')
+    ###self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
     self.buttons = {}
     atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
     for ii, atom in enumerate(atoms):
@@ -187,9 +189,10 @@ class AtomSelectorModule(CcpnModule):
     self._cleanupPickAndAssignWidget()
     for w in self._sidechainModifiers: w.show()
 
+    # see comment about cludge above
     # cludge: don't know why I have to do this for the button to appear: TODO: fix this
-    _label= Label(self.pickAndAssignWidget, '',  hAlign='l')
-    self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
+    ###_label= Label(self.pickAndAssignWidget, '',  hAlign='l')
+    ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
 
     self._updateLayout()
 
@@ -307,8 +310,8 @@ class AtomSelectorModule(CcpnModule):
   def _cleanupPickAndAssignWidget(self):
 
     layout = self.pickAndAssignWidget.layout()
-    for r in range(layout.rowCount()):
-      for c in range(layout.columnCount()):
+    for r in range(layout.rowCount()-1,-1,-1):
+      for c in range(layout.columnCount()-1,-1,-1):
         item = layout.itemAtPosition(r, c)
         if item:
           if item.widget():

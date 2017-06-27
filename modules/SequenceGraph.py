@@ -354,6 +354,10 @@ class SequenceGraphModule(CcpnModule):
     else:
       nmrChain = nmrChainOrPid
 
+    # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
+    if not nmrChain:
+      return
+
     ###self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
     self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
     try:
