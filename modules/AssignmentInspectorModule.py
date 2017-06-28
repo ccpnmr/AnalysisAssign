@@ -36,11 +36,15 @@ from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
-from ccpn.ui.gui.widgets.Table import ObjectTable, Column
+from ccpn.ui.gui.widgets.Table import ObjectTable, Column, ColumnViewSettings,  ObjectTableFilter
 from ccpn.util.Logging import getLogger
 from core.lib.peakUtils import getPeakPosition, getPeakAnnotation
+from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
+from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget
+from ccpn.ui.gui.widgets.Widget import Widget
 
 logger = getLogger()
+ALL = '<all>'
 
 
 class AssignmentInspectorModule(CcpnModule):
@@ -49,16 +53,14 @@ class AssignmentInspectorModule(CcpnModule):
   It responds to current.nmrResidues, taking the last added residue to this list
   The NmrAtom listWidget allows for selection of the nmrAtom; subsequently its assignedPeaks
   are displayed.
-
   """
-
-  ALL = '<all>'
 
   # overide in specific module implementations
   className = 'AssignmentInspectorModule'
-  includeSettingsWidget = False
-  maxSettingsState = 3  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsPosition = 'top'
+  includeSettingsWidget = True
+  includeColumnsWidget = False
+  maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+  Position = 'top'
 
   def __init__(self, mainWindow, name='Assignment Inspector'):
     # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
@@ -75,6 +77,56 @@ class AssignmentInspectorModule(CcpnModule):
 
     policies = dict(vAlign='top')
 
+    # settings window
+
+    self._AIwidget = Widget(self.settingsWidget, setLayout=True,
+                             grid=(0,0), vAlign='top', hAlign='left')
+
+    # cannot set a notifier for displays, as these are not (yet?) implemented and the Notifier routines
+    # underpinning the addNotifier call do not allow for it either
+    colwidth = 140
+    self.displaysWidget = ListCompoundWidget(self._AIwidget,
+                                             grid=(0,0), vAlign='top', stretch=(0,0), hAlign='left',
+                                             vPolicy='minimal',
+                                             #minimumWidths=(colwidth, 0, 0),
+                                             fixedWidths=(colwidth, colwidth, colwidth),
+                                             orientation = 'left',
+                                             labelText='Display(s):',
+                                             tipText = 'SpectrumDisplay modules to respond to double-click',
+                                             texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
+                                             )
+    self.displaysWidget.setFixedHeigths((None, None, 40))
+
+    self.sequentialStripsWidget = CheckBoxCompoundWidget(
+                                             self._AIwidget,
+                                             grid=(1,0), vAlign='top', stretch=(0,0), hAlign='left',
+                                             #minimumWidths=(colwidth, 0),
+                                             fixedWidths=(colwidth, 30),
+                                             orientation = 'left',
+                                             labelText = 'Show sequential strips:',
+                                             checked = False
+                                            )
+
+    self.markPositionsWidget = CheckBoxCompoundWidget(
+                                             self._AIwidget,
+                                             grid=(2,0), vAlign='top', stretch=(0,0), hAlign='left',
+                                             #minimumWidths=(colwidth, 0),
+                                             fixedWidths=(colwidth, 30),
+                                             orientation = 'left',
+                                             labelText = 'Mark positions:',
+                                             checked = True
+                                            )
+    self.autoClearMarksWidget = CheckBoxCompoundWidget(
+                                             self._AIwidget,
+                                             grid=(3,0), vAlign='top', stretch=(0,0), hAlign='left',
+                                             #minimumWidths=(colwidth, 0),
+                                             fixedWidths=(colwidth, 30),
+                                             orientation = 'left',
+                                             labelText = 'Auto clear marks:',
+                                             checked = True
+                                            )
+
+    # main window
     # Frame-1: NmrAtoms
     width = 130
     self.frame1 = Frame(self.mainWidget, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
@@ -102,6 +154,12 @@ class AssignmentInspectorModule(CcpnModule):
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
 
+    # settingsWidget
+    # if self.includeColumnsWidget:
+    #   self.displayColumnWidget = ColumnViewSettings(parent=self._AIwidget, table=self.assignedPeaksTable, grid=(4, 0))
+
+    self.searchWidget = ObjectTableFilter(parent=self._AIwidget, table=self.assignedPeaksTable, grid=(5, 0))
+
     self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
     # update if current.nmrResidue is defined
     if self.application.current.nmrResidue is not None:
@@ -119,14 +177,14 @@ class AssignmentInspectorModule(CcpnModule):
     self.attachedNmrAtomsList.clear()
     if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
       # get the pids and append <all>
-      self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [self.ALL]
+      self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [ALL]
       self.attachedNmrAtomsList.addItems(self.ids)
       # clear and fill the peak table
       self.assignedPeaksTable.setObjects([])
       if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
         self._updatePeakTable(self.application.current.nmrAtom.id)
       else:
-        self._updatePeakTable(self.ALL)
+        self._updatePeakTable(ALL)
     else:
       logger.debug('No valid nmrAtom/nmrResidue defined')
 
@@ -147,14 +205,15 @@ class AssignmentInspectorModule(CcpnModule):
     """
     if id is None:
       self.assignedPeaksTable.setObjects([])
+      self._updateSettingsWidgets()
       return
 
-    if id == self.ALL:
+    if id == ALL:
       peaks = list(set([pk for nmrAtom in self.application.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
       self.assignedPeaksTable.setObjects(peaks)
       # highlight current.nmrAtom in the list widget
       self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
-      self.peaksLabel.setText('Assigned peaks of NmrAtoms(s): %s' % self.ALL)
+      self.peaksLabel.setText('Assigned peaks of NmrAtoms(s): %s' % ALL)
     else:
       pid = 'NA:'+ id
       nmrAtom = self.application.project.getByPid(pid)
@@ -164,6 +223,7 @@ class AssignmentInspectorModule(CcpnModule):
         # highlight current.nmrAtom in the list widget
         self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
         self.peaksLabel.setText('Assigned peaks of NmrAtom: %s' % nmrAtom.id)
+    self._updateSettingsWidgets()
 
   def getColumns(self):
     "get collumns for intialisation of table"
@@ -219,3 +279,15 @@ class AssignmentInspectorModule(CcpnModule):
       return '%7.2E' % float(peak.height)
     else:
       return '%s' % None
+
+  # def _getSearchWidget(self):
+  #   """
+  #   CCPN-INTERNAL: used to get searchWidget
+  #   """
+  #   return self.searchWidget
+
+  def _updateSettingsWidgets(self):
+    """
+    CCPN-INTERNAL: Update settings Widgets according with the new displayed table
+    """
+    self.searchWidget.updateWidgets(self.assignedPeaksTable)
