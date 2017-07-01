@@ -124,9 +124,9 @@ class Assign(Framework):
     """
     Displays Backbone Assignment module.
     """
-    MessageDialog.showWarning('PickandAssignModule',
-                              'SideChainAssignmentModule.py (16-20)\n'
-                              'Not implemented yet')
+    MessageDialog.showWarning('Not implemented',
+                              'Sidechain Assignment Module\n'
+                              'is not implemented yet')
     return
 
     from ccpn.AnalysisAssign.modules.SideChainAssignmentModule import SideChainAssignmentModule
