@@ -53,7 +53,7 @@ class Assign(Framework):
                            ("Pick and Assign", self.showPickAndAssignModule, [('shortcut', 'pa')]),
                            (),
                            ("Backbone Assignment", self.showBackboneAssignmentModule, [('shortcut', 'bb')]),
-                           ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc')]),
+                           ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc'), ('enabled', False)]),
                            (),
                            ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
                            ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
