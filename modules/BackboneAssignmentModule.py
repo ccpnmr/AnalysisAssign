@@ -35,20 +35,16 @@ from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 
-from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip, matchAxesAndNmrAtoms
+from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
-from ccpn.ui.gui.modules.GuiStrip import GuiStrip
-from ccpn.ui.gui.modules.CcpnModule import CcpnModule
-from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable, NmrResidueTableModule
-from ccpn.ui.gui.widgets.Label import Label
+from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTableModule
+
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
-from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget
-from ccpn.ui.gui.widgets.PulldownListsForObjects import ChemicalShiftListPulldown
+from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget, PulldownListCompoundWidget
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
+from ccpn.ui.gui.widgets.PulldownListsForObjects import ChemicalShiftListPulldown
 
-
-from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
 from ccpn.ui.gui.widgets.DropBase import DropBase
 
@@ -86,11 +82,22 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self.sequentialStripsWidget.checkBox.setChecked(True)
     self.displaysWidget.addPulldownItem(0)
 
-    colWidth = 140  # for labels of the compound widgets
-    self.numberOfMatches = 5
+    colWidth = 200  # for labels of the compound widgets
+    colWidth2 = 120  # for the numberOfMatchesWidget
 
     row = 4 ## Number of widgets of NmrResidueTable
     col = 0
+
+    # Number of matches to show
+    row += 1
+    self.numberOfMatchesWidget = PulldownListCompoundWidget(self.settingsWidget,
+                                          grid=(row,col), vAlign='top', hAlign='left',
+                                          fixedWidths=(colWidth2, colWidth2, colWidth2),
+                                          orientation='left',
+                                          labelText="Matches to show:",
+                                          texts=[str(tt) for tt in range(3,7)]
+                                          )
+
     # Match module selection
     row += 1
     # cannot set a notifier for displays, as these are not (yet?) implemented
@@ -287,7 +294,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Assignment score has format {score: nmrResidue} where score is a float
     # assignMatrix[0] is a dict {score: nmrResidue} assignMatrix[1] is a concurrent list of scores
-    assignmentScores = sorted(list(assignMatrix.keys()))[0:self.numberOfMatches]
+    numberOfMatches = int(self.numberOfMatchesWidget.getText())
+    assignmentScores = sorted(list(assignMatrix.keys()))[:numberOfMatches]
     nmrAtomPairs = []
     for assignmentScore in assignmentScores:
       matchResidue = assignMatrix[assignmentScore]
