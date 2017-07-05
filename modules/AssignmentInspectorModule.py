@@ -36,7 +36,7 @@ from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
-from ccpn.ui.gui.widgets.Table import ObjectTable, Column, ColumnViewSettings,  ObjectTableFilter
+from ccpn.ui.gui.widgets.Table import ObjectTable, Column
 from ccpn.util.Logging import getLogger
 from ccpn.core.lib.peakUtils import getPeakPosition, getPeakAnnotation
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
@@ -58,7 +58,6 @@ class AssignmentInspectorModule(CcpnModule):
   # overide in specific module implementations
   className = 'AssignmentInspectorModule'
   includeSettingsWidget = True
-  includeColumnsWidget = False
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   Position = 'top'
 
@@ -154,11 +153,7 @@ class AssignmentInspectorModule(CcpnModule):
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
 
-    # settingsWidget
-    # if self.includeColumnsWidget:
-    #   self.displayColumnWidget = ColumnViewSettings(parent=self._AIwidget, table=self.assignedPeaksTable, grid=(4, 0))
 
-    self.searchWidget = ObjectTableFilter(parent=self._AIwidget, table=self.assignedPeaksTable, grid=(5, 0))
 
     self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
     # update if current.nmrResidue is defined
@@ -205,7 +200,6 @@ class AssignmentInspectorModule(CcpnModule):
     """
     if id is None:
       self.assignedPeaksTable.setObjects([])
-      self._updateSettingsWidgets()
       return
 
     if id == ALL:
@@ -223,7 +217,6 @@ class AssignmentInspectorModule(CcpnModule):
         # highlight current.nmrAtom in the list widget
         self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
         self.peaksLabel.setText('Assigned peaks of NmrAtom: %s' % nmrAtom.id)
-    self._updateSettingsWidgets()
 
   def getColumns(self):
     "get collumns for intialisation of table"
@@ -285,9 +278,3 @@ class AssignmentInspectorModule(CcpnModule):
   #   CCPN-INTERNAL: used to get searchWidget
   #   """
   #   return self.searchWidget
-
-  def _updateSettingsWidgets(self):
-    """
-    CCPN-INTERNAL: Update settings Widgets according with the new displayed table
-    """
-    self.searchWidget.updateWidgets(self.assignedPeaksTable)
