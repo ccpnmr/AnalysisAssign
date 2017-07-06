@@ -395,65 +395,68 @@ class AtomSelectorModule(CcpnModule):
 
     peak = peaks[0]
     peakListViews = [peakListView for peakListView in self.project.peakListViews if peakListView.peakList == peak.peakList]
-    spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
-    isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
 
-    # backbone
-    if self.radioButton1.isChecked():
-      predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True)
-                            for ccpCode in CCP_CODES]
-      refinedPreds = [(type[0][0][1], type[0][1]) for type in predictedAtomTypes if len(type) > 0]
-      atomPredictions = set()
-      for atomPred, score in refinedPreds:
-        if score > 90:
-          atomPredictions.add(atomPred)
+    #TODO: AtomSelector crashes if there is nothing in the view
+    if peakListViews:
+      spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
+      isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
 
-      for atomPred in atomPredictions:
-        if atomPred == 'CB':
-          if anyInterOnlyExperiments:
-            self.buttons['CB'][0].setStyleSheet('background-color: green')
-          else:
-            self.buttons['CB'][0].setStyleSheet('background-color: green')
-            self.buttons['CB'][1].setStyleSheet('background-color: green')
-        if atomPred == 'CA':
-          if anyInterOnlyExperiments:
-            self.buttons['CA'][0].setStyleSheet('background-color: green')
-          else:
-            self.buttons['CA'][0].setStyleSheet('background-color: green')
-            self.buttons['CA'][1].setStyleSheet('background-color: green')
+      # backbone
+      if self.radioButton1.isChecked():
+        predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True)
+                              for ccpCode in CCP_CODES]
+        refinedPreds = [(type[0][0][1], type[0][1]) for type in predictedAtomTypes if len(type) > 0]
+        atomPredictions = set()
+        for atomPred, score in refinedPreds:
+          if score > 90:
+            atomPredictions.add(atomPred)
 
-    # sidechain is checked
-    elif self.radioButton2.isChecked():
-      if self.current.nmrResidue.residueType == '':
-        # In this case, we loop over all CCP_CODES (i.e. residue types)
-        predictedAtomTypes = []
-        for residueType in CCP_CODES:
-          for type, score in getNmrAtomPrediction(residueType, peak.position[spectrumIndices[1]], isotopeCode):
-            if len(type) > 0 and score>50:
-              predictedAtomTypes.append((type,score))
+        for atomPred in atomPredictions:
+          if atomPred == 'CB':
+            if anyInterOnlyExperiments:
+              self.buttons['CB'][0].setStyleSheet('background-color: green')
+            else:
+              self.buttons['CB'][0].setStyleSheet('background-color: green')
+              self.buttons['CB'][1].setStyleSheet('background-color: green')
+          if atomPred == 'CA':
+            if anyInterOnlyExperiments:
+              self.buttons['CA'][0].setStyleSheet('background-color: green')
+            else:
+              self.buttons['CA'][0].setStyleSheet('background-color: green')
+              self.buttons['CA'][1].setStyleSheet('background-color: green')
 
-      else:
-        if self.offsetSelector.currentText() == '-1':
-          nmrResidue = self.current.nmrResidue.previousNmrResidue
-        elif self.offsetSelector.currentText() == '+1':
-          nmrResidue = self.current.nmrResidue.nextNmrResidue
+      # sidechain is checked
+      elif self.radioButton2.isChecked():
+        if self.current.nmrResidue.residueType == '':
+          # In this case, we loop over all CCP_CODES (i.e. residue types)
+          predictedAtomTypes = []
+          for residueType in CCP_CODES:
+            for type, score in getNmrAtomPrediction(residueType, peak.position[spectrumIndices[1]], isotopeCode):
+              if len(type) > 0 and score>50:
+                predictedAtomTypes.append((type,score))
+
         else:
-          nmrResidue = self.current.nmrResidue
-        predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
+          if self.offsetSelector.currentText() == '-1':
+            nmrResidue = self.current.nmrResidue.previousNmrResidue
+          elif self.offsetSelector.currentText() == '+1':
+            nmrResidue = self.current.nmrResidue.nextNmrResidue
+          else:
+            nmrResidue = self.current.nmrResidue
+          predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
 
-      #print('>predictAtomTypes>', predictedAtomTypes)
-      for type, score in predictedAtomTypes:
-        #print('>type, score>', type, score)
-        for atomType, buttons in self.buttons.items():
-          if type[1] == atomType:
-            for button in buttons:
-              #print('>type[1], atomType, button>', type[1], atomType,  button.getText())
-              if score >= 85:
-                button.setStyleSheet('background-color: green')
-              elif 50 < score < 85:
-                button.setStyleSheet('background-color: orange')
-              if score < 50:
-                button.setStyleSheet('background-color: red')
+        #print('>predictAtomTypes>', predictedAtomTypes)
+        for type, score in predictedAtomTypes:
+          #print('>type, score>', type, score)
+          for atomType, buttons in self.buttons.items():
+            if type[1] == atomType:
+              for button in buttons:
+                #print('>type[1], atomType, button>', type[1], atomType,  button.getText())
+                if score >= 85:
+                  button.setStyleSheet('background-color: green')
+                elif 50 < score < 85:
+                  button.setStyleSheet('background-color: orange')
+                if score < 50:
+                  button.setStyleSheet('background-color: red')
 
 
 
