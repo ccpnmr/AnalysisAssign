@@ -195,7 +195,7 @@ class SequenceGraphModule(CcpnModule):
 
   className = 'SequenceGraph'
 
-  includeSettingsWidget = True
+  includeSettingsWidget = False
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsPosition = 'top'
 
@@ -251,6 +251,13 @@ class SequenceGraphModule(CcpnModule):
                                                       tipText='Show peak assignments on display coloured by positiveContourColour',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 2), gridSpan=(1,1))
+
+    self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self.mainWidget,
+                                                      labelText='Show all NmrResidues:',
+                                                      checked=False,
+                                                      tipText='Show all the NmrResidues in the NmrChain',
+                                                      callback=self._updateShownAssignments,
+                                                      grid=(0, 3), gridSpan=(1,1))
 
     self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 5), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
@@ -377,16 +384,24 @@ class SequenceGraphModule(CcpnModule):
         elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
           self.addResidue(self.current.nmrResidue, '+1')
 """
-        nmrResidue = self.current.nmrResidue
-        if nmrResidue in nmrChain.nmrResidues:
-          while nmrResidue.previousNmrResidue: # go to start of connected stretch
-            nmrResidue = nmrResidue.previousNmrResidue
-        elif nmrChain.isConnected or nmrChain.chain: # either NC:# or NC:A type nmrChains but not NC:@
-          nmrResidue = nmrChain.mainNmrResidues[0]
+        connectingLinesNeeded = set()
+        if self.nmrResiduesCheckBox.isChecked():
+          for nmrResidue in nmrChain.nmrResidues:
+            if nmrResidue is nmrResidue.mainNmrResidue:
+              self.addResidue(nmrResidue, '+1')
+              if nmrResidue.nextNmrResidue:
+                connectingLinesNeeded.add(len(self.guiResiduesShown)-1)
+        else:
+          nmrResidue = self.current.nmrResidue
+          if nmrResidue in nmrChain.nmrResidues:
+            while nmrResidue.previousNmrResidue: # go to start of connected stretch
+              nmrResidue = nmrResidue.previousNmrResidue
+          elif nmrChain.isConnected or nmrChain.chain: # either NC:# or NC:A type nmrChains but not NC:@
+            nmrResidue = nmrChain.mainNmrResidues[0]
 
-        while nmrResidue:  # add all of connected stretch
-          self.addResidue(nmrResidue, '+1')
-          nmrResidue = nmrResidue.nextNmrResidue
+          while nmrResidue:  # add all of connected stretch
+            self.addResidue(nmrResidue, '+1')
+            nmrResidue = nmrResidue.nextNmrResidue
 
         if len(self.predictedStretch) > 2:
           self.predictSequencePosition(self.predictedStretch)
@@ -395,7 +410,8 @@ class SequenceGraphModule(CcpnModule):
       ###  self._showBackboneAssignments(nmrChain)
 
       for ii, res in enumerate(self.guiResiduesShown[:-1]):
-        self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
+        if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
+          self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
 
       if self.assignmentsCheckBox.isChecked():
         self._getAssignmentsFromSpectra()
