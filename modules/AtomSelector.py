@@ -63,6 +63,8 @@ from ccpn.ui.gui.widgets.Widget import Widget
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 
 from ccpn.util.Logging import getLogger
+from ccpn.ui.gui.widgets.MessageDialog import showWarning
+
 logger = getLogger()
 
 
@@ -179,6 +181,7 @@ class AtomSelectorModule(CcpnModule):
       for jj, offset in enumerate(['-1', '0', '+1']):
         btext = atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']'
         button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj), callback=partial(self.assignSelected, offset, atom))
+        button.setMinimumSize(45, 24)
         self.buttons[atom].append(button)
 
     for buttons in self.buttons.values():
@@ -280,7 +283,8 @@ class AtomSelectorModule(CcpnModule):
             btext = atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']'
             button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj), hAlign='t',
                             callback=partial(self.assignSelected, offset, atom))
-            button.setMinimumSize(45, 20)
+            button.setMinimumSize(45, 24)
+
             self.buttons[atom].append(button)
 
       else:
@@ -298,7 +302,7 @@ class AtomSelectorModule(CcpnModule):
             self.buttons[atom] = []
             button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
                     callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
-            button.setMinimumSize(45, 20)
+            button.setMinimumSize(45, 24)
             self.buttons[atom].append(button)
 
   def _showMoreAtomButtons(self, buttons, moreButton):
@@ -349,6 +353,8 @@ class AtomSelectorModule(CcpnModule):
               nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
               peak.assignDimension(axisCode, nmrAtoms)
       self.current.peaks = []
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
     finally:
       # self.project._endCommandEchoBlock()
       self.application._endCommandBlock()
