@@ -88,7 +88,7 @@ class AssignmentInspectorModule(CcpnModule):
                                              grid=(0,0), vAlign='top', stretch=(0,0), hAlign='left',
                                              vPolicy='minimal',
                                              #minimumWidths=(colwidth, 0, 0),
-                                             fixedWidths=(colwidth, colwidth, colwidth),
+                                             fixedWidths=(colwidth, 2*colwidth, None),
                                              orientation = 'left',
                                              labelText='Display(s):',
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
