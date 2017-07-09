@@ -27,8 +27,8 @@ from ccpn.AnalysisAssign.AnalysisAssign import Assign as Application
 from ccpn.framework.Version import applicationVersion
 
 if __name__ == '__main__':
-  from ccpn.util.GitTools import getAllRepositoriesGitCommit
-  applicationVersion = 'development: {AnalysisAssign:.8s}'.format(**getAllRepositoriesGitCommit())
+  # from ccpn.util.GitTools import getAllRepositoriesGitCommit
+  # applicationVersion = 'development: {AnalysisAssign:.8s}'.format(**getAllRepositoriesGitCommit())
 
   # argument parser
   parser = Framework.defineProgramArguments()
