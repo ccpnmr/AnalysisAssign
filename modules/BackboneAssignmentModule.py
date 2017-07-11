@@ -177,6 +177,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
           # activate a callback notifiers; allow dropping onto the NmrResidueLabel
           for strip in strips:
             if strip is not None:
+              # NB connections are made as connectPrevious / connectNext to passed-in NmrResidue
+              # It follows that it IS the mainNMr Residue that should be passed in here
+              # Note, though, that you get teh same connections WHICHEVER strip you drop on
               notifier = GuiNotifier(strip.getStripLabel(),
                                      [GuiNotifier.DROPEVENT], [DropBase.TEXT],
                                      self._processDroppedNmrResidue, nmrResidue=nr)
@@ -197,17 +200,25 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # If NmrResidue is a -1 offset NmrResidue, set queryShifts as value from self.interShifts dictionary
     # Set matchShifts as self.intraShifts
-    if nmrResidue.sequenceCode.endswith('-1'):
-      direction = '-1'
-      iNmrResidue = nmrResidue.mainNmrResidue
+    # if nmrResidue.sequenceCode.endswith('-1'):
+    if nmrResidue.relativeOffset == -1:
+      # direction = '-1'
+      # iNmrResidue = nmrResidue.mainNmrResidue
       queryShifts = [shift for shift in self.interShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
       matchShifts = self.intraShifts
+
+    elif nmrResidue.relativeOffset:
+      getLogger().warning(
+        "Assignment matching not supported for NmrResidue offset %s. Matching display skipped"
+        % nmrResidue.relativeOffset
+      )
 
     # If NmrResidue is not an offset NmrResidue, set queryShifts as value from self.intraShifts dictionary
     # Set matchShifts as self.interShifts
     else:
-      direction = '+1'
-      iNmrResidue = nmrResidue
+      # relative offset is None or 0
+      # direction = '+1'
+      # iNmrResidue = nmrResidue
       queryShifts = [shift for shift in self.intraShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
       matchShifts = self.interShifts
 
@@ -237,13 +248,19 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     if data['shiftLeftMouse']:
       # leftShift drag; connect to previous
       nmrResidue.connectPrevious(droppedNmrResidue)
+      matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
+      if matchNmrResidue is None:
+        # Non -1 residue - stay with current
+        getLogger().info("NmrResidue %s has no i-1 residue to display" % droppedNmrResidue)
+        matchNmrResidue = nmrResidue
     else:
       nmrResidue.connectNext(droppedNmrResidue)
+      matchNmrResidue = droppedNmrResidue
     self.nmrResidueTable.setUpdateSilence(False)
 
     # update the NmrResidueTable
     self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
-    self.navigateToNmrResidue(droppedNmrResidue)
+    self.navigateToNmrResidue(matchNmrResidue)
 
   def _centreStripForNmrResidue(self, nmrResidue, strip):
     """
