@@ -47,6 +47,7 @@ from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
 from ccpn.ui.gui.widgets.DropBase import DropBase
 
 from ccpn.util.Logging import getLogger
+from ccpn.core.NmrAtom import NmrAtom
 
 ALL = '<all>'
 
@@ -136,7 +137,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
   def navigateToNmrResidue(self, nmrResidue, row=None, col=None):
     """
-    Navigate in selected displays to nmrResidue; skip if no displays defined defined
+    Navigate in selected displays to nmrResidue; skip if no displays defined
     If matchCheckbox is checked, also call findAndDisplayMatches
     """
     displays = self._getDisplays()
@@ -146,7 +147,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       return
 
     if self.matchCheckBoxWidget.isChecked() and len(self.matchWidget.getTexts()) == 0:
-      getLogger().warn('Undefined match module; select in settings first or unselect "Find matches"')
+      getLogger().warning('Undefined match module; select in settings first or unselect "Find matches"')
       showWarning('startAssignment', 'Undefined match module;\nselect in settings first or unselect "Find matches"')
       return
 
@@ -172,7 +173,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                       widths=['full']*len(display.strips[0].axisCodes),
                                       showSequentialResidues=(len(display.axisCodes) > 2) and
                                                              self.sequentialStripsWidget.checkBox.isChecked(),
-                                      markPositions=self.markPositionsWidget.checkBox.isChecked()
+                                      markPositions=False    #self.markPositionsWidget.checkBox.isChecked()
                                       )
           # activate a callback notifiers; allow dropping onto the NmrResidueLabel
           for strip in strips:
@@ -184,6 +185,27 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                      [GuiNotifier.DROPEVENT], [DropBase.TEXT],
                                      self._processDroppedNmrResidue, nmrResidue=nr)
               self._stripNotifiers.append(notifier)
+
+           # if -1 residue CA CB of it, and take H, N from the 'i' residue which is mainResidue
+              # check if contains '-1' in pid
+
+          if '-1' in nmrResidue.pid:
+            # -1 residue so need to split the CA, CB from thr N, H
+            nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
+            nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
+
+            nmrAtoms=[]
+            for nac in nmrAtomsMinus:
+              if '..CA' in nac.pid or '..CB' in nac.pid:
+                nmrAtoms.append(nac)
+            for nac in nmrAtomsCentre:
+              if '..N' in nac.pid or '..H' in nac.pid:
+                nmrAtoms.append(nac)
+
+            markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
+          else:
+            nmrAtoms = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
+            markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
 
       if self.matchCheckBoxWidget.isChecked():
         self.findAndDisplayMatches(nmrResidue)
@@ -340,6 +362,68 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       notifier.unRegister()
     self._stripNotifiers = []
     super(BackboneAssignmentModule, self)._closeModule()
+
+def nmrAtomsFromResidue(nmrResidue):
+  """
+  Retrieve a list of nmrAtoms from nmrResidue
+  """
+  # nmrResidue = nmrResidue.mainNmrResidue
+  nmrResidues = []
+  previousNmrResidue = nmrResidue.previousNmrResidue
+  if previousNmrResidue:
+    nmrResidues.append(previousNmrResidue)
+  nmrResidues.append(nmrResidue)
+  nextNmrResidue = nmrResidue.nextNmrResidue
+  if nextNmrResidue:
+    nmrResidues.append(nextNmrResidue)
+
+  nmrAtoms = []
+  for nr in nmrResidues:
+    nmrAtoms.extend(nr.nmrAtoms)
+
+  return nmrAtoms
+
+def markNmrAtoms(mainWindow, nmrAtoms:typing.List[NmrAtom]):
+
+  # get the display
+  # displays = self._getDisplays()
+
+  # application = mainWindow.application
+  # project = mainWindow.application.project
+  # current = mainWindow.application.current
+
+  displays = [dp for dp in mainWindow.spectrumDisplays]
+
+  if len(displays) == 0:
+    getLogger().warning('No Spectrum Displays')
+    showWarning('markNmrAtoms', 'No spectrum Displays')
+    return
+
+  # mainWindow.clearMarks()     # clear the marks for the minute
+
+  for display in displays:
+    strips = display.strips
+
+    for strip in strips:
+      # assume that this returns list of nmrAtoms in the display
+
+      shiftDict = matchAxesAndNmrAtoms(strip, nmrAtoms)
+      # atomPositions = shiftDict[strip.axisOrder[2]]
+      atomPositions = [[x.value for x in shiftDict[axisCode]] for axisCode in strip.axisOrder]
+      positions = []
+      for atomPos in atomPositions:
+        if atomPos:
+          if len(atomPos) < 2:
+            positions.append(atomPos[0])
+          else:
+            positions.append(max(atomPos) - min(atomPos) / 2)
+        else:
+          positions.append('')
+        # navigateToPositionInStrip(strip, positions, widths=widths) # don't need to change display yet
+
+        strip.spectrumDisplay.mainWindow.markPositions(list(shiftDict.keys()),
+                                                       list(shiftDict.values()))
+
 
 
 #=====  Just some code to 'save' =====
