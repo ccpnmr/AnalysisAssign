@@ -190,8 +190,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       # if 'i-1' residue, take CA CB, and take H, N from the 'i' residue (.mainNmrResidue)
       # check if contains '-1' in pid, is this robust?
 
-      #TODO:ED put in same routine for here and GuiSpectrumDisplay
-      if '-1' in nmrResidue.pid:
+      if nmrResidue.relativeOffset == -1:
         # -1 residue so need to split the CA, CB from thr N, H
         nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
         nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
@@ -199,10 +198,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         nmrAtoms=[]
         # this should check the experiment type and choose the correct atoms
         for nac in nmrAtomsMinus:
-          if '..CA' in nac.pid or '..CB' in nac.pid:
+          if nac.name.startswith('CA') or nac.name.startswith('CB'):
             nmrAtoms.append(nac)
         for nac in nmrAtomsCentre:
-          if '..N' in nac.pid or '..H' in nac.pid:
+          if nac.name.startswith('N') or nac.name.startswith('H'):
             nmrAtoms.append(nac)
 
         markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
