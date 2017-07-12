@@ -196,6 +196,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
 
         nmrAtoms=[]
+        # this should check the experiment type and choose the correct atoms
         for nac in nmrAtomsMinus:
           if '..CA' in nac.pid or '..CB' in nac.pid:
             nmrAtoms.append(nac)
