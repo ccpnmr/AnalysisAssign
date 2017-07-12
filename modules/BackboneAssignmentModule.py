@@ -190,6 +190,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       # if 'i-1' residue, take CA CB, and take H, N from the 'i' residue (.mainNmrResidue)
       # check if contains '-1' in pid, is this robust?
 
+      #TODO:ED put in same routine for here and GuiSpectrumDisplay
       if '-1' in nmrResidue.pid:
         # -1 residue so need to split the CA, CB from thr N, H
         nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
