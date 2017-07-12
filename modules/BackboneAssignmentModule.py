@@ -186,26 +186,27 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                      self._processDroppedNmrResidue, nmrResidue=nr)
               self._stripNotifiers.append(notifier)
 
-           # if -1 residue CA CB of it, and take H, N from the 'i' residue which is mainResidue
-              # check if contains '-1' in pid
+      # ejb
+      # if 'i-1' residue, take CA CB, and take H, N from the 'i' residue (.mainNmrResidue)
+      # check if contains '-1' in pid, is this robust?
 
-          if '-1' in nmrResidue.pid:
-            # -1 residue so need to split the CA, CB from thr N, H
-            nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
-            nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
+      if '-1' in nmrResidue.pid:
+        # -1 residue so need to split the CA, CB from thr N, H
+        nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
+        nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
 
-            nmrAtoms=[]
-            for nac in nmrAtomsMinus:
-              if '..CA' in nac.pid or '..CB' in nac.pid:
-                nmrAtoms.append(nac)
-            for nac in nmrAtomsCentre:
-              if '..N' in nac.pid or '..H' in nac.pid:
-                nmrAtoms.append(nac)
+        nmrAtoms=[]
+        for nac in nmrAtomsMinus:
+          if '..CA' in nac.pid or '..CB' in nac.pid:
+            nmrAtoms.append(nac)
+        for nac in nmrAtomsCentre:
+          if '..N' in nac.pid or '..H' in nac.pid:
+            nmrAtoms.append(nac)
 
-            markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
-          else:
-            nmrAtoms = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
-            markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
+        markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
+      else:
+        nmrAtoms = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
+        markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
 
       if self.matchCheckBoxWidget.isChecked():
         self.findAndDisplayMatches(nmrResidue)
