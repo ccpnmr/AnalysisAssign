@@ -255,7 +255,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     return
 
   def _processDroppedNmrResidue(self, data, nmrResidue):
-    "Process the dropped NmrResidue id"
+    """Process the dropped NmrResidue id"""
 
     droppedNmrResidue = None
     if DropBase.TEXT in data and len(data[DropBase.TEXT]) > 0:
