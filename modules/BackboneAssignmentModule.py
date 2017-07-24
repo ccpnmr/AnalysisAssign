@@ -268,19 +268,23 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       return
 
     # silence the update of the nmrResidueTable as we will to an explicit update later
+    # put in try/finally block because otherwise if exception thrown in the following code
+    # (which can happen) then you no longer get updates of the NmrResidue table
     self.nmrResidueTable.setUpdateSilence(True)
-    if data['shiftLeftMouse']:
-      # leftShift drag; connect to previous
-      nmrResidue.connectPrevious(droppedNmrResidue)
-      matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
-      if matchNmrResidue is None:
-        # Non -1 residue - stay with current
-        getLogger().info("NmrResidue %s has no i-1 residue to display" % droppedNmrResidue)
-        matchNmrResidue = nmrResidue
-    else:
-      nmrResidue.connectNext(droppedNmrResidue)
-      matchNmrResidue = droppedNmrResidue
-    self.nmrResidueTable.setUpdateSilence(False)
+    try:
+      if data['shiftLeftMouse']:
+        # leftShift drag; connect to previous
+        nmrResidue.connectPrevious(droppedNmrResidue)
+        matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
+        if matchNmrResidue is None:
+          # Non -1 residue - stay with current
+          getLogger().info("NmrResidue %s has no i-1 residue to display" % droppedNmrResidue)
+          matchNmrResidue = nmrResidue
+      else:
+        nmrResidue.connectNext(droppedNmrResidue)
+        matchNmrResidue = droppedNmrResidue
+    finally:
+      self.nmrResidueTable.setUpdateSilence(False)
 
     # update the NmrResidueTable
     self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
