@@ -188,21 +188,21 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
       # ejb
       # if 'i-1' residue, take CA CB, and take H, N from the 'i' residue (.mainNmrResidue)
-      # check if contains '-1' in pid, is this robust?
+      # check if contains '-1' in pid, is this robust? no :)
 
       if nmrResidue.relativeOffset == -1:
-        # -1 residue so need to split the CA, CB from thr N, H
+        # -1 residue so need to split the CA, CB from the N, H
         nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
         nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
 
         nmrAtoms=[]
-        # this should check the experiment type and choose the correct atoms
-        for nac in nmrAtomsMinus:
-          if nac.name.startswith('CA') or nac.name.startswith('CB'):
-            nmrAtoms.append(nac)
-        for nac in nmrAtomsCentre:
-          if nac.name.startswith('N') or nac.name.startswith('H'):
-            nmrAtoms.append(nac)
+        # this should check the experiment type and choose the correct atoms from there
+        for naMinus in nmrAtomsMinus:
+          if naMinus.name.startswith('CA') or naMinus.name.startswith('CB'):
+            nmrAtoms.append(naMinus)
+        for naCentre in nmrAtomsCentre:
+          if naCentre.name.startswith('N') or naCentre.name.startswith('H'):
+            nmrAtoms.append(naCentre)
 
         markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
       else:
