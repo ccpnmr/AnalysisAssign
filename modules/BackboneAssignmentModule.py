@@ -271,7 +271,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     # put in try/finally block because otherwise if exception thrown in the following code
     # (which can happen) then you no longer get updates of the NmrResidue table
     self.nmrResidueTable.setUpdateSilence(True)
-    try:
+
+    matchNmrResidue = None
+    try:                          # display popup warning
       if data['shiftLeftMouse']:
         # leftShift drag; connect to previous
         nmrResidue.connectPrevious(droppedNmrResidue)
@@ -283,23 +285,26 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       else:
         nmrResidue.connectNext(droppedNmrResidue)
         matchNmrResidue = droppedNmrResidue
+    except Exception as es:
+      showWarning('Connect NmrResidue', str(es))
     finally:
       self.nmrResidueTable.setUpdateSilence(False)
 
     # update the NmrResidueTable
     self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
-    self.navigateToNmrResidue(matchNmrResidue)
+    if matchNmrResidue:
+      self.navigateToNmrResidue(matchNmrResidue)
 
   def _centreStripForNmrResidue(self, nmrResidue, strip):
     """
     Centre y-axis of strip based on chemical shifts of from NmrResidue.nmrAtoms
     """
     if not nmrResidue:
-      getLogger().warn('No NmrResidue specified')
+      getLogger().warning('No NmrResidue specified')
       return
 
     if not strip:
-      getLogger().warn('No Strip specified')
+      getLogger().warning('No Strip specified')
       return
 
     yShifts = matchAxesAndNmrAtoms(strip, nmrResidue.nmrAtoms)[strip.axisOrder[1]]
