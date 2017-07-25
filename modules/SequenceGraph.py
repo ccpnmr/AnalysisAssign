@@ -10,7 +10,6 @@ __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/li
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
-
 #=========================================================================================
 # Last code modification
 #=========================================================================================
@@ -36,7 +35,7 @@ from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
-from ccpn.ui.gui.guiSettings import textFont, textFontBold
+from ccpn.ui.gui.guiSettings import textFont, textFontBold, textFontLarge
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
@@ -145,23 +144,45 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
 
   def _mouseMoveEvent(self, event):
 
+    nmrItem = None
     if (event.buttons() == QtCore.Qt.LeftButton) and (event.modifiers() & QtCore.Qt.ShiftModifier):
         for item in self.parent.scene.items():
           if isinstance(item, GuiNmrResidue) and item.isSelected():
             nmrChain = item.nmrResidue.nmrChain
+            nmrItem = item    #.parentWidget()
 
-        drag = QtGui.QDrag(event.widget())
-        mimeData = QtCore.QMimeData()
-        itemData = json.dumps({'pids': [nmrChain.pid]})
-        mimeData.setData(ccpnmrJsonData, itemData)
-        mimeData.setText(itemData)
-        drag.setMimeData(mimeData)
+        if nmrItem:
+          drag = QtGui.QDrag(event.widget())
+          mimeData = QtCore.QMimeData()
+          itemData = json.dumps({'pids': [nmrChain.pid]})
+          mimeData.setData(ccpnmrJsonData, itemData)
+          mimeData.setText(itemData)
+          drag.setMimeData(mimeData)
 
-        if drag.exec_(QtCore.Qt.MoveAction | QtCore.Qt.CopyAction, QtCore.Qt.CopyAction) == QtCore.Qt.MoveAction:
-          pass
-          # self.close()
-        else:
-          self.show()
+          #TODO:ED get rid of _appBase
+          dragLabel = QtGui.QLabel()
+          dragLabel.setText(self.toPlainText())
+          dragLabel.setFont(textFontLarge)
+          if nmrItem.nmrResidue.project._appBase.colourScheme == 'dark':
+            dragLabel.setStyleSheet('color : #F7FFFF')
+          elif nmrItem.nmrResidue.project._appBase.colourScheme == 'light':
+            dragLabel.setStyleSheet('color : #555D85')
+
+          pixmap = QtGui.QPixmap.grabWidget(dragLabel)    # ejb -    this gets the whole window   event.widget())
+          painter = QtGui.QPainter(pixmap)
+          painter.setCompositionMode(painter.CompositionMode_DestinationIn)
+          painter.fillRect(pixmap.rect(), QtGui.QColor(0, 0, 0, 240))
+          painter.end()
+          drag.setPixmap(pixmap)
+          drag.setHotSpot(QtCore.QPoint(dragLabel.width() / 2, dragLabel.height() / 2))
+
+          drag.start(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
+
+          # if drag.exec_(QtCore.Qt.MoveAction | QtCore.Qt.CopyAction, QtCore.Qt.CopyAction) == QtCore.Qt.MoveAction:
+          #   pass
+          #   # self.close()
+          # else:
+          #   self.show()
 
   def _mousePressEvent(self, event):
     self.nmrResidue.project._appBase.current.nmrResidue = self.nmrResidue
