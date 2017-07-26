@@ -137,6 +137,7 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     self.nmrResidue = nmrResidue
     self.mousePressEvent = self._mousePressEvent
     self.mouseMoveEvent = self._mouseMoveEvent
+    self.mouseReleaseEvent = self._mouseReleaseEvent      # ejb - new for popup menu
 
   def _update(self):
     self.setPlainText(self.nmrResidue.id)
@@ -188,6 +189,43 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     self.nmrResidue.project._appBase.current.nmrResidue = self.nmrResidue
     self.setSelected(True)
 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  # ejb - added to give disconnect residue popup menu
+
+  def _mouseReleaseEvent(self, event):
+    """
+    Re-implementation of the mouse press event so right click can be used to delete items from the
+    sidebar.
+    """
+    if event.button() == QtCore.Qt.RightButton:
+      self._raiseContextMenu(event)               # ejb - moved the context menu to button release
+      event.accept()
+    else:
+      super(GuiNmrResidue, self).mouseReleaseEvent(event)
+
+  def _raiseContextMenu(self, event:QtGui.QMouseEvent):
+    """
+    Creates and raises a context menu enabling items to be disconnected
+    """
+    from ccpn.ui.gui.widgets.Menu import Menu
+    contextMenu = Menu('', event.widget(), isFloatWidget=True)
+    from functools import partial
+
+    contextMenu.addAction('disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
+    contextMenu.addAction('disconnect nmrResidue', partial(self._disconnectNmrResidue))
+    contextMenu.addAction('disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
+    cursor = QtGui.QCursor()
+    contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
+    contextMenu.exec()
+
+  def _disconnectPreviousNmrResidue(self):
+    self.parent.disconnectPreviousNmrResidue()
+
+  def _disconnectNmrResidue(self):
+    self.parent.disconnectNmrResidue()
+
+  def _disconnectNextNmrResidue(self):
+    self.parent.disconnectNextNmrResidue()
 
 
 class AssignmentLine(QtGui.QGraphicsLineItem):
