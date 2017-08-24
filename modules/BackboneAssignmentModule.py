@@ -176,7 +176,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                       markPositions=False    #self.markPositionsWidget.checkBox.isChecked()
                                       )
           # activate a callback notifiers; allow dropping onto the NmrResidueLabel
-          for strip in strips:
+          for st, strip in enumerate(strips):
             if strip is not None:
               # NB connections are made as connectPrevious / connectNext to passed-in NmrResidue
               # It follows that it IS the mainNMr Residue that should be passed in here
@@ -185,6 +185,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                      [GuiNotifier.DROPEVENT], [DropBase.TEXT],
                                      self._processDroppedNmrResidue, nmrResidue=nr)
               self._stripNotifiers.append(notifier)
+
+            strips[0].spectrumDisplay.stripFrame.getLayout().setColumnStretch(st,0)
+          # layout.setColumnStretch(col, colStr
+          # strips[0].spectrumDisplay.stripFrame.setStretch(1,1)
 
       # ejb
       # if 'i-1' residue, take CA CB, and take H, N from the 'i' residue (.mainNmrResidue)
