@@ -186,7 +186,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                      self._processDroppedNmrResidue, nmrResidue=nr)
               self._stripNotifiers.append(notifier)
 
-            strips[0].spectrumDisplay.stripFrame.getLayout().setColumnStretch(st,0)
+            strip.spectrumDisplay.setColumnStretches(True)
+
+
           # layout.setColumnStretch(col, colStr
           # strips[0].spectrumDisplay.stripFrame.setStretch(1,1)
 

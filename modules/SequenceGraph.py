@@ -46,6 +46,7 @@ from ccpn.core.NmrChain import NmrChain
 
 from ccpn.util.Constants import ccpnmrJsonData
 from ccpn.util.Logging import getLogger
+from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
 logger = getLogger()
 
@@ -481,23 +482,35 @@ class SequenceGraphModule(CcpnModule):
 
     self.nmrChainPulldown.pulldownList.select('NC:@-')
 
-  def disconnectPreviousNmrResidue(self):
-    self.current.nmrResidue.disconnectPrevious()
-    self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    ###self.updateNmrResidueTable()
-
   def _closeModule(self):
     self._unRegisterNotifiers()
     #delattr(self.parent, 'sequenceGraph')
     super(SequenceGraphModule, self)._closeModule()
 
-  def disconnectNextNmrResidue(self):
-    self.current.nmrResidue.disconnectNext()
+  def disconnectPreviousNmrResidue(self):
+    try:
+      self.current.nmrResidue.disconnectPrevious()
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+
+    self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    ###self.updateNmrResidueTable()
+
+  def disconnectNmrResidue(self):
+    try:
+      self.current.nmrResidue.disconnect()
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
-  def disconnectNmrResidue(self):
-    self.current.nmrResidue.disconnect()
+  def disconnectNextNmrResidue(self):
+    try:
+      self.current.nmrResidue.disconnectNext()
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+
     self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
