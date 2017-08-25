@@ -312,7 +312,7 @@ class SequenceGraphModule(CcpnModule):
 
     self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self.mainWidget,
                                                       labelText='Show all NmrResidues:',
-                                                      checked=False,
+                                                      checked=True,
                                                       tipText='Show all the NmrResidues in the NmrChain',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 3), gridSpan=(1,1))
