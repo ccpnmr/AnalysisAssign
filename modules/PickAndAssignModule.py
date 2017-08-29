@@ -18,7 +18,6 @@ __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/li
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
-
 #=========================================================================================
 # Last code modification
 #=========================================================================================
@@ -33,6 +32,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 #=========================================================================================
 # Start of code
 #=========================================================================================
+
 from PyQt4 import QtGui
 
 from ccpn.ui.gui.lib import PeakList
@@ -41,6 +41,7 @@ from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable, NmrResidueTableModule
 from ccpn.ui.gui.widgets.Base import Base
 from ccpn.ui.gui.widgets.Button import Button
+from ccpn.ui.gui.widgets.ButtonList import ButtonList
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
 from ccpn.ui.gui.widgets.DoubleSpinbox import DoubleSpinbox
 from ccpn.ui.gui.widgets.Label import Label
@@ -79,11 +80,11 @@ class PickAndAssignModule(NmrResidueTableModule):
 
     # Main widget
     self.restrictedPickButton = Button(text='Restricted Pick', callback=self.restrictedPick)
-    self.restrictedPickButton.setMinimumWidth(120)
+    self.restrictedPickButton.setMinimumWidth(105)
     self.nmrResidueTable.addWidgetToTop(self.restrictedPickButton, col=2)
 
     self.assignSelectedButton = Button(text='Assign Selected', callback=self.assignSelected)
-    self.assignSelectedButton.setMinimumWidth(120)
+    self.assignSelectedButton.setMinimumWidth(105)
     self.nmrResidueTable.addWidgetToTop(self.assignSelectedButton, col=3)
 
     self.restrictedPickAndAssignButton = Button(text='Restricted Pick and Assign',
@@ -91,6 +92,14 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.restrictedPickAndAssignButton.setMinimumWidth(160)
     self.nmrResidueTable.addWidgetToTop(self.restrictedPickAndAssignButton, col=4)
 
+    # ejb - change to a narrower widget to the right of the pulldown list
+    # self.buttonBox = ButtonList(None, texts=['Restricted Pick', 'Assign Selected', 'Restricted Pick and Assign']
+    #                             , callbacks=[self.restrictedPick, self.assignSelected, self.assignSelected]
+    #                             , direction='v')
+    # self.buttonBox.setMinimumWidth(160)
+    # self.buttonBox.setMinimumHeight(49)
+    # self.buttonBox.buttons[2].hAlign = 'l'
+    # self.nmrResidueTable.addWidgetToPos(self.buttonBox, row=1, col=2, rowSpan=1, colSpan=1)
     # Settings widget
 
     # change some of the defaults setting inherited from NmrResidueTableModule
