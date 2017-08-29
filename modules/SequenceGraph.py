@@ -69,6 +69,7 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     ###if nmrAtom:
     ###  self.name = nmrAtom.name
     self.connectedAtoms = 0
+    self.connectedList = {}     # ejb - new connection test
 
     # wb104: not sure why below is needed rather than setFlags() but it is
     self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
@@ -114,6 +115,19 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     #print('>>release Event')
     pass
 
+  def addConnectedList(self, connectedAtom):
+    keyVal = str(connectedAtom.nmrAtom.pid)
+    if keyVal in self.connectedList:
+      self.connectedList[keyVal] += 1
+    else:
+      self.connectedList[keyVal] = 1
+
+  def getConnectedList(self, connectedAtom):
+    keyVal = str(connectedAtom.nmrAtom.pid)
+    if keyVal in self.connectedList:
+      return self.connectedList[keyVal]
+    else:
+      return 0
 
 class GuiNmrResidue(QtGui.QGraphicsTextItem):
   """
@@ -370,12 +384,14 @@ class SequenceGraphModule(CcpnModule):
 #    self.project.registerNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
 #    self.project.registerNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
     self.project.registerNotifier('Peak', 'change', self._updateShownAssignments)
+    self.project.registerNotifier('Spectrum', 'change', self._updateShownAssignments)
 
   def _unRegisterNotifiers(self):
     self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
 #    self.project.unRegisterNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
 #    self.project.unRegisterNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
     self.project.unRegisterNotifier('Peak', 'change', self._updateShownAssignments)
+    self.project.unRegisterNotifier('Spectrum', 'change', self._updateShownAssignments)
 
   def _updateModule(self, nmrChains=None):
     """
@@ -722,8 +738,8 @@ class SequenceGraphModule(CcpnModule):
       y2 = atom2.y() - (atom2.boundingRect().height()*0.08)-displacement
 
     else:
-      y1 = atom1.y() + (atom1.boundingRect().height()*0.5)
-      y2 = atom2.y() + (atom2.boundingRect().height()*0.5)
+      y1 = atom1.y() + (atom1.boundingRect().height()*0.5)+displacement
+      y2 = atom2.y() + (atom2.boundingRect().height()*0.5)+displacement
 
     if atom1.x() > atom2.x():
       x1 = atom1.x()
@@ -756,16 +772,48 @@ class SequenceGraphModule(CcpnModule):
     for spectrum in self.project.spectra:
       connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
                      for x in y]
-      for ii, connection in enumerate(connections):
+
+      minusResList = []
+      for cc in connections:
+        newCC = []
+        if cc[0].nmrResidue.relativeOffset == -1:
+
+          # this is a minus residue so find connected, have to traverse to the previousNmrResidue
+          ccCode = cc[0].name
+          preN = cc[0].nmrResidue.mainNmrResidue.previousNmrResidue
+          if preN:
+            newCC = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == ccCode]
+
+          # if newCC:
+          #   cc[0] = newCC[0]
+
+        if newCC:
+          cc = (newCC[0], cc[1])
+
+        minusResList.append(cc)
+
+      minusResList = set(minusResList)
+
+      for ii, connection in enumerate(minusResList):    # ejb - connections
         # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
         #                self.project._data2Obj.get(connection[1]).nmrAtom]
         # sorting makes sure drawing is done properly
         guiNmrAtomPair = [self.guiNmrAtomDict.get(a) for a in sorted(connection, reverse=True)]
         if None not in guiNmrAtomPair:
-          displacement = min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
+          # displacement = 3 * min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
+
+          displacement = 3 * min(guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+                                , guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0]))
+
           self._addConnectingLine(guiNmrAtomPair[0], guiNmrAtomPair[1], spectrum.positiveContourColour, 2.0, displacement)
-          guiNmrAtomPair[0].connectedAtoms += 1.0
-          guiNmrAtomPair[1].connectedAtoms += 1.0
+          # guiNmrAtomPair[0].connectedAtoms += 1.0
+          # guiNmrAtomPair[1].connectedAtoms += 1.0
+
+          guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+          guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+          # fullList.append((spectrum, guiNmrAtomPair[0], guiNmrAtomPair[1]))
+          # fullList.append((spectrum, sorted(connection)))   #, reverse=True)[0], sorted(connection, reverse=True)[1]))
+    pass
 
 import math
 atomSpacing = 66

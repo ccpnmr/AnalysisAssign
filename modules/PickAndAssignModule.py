@@ -94,11 +94,11 @@ class PickAndAssignModule(NmrResidueTableModule):
 
     # ejb - change to a narrower widget to the right of the pulldown list
     # self.buttonBox = ButtonList(None, texts=['Restricted Pick', 'Assign Selected', 'Restricted Pick and Assign']
-    #                             , callbacks=[self.restrictedPick, self.assignSelected, self.assignSelected]
+    #                             , callbacks=[self.restrictedPick, self.assignSelected, self.restrictedPickAndAssign]
     #                             , direction='v')
     # self.buttonBox.setMinimumWidth(160)
     # self.buttonBox.setMinimumHeight(49)
-    # self.buttonBox.buttons[2].hAlign = 'l'
+    # self.buttonBox.buttons[2].setSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Fixed)
     # self.nmrResidueTable.addWidgetToPos(self.buttonBox, row=1, col=2, rowSpan=1, colSpan=1)
     # Settings widget
 
