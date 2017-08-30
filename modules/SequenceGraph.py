@@ -291,7 +291,10 @@ class SequenceGraphModule(CcpnModule):
     self.scrollContents.setInteractive(True)
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
     ###self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
+    self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     self._sequenceGraphScrollArea.setWidget(self.scrollContents)
+    # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
+
     self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
@@ -494,6 +497,14 @@ class SequenceGraphModule(CcpnModule):
     finally:
       self.project._endCommandEchoBlock()
 
+    # mSize = self.mainWidget.sizeHint()
+    self.scrollContents.updateSceneRect(QtCore.QRectF(0, 0, 380, 1000))
+
+  # def resize(self, *__args):
+  #   self.scrollContents.setSceneRect(*__args)
+  #
+  #   super(SequenceGraphModule, self).resize(*__args)
+
   def resetSequenceGraph(self):
 
     self.nmrChainPulldown.pulldownList.select('NC:@-')
@@ -509,7 +520,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    if self.current.nmrResidue:
+      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     ###self.updateNmrResidueTable()
 
   def disconnectNmrResidue(self):
@@ -518,7 +530,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    if self.current.nmrResidue:
+      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def disconnectNextNmrResidue(self):
@@ -527,7 +540,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    if self.current.nmrResidue:
+      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def _resetNmrResiduePidForAssigner(self, nmrResidue, oldPid:str):
@@ -550,6 +564,7 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
     self.scene.clear()
+
 
   def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -774,25 +789,26 @@ class SequenceGraphModule(CcpnModule):
                      for x in y]
 
       minusResList = []
-      for cc in connections:
-        newCC = []
-        if cc[0].nmrResidue.relativeOffset == -1:
+      for inCon in connections:
+        newCon = list(inCon)
+        for conNum in range(0,2):
+          if inCon[conNum].nmrResidue.relativeOffset == -1 and inCon[conNum].nmrResidue.nmrChain.isConnected:
 
-          # this is a minus residue so find connected, have to traverse to the previousNmrResidue
-          ccCode = cc[0].name
-          preN = cc[0].nmrResidue.mainNmrResidue.previousNmrResidue
-          if preN:
-            newCC = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == ccCode]
+            # this is a minus residue so find connected, have to traverse to the previousNmrResidue
+            # will it always exist?
+            conName = inCon[conNum].name
+            preN = inCon[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
+            if preN:
+              newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+              if newConSwap:
+                newCon[conNum] = newConSwap[0]
 
-          # if newCC:
-          #   cc[0] = newCC[0]
+          # if newCon:
+          #   cc = (newCC[0], cc[1])    # replace the minus residue
 
-        if newCC:
-          cc = (newCC[0], cc[1])
+        minusResList.append(newCon)
 
-        minusResList.append(cc)
-
-      minusResList = set(minusResList)
+      # minusResList = set(minusResList)
 
       for ii, connection in enumerate(minusResList):    # ejb - connections
         # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
@@ -802,8 +818,7 @@ class SequenceGraphModule(CcpnModule):
         if None not in guiNmrAtomPair:
           # displacement = 3 * min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
 
-          displacement = 3 * min(guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
-                                , guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0]))
+          displacement = 3 * guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])    # spread out a little
 
           self._addConnectingLine(guiNmrAtomPair[0], guiNmrAtomPair[1], spectrum.positiveContourColour, 2.0, displacement)
           # guiNmrAtomPair[0].connectedAtoms += 1.0
