@@ -640,7 +640,7 @@ class SequenceGraphModule(CcpnModule):
     self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
     self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
     self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
-    self.nmrResidueLabel.setPlainText('_'+nmrResidue.id)
+    self.nmrResidueLabel.setPlainText(nmrResidue.id)
     # self.guiNmrResidues.append(self.nmrResidueLabel)
     self.scene.addItem(self.nmrResidueLabel)
 
