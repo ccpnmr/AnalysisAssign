@@ -315,10 +315,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     yShifts = matchAxesAndNmrAtoms(strip, nmrResidue.nmrAtoms)[strip.axisOrder[1]]
     yShiftValues = [x.value for x in yShifts]
-    yPosition = (max(yShiftValues) + min(yShiftValues))/2
-    yWidth = max(yShiftValues)-min(yShiftValues)+10
-    strip.orderedAxes[1].position = yPosition
-    strip.orderedAxes[1].width = yWidth
+    if yShiftValues:
+      yPosition = (max(yShiftValues) + min(yShiftValues))/2
+      yWidth = max(yShiftValues)-min(yShiftValues)+10
+      strip.orderedAxes[1].position = yPosition
+      strip.orderedAxes[1].width = yWidth
 
   def _setupShiftDicts(self):
     """
