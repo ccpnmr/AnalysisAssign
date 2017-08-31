@@ -285,17 +285,22 @@ class SequenceGraphModule(CcpnModule):
     ###frame = Frame(parent=self.mainWidget)
     self._sequenceGraphScrollArea = QtGui.QScrollArea()
     self._sequenceGraphScrollArea.setWidgetResizable(True)
-    self.scene = QtGui.QGraphicsScene(self)
-    self.scrollContents = QtGui.QGraphicsView(self.scene, self)
-    self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
-    self.scrollContents.setInteractive(True)
-    self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
-    ###self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
-    self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
-    self._sequenceGraphScrollArea.setWidget(self.scrollContents)
-    # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
 
-    self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
+    self.resetScene()
+
+    # self.scene = QtGui.QGraphicsScene(self)
+    # self.scrollContents = QtGui.QGraphicsView(self.scene, self)
+    # self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
+    # self.scrollContents.setInteractive(True)
+    # self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
+    # ###self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
+    # self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
+    # self._sequenceGraphScrollArea.setWidget(self.scrollContents)
+    # # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
+
+    # self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
+    self.addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
+
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
     self.residueCount = 0
@@ -356,6 +361,7 @@ class SequenceGraphModule(CcpnModule):
     self.scene.dragEnterEvent = self.dragEnterEvent
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
+    self.ghostList = []
 
     ###self.setMode('fragment')  # cannot be moved up!
     self._registerNotifiers()
@@ -498,7 +504,7 @@ class SequenceGraphModule(CcpnModule):
       self.project._endCommandEchoBlock()
 
     # mSize = self.mainWidget.sizeHint()
-    self.scrollContents.updateSceneRect(QtCore.QRectF(0, 0, 380, 1000))
+    # self.scrollContents.updateSceneRect(QtCore.QRectF(0, 0, 380, 1000))
 
   # def resize(self, *__args):
   #   self.scrollContents.setSceneRect(*__args)
@@ -555,16 +561,30 @@ class SequenceGraphModule(CcpnModule):
     """
     Removes all displayed residues in the sequence graph and resets items count to zero.
     """
-    for item in self.scene.items():
-      self.scene.removeItem(item)
-
+    if self.scene:
+      for item in self.scene.items():
+        self.scene.removeItem(item)
     self.residueCount = 0
     self.predictedStretch = []
     self.guiResiduesShown = []
     self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
+    self.ghostList = []
     self.scene.clear()
+    self.resetScene()
 
+  def resetScene(self):
+    """
+    Replace the scene with a new one to reset the size of the scrollbars.
+    """
+    # ejb - Can't think of another way to do this
+    self.scene = QtGui.QGraphicsScene(self)
+    self.scrollContents = QtGui.QGraphicsView(self.scene, self)
+    self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
+    self.scrollContents.setInteractive(True)
+    self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
+    self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
+    self._sequenceGraphScrollArea.setWidget(self.scrollContents)
 
   def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -594,6 +614,35 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrResidues.append(self.nmrResidueLabel)
     self.scene.addItem(self.nmrResidueLabel)
     self._addResiduePredictions(nmrResidue, atoms['CA'])
+
+  def _assembleGhostResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
+    """
+    Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
+    creates a graphical representation of a residue in the assigner
+    """
+
+    for item in atoms.values():
+      self.scene.addItem(item)
+
+    nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
+    if "CB" in list(atoms.keys()):
+      self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
+    if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
+      self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+    if nmrResidue.residueType != 'PRO':
+        self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+    else:
+      self.scene.removeItem(atoms['H'])
+    # if not 'CB' in nmrAtoms:
+    #   self.scene.removeItem(atoms['CB'])
+    #   self.scene.removeItem(cbLine)
+
+    self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
+    self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
+    self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
+    self.nmrResidueLabel.setPlainText('_'+nmrResidue.id)
+    # self.guiNmrResidues.append(self.nmrResidueLabel)
+    self.scene.addItem(self.nmrResidueLabel)
 
   """
   def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
@@ -744,33 +793,64 @@ class SequenceGraphModule(CcpnModule):
     """
     Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
     """
-    if atom1.y() > atom2.y():
-      y1 = atom1.y() - (atom1.boundingRect().height()*.05)-displacement
-      y2 = atom2.y() + (atom2.boundingRect().height())-displacement
+    # if atom1.y() > atom2.y():
+    #   y1 = atom1.y() - (atom1.boundingRect().height()*.05)-displacement
+    #   y2 = atom2.y() + (atom2.boundingRect().height())-displacement
+    #
+    # elif atom1.y() < atom2.y():
+    #   y1 = atom1.y() + (atom1.boundingRect().height())-displacement
+    #   y2 = atom2.y() - (atom2.boundingRect().height()*0.08)-displacement
+    #
+    # else:
+    #   y1 = atom1.y() + (atom1.boundingRect().height()*0.5)+displacement
+    #   y2 = atom2.y() + (atom2.boundingRect().height()*0.5)+displacement
+    #
+    # if atom1.x() > atom2.x():
+    #   x1 = atom1.x()
+    #   x2 = atom2.x() + atom2.boundingRect().width()
+    #
+    # elif atom1.x() < atom2.x():
+    #   x1 = atom1.x() + atom1.boundingRect().width()
+    #   x2 = atom2.x()
+    #
+    # else:
+    #   x1 = atom1.x() + (atom1.boundingRect().width()/2)+displacement
+    #   x2 = atom2.x() + (atom1.boundingRect().width()/2)+displacement
+    #   y1 += displacement
+    #   y2 += displacement
 
-    elif atom1.y() < atom2.y():
-      y1 = atom1.y() + (atom1.boundingRect().height())-displacement
-      y2 = atom2.y() - (atom2.boundingRect().height()*0.08)-displacement
-
-    else:
-      y1 = atom1.y() + (atom1.boundingRect().height()*0.5)+displacement
-      y2 = atom2.y() + (atom2.boundingRect().height()*0.5)+displacement
-
-    if atom1.x() > atom2.x():
+    if atom2.x() < atom1.x():
       x1 = atom1.x()
-      x2 = atom2.x() + atom2.boundingRect().width()
-
-    elif atom1.x() < atom2.x():
-      x1 = atom1.x() + atom1.boundingRect().width()
+      y1 = atom1.y()
       x2 = atom2.x()
-
+      y2 = atom2.y()
     else:
-      x1 = atom1.x() + (atom1.boundingRect().width()/2)+displacement
-      x2 = atom2.x() + (atom1.boundingRect().width()/2)+displacement
-      y1 += displacement
-      y2 += displacement
+      x1 = atom2.x()
+      y1 = atom2.y()
+      x2 = atom1.x()
+      y2 = atom1.y()
 
-    newLine = AssignmentLine(x1, y1, x2, y2, colour, width, style)
+    dx = x2-x1
+    dy = y2-y1
+    length = pow(dx*dx+dy*dy, 0.5)
+    offsetX = -dy*displacement/length
+    offsetY = dx*displacement/length
+    kx1 = (atom1.boundingRect().width()*dx)/(2.0*length)  # shorten the lines along length
+    ky1 = (atom1.boundingRect().height()*dy)/(2.0*length)
+    kx2 = (atom2.boundingRect().width()*dx)/(2.0*length)
+    ky2 = (atom2.boundingRect().height()*dy)/(2.0*length)
+
+    xOff1 = atom1.boundingRect().width()/2.0    # offset to centre of bounding box
+    yOff1 = atom1.boundingRect().height()/2.0
+    xOff2 = atom2.boundingRect().width()/2.0
+    yOff2 = atom2.boundingRect().height()/2.0
+
+    x1 += xOff1 + kx1
+    y1 += yOff2 + ky1
+    x2 += xOff1 - kx2
+    y2 += yOff2 - ky2
+
+    newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width, style)
     self.scene.addItem(newLine)
     return newLine
 
@@ -783,11 +863,21 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrAtomDict[nmrAtom] = atom
     return atom
 
+  def _createGhostGuiNmrAtom(self, atomType:str, position:tuple, nmrAtom:NmrAtom=None) -> GuiNmrAtom:
+    """
+    Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
+    GuiNmrAtom can be linked to an NmrAtom by supplying it to the function.
+    """
+    atom = GuiNmrAtom(self.project, text=atomType, pos=position, nmrAtom=nmrAtom)
+    # self.guiNmrAtomDict[nmrAtom] = atom
+    return atom
+
   def _getAssignmentsFromSpectra(self):
     for spectrum in self.project.spectra:
       connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
                      for x in y]
 
+      # find the minus links and update the links to the previousNmrResidue
       minusResList = []
       for inCon in connections:
         newCon = list(inCon)
@@ -808,27 +898,144 @@ class SequenceGraphModule(CcpnModule):
 
         minusResList.append(newCon)
 
-      # minusResList = set(minusResList)
-
-      for ii, connection in enumerate(minusResList):    # ejb - connections
+      # the original routine to add the links to adjacent atoms
+      # sometimes the link maybe a huge distance away on the scene
+      for ii, connection in enumerate(minusResList):    # ejb - was connections
         # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
         #                self.project._data2Obj.get(connection[1]).nmrAtom]
         # sorting makes sure drawing is done properly
         guiNmrAtomPair = [self.guiNmrAtomDict.get(a) for a in sorted(connection, reverse=True)]
+        guiNmrResiduePair = [a for a in sorted(connection, reverse=True)]
         if None not in guiNmrAtomPair:
           # displacement = 3 * min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
 
           displacement = 3 * guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])    # spread out a little
 
-          self._addConnectingLine(guiNmrAtomPair[0], guiNmrAtomPair[1], spectrum.positiveContourColour, 2.0, displacement)
-          # guiNmrAtomPair[0].connectedAtoms += 1.0
-          # guiNmrAtomPair[1].connectedAtoms += 1.0
+          # TODO:ED check the distance here and add a mirror of the attachment underneath?
+          if abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6*self.atomSpacing:
+            self._addConnectingLine(guiNmrAtomPair[0]
+                                    , guiNmrAtomPair[1]
+                                    , spectrum.positiveContourColour
+                                    , 2.0, displacement)
 
-          guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
-          guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
-          # fullList.append((spectrum, guiNmrAtomPair[0], guiNmrAtomPair[1]))
-          # fullList.append((spectrum, sorted(connection)))   #, reverse=True)[0], sorted(connection, reverse=True)[1]))
+            guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+            guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+
+          elif (guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) > 0:
+            # add a new 'ghost' atom below the line and link to it instead
+            # only goes to the right so far...
+
+            # print ('>>>right ', guiNmrResiduePair[0].nmrResidue.pid, guiNmrResiduePair[1].nmrResidue.pid)
+            tempAtoms = self.addGhostResidue(guiNmrResiduePair[1].nmrResidue
+                                             , guiNmrAtomPair[0]
+                                             , guiNmrResiduePair[0].nmrResidue
+                                             , guiNmrResiduePair[1].name
+                                             , guiNmrResiduePair[0].name
+                                             , True)
+
+            displacement = 3 * guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])  # spread out a little
+
+            self._addConnectingLine(guiNmrAtomPair[0]
+                                    , tempAtoms[guiNmrResiduePair[1].name]
+                                    , spectrum.positiveContourColour
+                                    , 2.0, displacement)
+
+            guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+            guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+
+            # make a duplicate going the other way
+            # print ('>>>left  ', guiNmrResiduePair[0].nmrResidue.pid, guiNmrResiduePair[1].nmrResidue.pid)
+            tempAtoms = self.addGhostResidue(guiNmrResiduePair[0].nmrResidue
+                                             , guiNmrAtomPair[1]
+                                             , guiNmrResiduePair[1].nmrResidue
+                                             , guiNmrResiduePair[0].name
+                                             , guiNmrResiduePair[1].name
+                                             , False)
+
+            displacement = 3 * guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])  # spread out a little
+
+            self._addConnectingLine(guiNmrAtomPair[1]
+                                    , tempAtoms[guiNmrResiduePair[0].name]
+                                    , spectrum.positiveContourColour
+                                    , 2.0, displacement)
+
+            # already done above
+            # guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+            # guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
     pass
+
+  def addGhostResidue(self, nmrResidueCon1:NmrResidue
+                          , guiRef:GuiNmrAtom
+                          , nmrResidueCon0:NmrResidue
+                          , name1:str, name0:str
+                          , offsetAdjust
+                          , atomSpacing=None):
+    """
+    Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
+    corresponding to the Nmr Residue.
+    Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
+    beneath Nmr Residue name
+    """
+
+    # need to keep a list of the atoms that have been added so don't repeat
+    count = 1
+    for nmL in self.ghostList:
+      if nmL[1] == nmrResidueCon0.pid:
+        count += 1
+        if nmL[0] == nmrResidueCon1.pid:
+          return nmL[2]
+
+    nmrResidue = nmrResidueCon1
+    atoms = {}
+    if atomSpacing:
+      self.atomSpacing = atomSpacing
+    nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
+
+    residueAtoms = {"H":  np.array([0, 0]),
+                    "N":  np.array([0, -1*self.atomSpacing]),
+                    "CA": np.array([self.atomSpacing, -1*self.atomSpacing]),
+                    "CB": np.array([self.atomSpacing, -2*self.atomSpacing]),
+                    "CO": np.array([2*self.atomSpacing, -1*self.atomSpacing])
+                    }
+    if nmrResidue.residueType == 'GLY':
+      del residueAtoms['CB']
+    # if self.residueCount == 0:
+    #   for k, v in residueAtoms.items():
+    #     if k in nmrAtoms:
+    #       nmrAtom = nmrResidue.fetchNmrAtom(name=k)
+    #     else:
+    #       nmrAtom = None
+    #     atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
+    #   self.guiResiduesShown.append(atoms)
+      # self.predictedStretch.append(nmrResidue)
+
+    # else:
+
+    for k, v in residueAtoms.items():
+      if k in nmrAtoms:
+        nmrAtom = nmrResidue.fetchNmrAtom(name=k)
+      else:
+        nmrAtom = None
+      # atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
+    # self.guiResiduesShown.append(atoms)
+
+    # pos = np.array([guiRef['H'].x()-3*self.atomSpacing, guiRef['H'].y()]-3*self.atomSpacing)
+      if offsetAdjust:
+        newX = guiRef.x() - 1.5 * self.atomSpacing
+        newY = guiRef.y() + (2+(count*3)) * self.atomSpacing
+        offsetX = (residueAtoms[name0][0] - residueAtoms[name1][0])
+        offsetY = (residueAtoms[name0][1] - residueAtoms[name1][1])
+        pos = np.array([newX - offsetX, newY - offsetY])
+      else:
+        newX = guiRef.x() - 1.5 * self.atomSpacing
+        newY = guiRef.y() + (2+(count*3)) * self.atomSpacing
+        pos = np.array([newX, newY])
+      atoms[k] = self._createGhostGuiNmrAtom(k, v+pos, nmrAtom)
+
+    self._assembleGhostResidue(nmrResidue, atoms)
+
+    self.ghostList.append((nmrResidueCon1.pid, nmrResidueCon0.pid, atoms))
+    return atoms
 
 import math
 atomSpacing = 66
