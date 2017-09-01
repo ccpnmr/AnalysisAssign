@@ -148,7 +148,7 @@ class Assign(Framework):
 
   def showPeakAssigner(self, position='bottom', relativeTo=None):
     """Displays peak assignment module."""
-    from ccpn.ui.gui.modules.PeakAssigner import PeakAssigner
+    from ccpn.AnalysisAssign.modules.PeakAssigner import PeakAssigner
 
     mainWindow = self.ui.mainWindow
     #FIXME:ED - crashes sometimes opening a module
