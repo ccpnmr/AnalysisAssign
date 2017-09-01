@@ -268,7 +268,7 @@ class SequenceGraphModule(CcpnModule):
 
   className = 'SequenceGraph'
 
-  includeSettingsWidget = False
+  includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsPosition = 'top'
 
@@ -340,7 +340,19 @@ class SequenceGraphModule(CcpnModule):
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 3), gridSpan=(1,1))
 
-    self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 5), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
+    self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self.settingsWidget,
+                                                      labelText='Show peak assignments as tree:',
+                                                      checked=False,
+                                                      tipText='Show peak assignments as a tree below the main backbone',
+                                                      callback=self._updateShownAssignments,
+                                                      grid=(0, 4), gridSpan=(1,1))
+
+    self._settingsScrollArea.setFixedHeight(30)
+    self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+    # self.assignmentsTreeCheckBox.setFixedHeight(30)
+    # self.assignmentsTreeCheckBox.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+
+    self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
     self.disconnectPreviousIcon = Icon('icons/previous')
@@ -754,6 +766,11 @@ class SequenceGraphModule(CcpnModule):
         if hasattr(self.project._appBase, 'sequenceModule'):
           self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
+  def _updateShowTreeAssignments(self, peak=None):
+    nmrChainPid = self.nmrChainPulldown.getText()
+    if nmrChainPid:
+      self.setNmrChainDisplay(nmrChainPid)
+
   def _updateShownAssignments(self, peak=None):
     ###if self.current.nmrChain is not None:
     ###  self.setNmrChainDisplay(self.current.nmrChain.pid)
@@ -912,7 +929,8 @@ class SequenceGraphModule(CcpnModule):
           displacement = 3 * guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])    # spread out a little
 
           # TODO:ED check the distance here and add a mirror of the attachment underneath?
-          if abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6*self.atomSpacing:
+          if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6*self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
+
             self._addConnectingLine(guiNmrAtomPair[0]
                                     , guiNmrAtomPair[1]
                                     , spectrum.positiveContourColour
