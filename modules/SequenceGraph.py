@@ -513,15 +513,10 @@ class SequenceGraphModule(CcpnModule):
         self._getAssignmentsFromSpectra()
 
     finally:
-      self.project._endCommandEchoBlock()
+      self.project._appBase._endCommandBlock()      # should match the start block
 
-    # mSize = self.mainWidget.sizeHint()
-    # self.scrollContents.updateSceneRect(QtCore.QRectF(0, 0, 380, 1000))
-
-  # def resize(self, *__args):
-  #   self.scrollContents.setSceneRect(*__args)
-  #
-  #   super(SequenceGraphModule, self).resize(*__args)
+    # print('>>>setNmrChainDisplay ', self.scene.itemsBoundingRect())
+    self.scene.setSceneRect(self.scene.itemsBoundingRect())
 
   def resetSequenceGraph(self):
 
@@ -573,9 +568,10 @@ class SequenceGraphModule(CcpnModule):
     """
     Removes all displayed residues in the sequence graph and resets items count to zero.
     """
-    if self.scene:
-      for item in self.scene.items():
-        self.scene.removeItem(item)
+    # qDeleteAll(self.sene.items)
+    # if self.scene:
+    #   for item in self.scene.items():
+    #     self.scene.removeItem(item)
     self.residueCount = 0
     self.predictedStretch = []
     self.guiResiduesShown = []
@@ -583,13 +579,12 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrAtomDict = {}
     self.ghostList = []
     self.scene.clear()
-    self.resetScene()
 
   def resetScene(self):
     """
     Replace the scene with a new one to reset the size of the scrollbars.
     """
-    # ejb - Can't think of another way to do this
+    # ejb - only needed to be done the first time, scene is resized at the end of setNmrChainDisplay
     self.scene = QtGui.QGraphicsScene(self)
     self.scrollContents = QtGui.QGraphicsView(self.scene, self)
     self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)

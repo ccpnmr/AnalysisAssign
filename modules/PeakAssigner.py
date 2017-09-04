@@ -117,12 +117,14 @@ class PeakAssigner(CcpnModule):
 
     # respond to peaks
     self.current.registerNotify(self._updateInterface, 'peaks')
+    self.current.registerNotify(self._updateInterface, 'nmrAtoms')
     self._updateInterface()
 
     self.closeModule = self._closeModule
 
   def __del__(self):
     self.current.unRegisterNotify(self._updateInterface, 'peaks')
+    self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
 
   def _createEmptyNmrAtomsTable(self, dim:int):
     """Create an empty table for the specified peak dimension to contain possible Nmr Atoms that
@@ -200,6 +202,8 @@ class PeakAssigner(CcpnModule):
         currentItem = self.listWidgets[dim].item(self.listWidgets[dim].count()-1)
       currentObject = self.project.getByPid(currentItem.text())
 
+      self.project._startCommandEchoBlock('application.peakAssigner.assign', peak.pid)
+      self.project.suspendNotification()
       try:
         toAssign = dimNmrAtoms.index(currentObject)                   # error here..
 
@@ -209,6 +213,10 @@ class PeakAssigner(CcpnModule):
         peak.dimensionNmrAtoms = allAtoms
       except Exception as es:
         showWarning(str(self.windowTitle()), str(es))
+
+      finally:
+        self.project._endCommandEchoBlock()
+        self.project.resumeNotification()
 
     self._updateInterface()
 
@@ -351,12 +359,16 @@ class PeakAssigner(CcpnModule):
 
     Ndimensions = len(self.current.peak.position)
 
+    self.currentList = []
+
     if self.current.peaks:
       for dim, listWidget in zip(range(Ndimensions), self.listWidgets):
 
         ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
         self.nmrAtoms = list(sorted(set.intersection(*ll)))
         listWidget.addItems([str(a.pid) for a in self.nmrAtoms])
+
+        self.currentList.append([str(a.pid) for a in self.nmrAtoms])    # ejb - keep another list
 
   def _updateNmrAtomsFromListWidgets(self):
 
@@ -366,9 +378,33 @@ class PeakAssigner(CcpnModule):
       index = self.listWidgets.index(listWidget)
       assignmentArray[index] = assignments
 
-    print(assignmentArray, 'assignmentArray')
+    aaDel = [aa.pid for ii in range(0,len(assignmentArray)) for aa in assignmentArray[ii]]
+    aaDim = []
     for peak in self.current.peaks:
-      peak.dimensionNmrAtoms = assignmentArray
+      aaDim.append(peak.dimensionNmrAtoms)
+    aaDim = [aa for ii in range(0,len(self.currentList)) for aa in self.currentList[ii]]
+
+    print ('>>>', aaDel)
+    print ('>>>', aaDim)
+    print ('>>>', self.currentList)
+
+    delList = list(set(aaDim)-set(aaDel))
+    print ('>>>', delList)
+
+    if delList:
+      self.project._startCommandEchoBlock('application.peakAssigner.delete', delList)
+      try:
+      # print(assignmentArray, 'assignmentArray')
+        for peak in self.current.peaks:
+          peak.dimensionNmrAtoms = assignmentArray
+
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
+      finally:
+        self.project._endCommandEchoBlock()
+        self._updateInterface()
+    else:
+      getLogger().warning('peakAssign module: nothing to delete')
 
   def _updateLayout(self, layout:QtGui.QLayout, ndim:int):
     """
@@ -513,18 +549,23 @@ class PeakAssigner(CcpnModule):
     nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
                                            ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
 
+    self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
+    try:
 
-    for peak in self.current.peaks:
-      if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-        # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+      for peak in self.current.peaks:
+        if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+          # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
 
-        newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]    # ejb - changed to list
-        axisCode = peak.peakList.spectrum.axisCodes[dim]
-        peak.assignDimension(axisCode, newAssignments)
-    self.listWidgets[dim].addItem(nmrAtom.pid)
-    self._updateTables()
+          newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]    # ejb - changed to list
+          axisCode = peak.peakList.spectrum.axisCodes[dim]
+          peak.assignDimension(axisCode, newAssignments)
+      self.listWidgets[dim].addItem(nmrAtom.pid)
+      self._updateTables()
 
-
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+    finally:
+      self.project._endCommandEchoBlock()
 
   def _assignNmrAtomToDim(self, dim:int, row:int=None, col:int=None, obj:object=None):
     '''Assign the nmrAtom that is double clicked to the
@@ -547,6 +588,7 @@ class PeakAssigner(CcpnModule):
         peak.assignDimension(axisCode, newAssignments)
 
     self.listWidgets[dim].addItem(nmrAtom.pid)
+    self._updateInterface()
 
   def _closeModule(self):
     """
