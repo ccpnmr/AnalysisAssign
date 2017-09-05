@@ -107,6 +107,11 @@ class PeakAssigner(CcpnModule):
                                 callback=self._updateInterface,
                                 grid=(0,7))
 
+    allChainCheckBoxLabel = Label(self.settingsWidget, "Allow selection from All", grid=(0,8))
+    self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=True,
+                                callback=self._updateInterface,
+                                grid=(0,9))
+
     # Main content widgets
     self.peakLabel = Label(self.mainWidget, text='Peak:', bold=True, grid=(0,0), vAlign='center', margins=[2,5,2,5])
     self.selectionFrame = Frame(self.mainWidget, showBorder=True, fShape='noFrame', grid=(1, 0), vAlign='top')
@@ -118,13 +123,19 @@ class PeakAssigner(CcpnModule):
     # respond to peaks
     self.current.registerNotify(self._updateInterface, 'peaks')
     self.current.registerNotify(self._updateInterface, 'nmrAtoms')
+    self.project.registerNotifier('NmrAtom', 'change', self.update)   # just refresh the table
+
     self._updateInterface()
+
+    self._settingsScrollArea.setFixedHeight(40)
+    self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
 
     self.closeModule = self._closeModule
 
   def __del__(self):
     self.current.unRegisterNotify(self._updateInterface, 'peaks')
     self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
+    self.project.unRegisterNotifier('NmrAtom', 'change', self.update)
 
   def _createEmptyNmrAtomsTable(self, dim:int):
     """Create an empty table for the specified peak dimension to contain possible Nmr Atoms that
@@ -203,7 +214,6 @@ class PeakAssigner(CcpnModule):
       currentObject = self.project.getByPid(currentItem.text())
 
       self.project._startCommandEchoBlock('application.peakAssigner.assign', peak.pid)
-      self.project.suspendNotification()
       try:
         toAssign = dimNmrAtoms.index(currentObject)                   # error here..
 
@@ -216,7 +226,6 @@ class PeakAssigner(CcpnModule):
 
       finally:
         self.project._endCommandEchoBlock()
-        self.project.resumeNotification()
 
     self._updateInterface()
 
@@ -427,16 +436,40 @@ class PeakAssigner(CcpnModule):
     # self.project._appBase.current.nmrAtom = nmrAtom
     chain = nmrAtom.nmrResidue.nmrChain
     sequenceCode = nmrAtom.nmrResidue.sequenceCode
-    self.chainPulldowns[dim].setData([chain.id for chain in self.project.nmrChains])
-    self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
-    sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
-    self.seqCodePulldowns[dim].setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
-    self.seqCodePulldowns[dim].setIndex(self.seqCodePulldowns[dim].texts.index(sequenceCode))
-    atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[dim][-1]
-    atomNames = [atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name]
-    self.atomTypePulldowns[dim].setData(atomNames)
-    self.atomTypePulldowns[dim].setIndex(self.atomTypePulldowns[dim].texts.index(nmrAtom.name))
+    if self.allChainCheckBoxLabel.isChecked():
+      self.chainPulldowns[dim].setData([chain.id for chain in self.project.nmrChains])
+      self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
+      sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
+      self.seqCodePulldowns[dim].setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
+      self.seqCodePulldowns[dim].setIndex(self.seqCodePulldowns[dim].texts.index(sequenceCode))
+      atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[dim][-1]
+      atomNames = [atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name]
+      self.atomTypePulldowns[dim].setData(atomNames)
+      self.atomTypePulldowns[dim].setIndex(self.atomTypePulldowns[dim].texts.index(nmrAtom.name))
+    else:
 
+      # only allow selection of peaks from the table
+      atoms = self.objectTables[dim].getObjects()
+      if atoms:
+        options = [None] * 4    # 4 empty lists
+        for atom in atoms:
+          thisOpt = atom.id.split('.')
+
+          for optionNum in range(0, len(thisOpt)):
+            if options[optionNum]:
+              if thisOpt[optionNum] not in options[optionNum]:
+                options[optionNum].append(thisOpt[optionNum])
+            else:
+              options[optionNum] = [thisOpt[optionNum]]
+
+        self.chainPulldowns[dim].setData(options[0])
+        self.seqCodePulldowns[dim].setData(options[1])
+        self.atomTypePulldowns[dim].setData(options[3])
+      else:
+        self.chainPulldowns[dim].clear()
+        self.seqCodePulldowns[dim].clear()
+        self.atomTypePulldowns[dim].clear()
+      pass
 
   def _setResidueType(self, dim:int, index:int):
     """
@@ -574,15 +607,23 @@ class PeakAssigner(CcpnModule):
     if nmrAtom is NOL:
       return
 
-    for peak in self.current.peaks:
-      #### Should be simplified with function in Peak class
-      if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-        newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]
-        axisCode = peak.peakList.spectrum.axisCodes[dim]
-        peak.assignDimension(axisCode, newAssignments)
+    self.project._startCommandEchoBlock('application.peakAssigner.assignNmrAtom')
+    try:
 
-    self.listWidgets[dim].addItem(nmrAtom.pid)
-    self._updateInterface()
+      for peak in self.current.peaks:
+        #### Should be simplified with function in Peak class
+        if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+          newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]
+          axisCode = peak.peakList.spectrum.axisCodes[dim]
+          peak.assignDimension(axisCode, newAssignments)
+
+      self.listWidgets[dim].addItem(nmrAtom.pid)
+      self._updateInterface()
+
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+    finally:
+      self.project._endCommandEchoBlock()
 
   def _closeModule(self):
     """

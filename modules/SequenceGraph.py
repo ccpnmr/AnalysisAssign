@@ -589,7 +589,7 @@ class SequenceGraphModule(CcpnModule):
     self.scrollContents = QtGui.QGraphicsView(self.scene, self)
     self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
     self.scrollContents.setInteractive(True)
-    self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
+    self.scrollContents.setGeometry(QtCore.QRect(0, 0, 300, 400))
     self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     self._sequenceGraphScrollArea.setWidget(self.scrollContents)
 

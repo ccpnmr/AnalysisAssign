@@ -152,15 +152,22 @@ class AssignmentInspectorModule(CcpnModule):
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
 
-
-
     self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
+    self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
+    self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
+
     # update if current.nmrResidue is defined
     if self.application.current.nmrResidue is not None:
       self._updateModuleCallback([self.application.current.nmrResidue])
 
+  def _refreshTable(self, *args):
+    self.assignedPeaksTable.update()
+
   def _closeModule(self):
     self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
+    self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
+    self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
+
     super(AssignmentInspectorModule, self)._closeModule()
 
   def _updateModuleCallback(self, nmrResidues):
