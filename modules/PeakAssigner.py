@@ -383,13 +383,7 @@ class PeakAssigner(CcpnModule):
     for peak in self.current.peaks:
       aaDim.append(peak.dimensionNmrAtoms)
     aaDim = [aa for ii in range(0,len(self.currentList)) for aa in self.currentList[ii]]
-
-    print ('>>>', aaDel)
-    print ('>>>', aaDim)
-    print ('>>>', self.currentList)
-
     delList = list(set(aaDim)-set(aaDel))
-    print ('>>>', delList)
 
     if delList:
       self.project._startCommandEchoBlock('application.peakAssigner.delete', delList)

@@ -404,7 +404,7 @@ class SequenceGraphModule(CcpnModule):
     self.project.registerNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
 #    self.project.registerNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
 #    self.project.registerNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
-    self.project.registerNotifier('Peak', 'change', self._updateShownAssignments)
+    self.project.registerNotifier('Peak', 'change', self._updateShownAssignments, onceOnly=True)
     self.project.registerNotifier('Spectrum', 'change', self._updateShownAssignments)
 
   def _unRegisterNotifiers(self):
@@ -516,7 +516,7 @@ class SequenceGraphModule(CcpnModule):
       self.project._appBase._endCommandBlock()      # should match the start block
 
     # print('>>>setNmrChainDisplay ', self.scene.itemsBoundingRect())
-    self.scene.setSceneRect(self.scene.itemsBoundingRect())
+    self.scene.setSceneRect(self.scene.itemsBoundingRect())  # resize to the new items
 
   def resetSequenceGraph(self):
 
@@ -894,7 +894,7 @@ class SequenceGraphModule(CcpnModule):
       for inCon in connections:
         newCon = list(inCon)
         for conNum in range(0,2):
-          if inCon[conNum].nmrResidue.relativeOffset == -1 and inCon[conNum].nmrResidue.nmrChain.isConnected:
+          if inCon[conNum].nmrResidue.relativeOffset == -1:   # and inCon[conNum].nmrResidue.nmrChain.isConnected:
 
             # this is a minus residue so find connected, have to traverse to the previousNmrResidue
             # will it always exist?
@@ -909,6 +909,9 @@ class SequenceGraphModule(CcpnModule):
           #   cc = (newCC[0], cc[1])    # replace the minus residue
 
         minusResList.append(newCon)
+
+        if ('A.31' in inCon[0].pid):
+          pass
 
       # the original routine to add the links to adjacent atoms
       # sometimes the link maybe a huge distance away on the scene
