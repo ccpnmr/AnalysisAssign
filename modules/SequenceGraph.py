@@ -33,8 +33,13 @@ from PyQt4 import QtGui, QtCore
 
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
+from ccpn.core.Peak import Peak
+from ccpn.core.Spectrum import Spectrum
+from ccpn.core.NmrChain import NmrChain
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
+from ccpn.core.lib.Notifiers import Notifier
+
 from ccpn.ui.gui.guiSettings import textFont, textFontBold, textFontLarge
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
@@ -401,18 +406,49 @@ class SequenceGraphModule(CcpnModule):
   def _registerNotifiers(self):
     self.current.registerNotify(self._updateModule, 'nmrChains')
 
-    self.project.registerNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
-#    self.project.registerNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
-#    self.project.registerNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
-    self.project.registerNotifier('Peak', 'change', self._updateShownAssignments, onceOnly=True)
-    self.project.registerNotifier('Spectrum', 'change', self._updateShownAssignments)
+    # self.project.registerNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
+    # self.project.registerNotifier('Peak', 'change', self._updateShownAssignments, onceOnly=True)
+    # self.project.registerNotifier('Spectrum', 'change', self._updateShownAssignments)
+
+    # use the new notifier class
+    self._nmrResidueNotifier = Notifier(self.project
+                                        , [Notifier.RENAME, Notifier.CHANGE]
+                                        , NmrResidue.__name__
+                                        , self._resetNmrResiduePidForAssigner)
+
+    self._peakNotifier = Notifier(self.project
+                                  , [Notifier.CHANGE]
+                                  , Peak.__name__
+                                  , self._updateShownAssignments
+                                  , onceOnly=True)
+
+    self._spectrumNotifier = Notifier(self.project
+                                      , [Notifier.CHANGE]
+                                      , Spectrum.__name__
+                                      , self._updateShownAssignments)
+
+    # need another notifier to register that disconnect has been undone
+    self._atomNotifier = Notifier(self.project
+                                  , [Notifier.CHANGE]
+                                  , NmrAtom.__name__
+                                  , self._updateShownAssignments
+                                  , onceOnly=True)
+
 
   def _unRegisterNotifiers(self):
-    self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
-#    self.project.unRegisterNotifier('NmrChain', 'delete', self.removeNmrChainFromPulldown)
-#    self.project.unRegisterNotifier('NmrChain', 'create', self.addNmrChainToPulldown)
-    self.project.unRegisterNotifier('Peak', 'change', self._updateShownAssignments)
-    self.project.unRegisterNotifier('Spectrum', 'change', self._updateShownAssignments)
+    # self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
+    # self.project.unRegisterNotifier('Peak', 'change', self._updateShownAssignments)
+    # self.project.unRegisterNotifier('Spectrum', 'change', self._updateShownAssignments)
+
+    # use the new notifier class
+    if self._nmrResidueNotifier:
+      self._nmrResidueNotifier.unRegister()
+    if self._peakNotifier:
+      self._peakNotifier.unRegister()
+    if self._spectrumNotifier:
+      self._spectrumNotifier.unRegister()
+    if self._atomNotifier:
+      self._atomNotifier.unRegister()
 
   def _updateModule(self, nmrChains=None):
     """
@@ -557,8 +593,9 @@ class SequenceGraphModule(CcpnModule):
       self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
-  def _resetNmrResiduePidForAssigner(self, nmrResidue, oldPid:str):
+  def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
     """Reset pid for NmrResidue and all offset NmrResidues"""
+    nmrResidue = data['object']
     for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
       for guiNmrResidue in self.guiNmrResidues:
         if guiNmrResidue.nmrResidue is nr:
