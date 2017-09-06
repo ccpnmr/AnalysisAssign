@@ -428,9 +428,9 @@ class SequenceGraphModule(CcpnModule):
                                       , self._updateShownAssignments)
 
     # need another notifier to register that disconnect has been undone
-    self._atomNotifier = Notifier(self.project
+    self._nmrChainNotifier = Notifier(self.project
                                   , [Notifier.CHANGE]
-                                  , NmrAtom.__name__
+                                  , NmrChain.__name__
                                   , self._updateShownAssignments
                                   , onceOnly=True)
 
@@ -447,8 +447,8 @@ class SequenceGraphModule(CcpnModule):
       self._peakNotifier.unRegister()
     if self._spectrumNotifier:
       self._spectrumNotifier.unRegister()
-    if self._atomNotifier:
-      self._atomNotifier.unRegister()
+    if self._nmrChainNotifier:
+      self._nmrChainNotifier.unRegister()
 
   def _updateModule(self, nmrChains=None):
     """
