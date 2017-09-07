@@ -428,11 +428,11 @@ class SequenceGraphModule(CcpnModule):
                                       , self._updateShownAssignments)
 
     # need another notifier to register that disconnect has been undone
-    self._nmrChainNotifier = Notifier(self.project
-                                  , [Notifier.CHANGE]
-                                  , NmrChain.__name__
-                                  , self._updateShownAssignments
-                                  , onceOnly=True)
+    # self._nmrChainNotifier = Notifier(self.project
+    #                               , [Notifier.CHANGE]
+    #                               , NmrChain.__name__
+    #                               , self._updateShownAssignments
+    #                               , onceOnly=True)
 
 
   def _unRegisterNotifiers(self):
@@ -447,8 +447,15 @@ class SequenceGraphModule(CcpnModule):
       self._peakNotifier.unRegister()
     if self._spectrumNotifier:
       self._spectrumNotifier.unRegister()
-    if self._nmrChainNotifier:
-      self._nmrChainNotifier.unRegister()
+    # if self._nmrChainNotifier:
+    #   self._nmrChainNotifier.unRegister()
+
+  def _repopulateModule(self):
+    """
+    CCPN Internal: Repopulate the required widgets in the module
+    This is will be attached to GuiNotifiers
+    """
+    self._updateShownAssignments()
 
   def _updateModule(self, nmrChains=None):
     """
