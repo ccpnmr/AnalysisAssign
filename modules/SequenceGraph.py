@@ -505,7 +505,7 @@ class SequenceGraphModule(CcpnModule):
       return
 
     ###self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
-    self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
+    self.application._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
     try:
       #self.current.nmrChain = self.project.getByPid(nmrChainPid)
       #if not self.current.nmrChain:
@@ -556,7 +556,7 @@ class SequenceGraphModule(CcpnModule):
         self._getAssignmentsFromSpectra()
 
     finally:
-      self.project._appBase._endCommandBlock()      # should match the start block
+      self.application._endCommandBlock()      # should match the start block
 
     # print('>>>setNmrChainDisplay ', self.scene.itemsBoundingRect())
     self.scene.setSceneRect(self.scene.itemsBoundingRect())  # resize to the new items
@@ -576,8 +576,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    if self.current.nmrResidue:
-      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    # if self.current.nmrResidue:
+    #   self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     ###self.updateNmrResidueTable()
 
   def disconnectNmrResidue(self):
@@ -586,8 +586,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    if self.current.nmrResidue:
-      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    # if self.current.nmrResidue:
+    #   self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def disconnectNextNmrResidue(self):
@@ -596,8 +596,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    if self.current.nmrResidue:
-      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    # if self.current.nmrResidue:
+    #   self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
