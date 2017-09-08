@@ -558,7 +558,6 @@ class SequenceGraphModule(CcpnModule):
     finally:
       self.application._endCommandBlock()      # should match the start block
 
-    # print('>>>setNmrChainDisplay ', self.scene.itemsBoundingRect())
     self.scene.setSceneRect(self.scene.itemsBoundingRect())  # resize to the new items
 
   def resetSequenceGraph(self):
@@ -576,8 +575,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    # if self.current.nmrResidue:
-    #   self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    if self.current.nmrResidue:
+      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     ###self.updateNmrResidueTable()
 
   def disconnectNmrResidue(self):
@@ -586,8 +585,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    # if self.current.nmrResidue:
-    #   self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    if self.current.nmrResidue:
+      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def disconnectNextNmrResidue(self):
@@ -596,8 +595,8 @@ class SequenceGraphModule(CcpnModule):
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
 
-    # if self.current.nmrResidue:
-    #   self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    if self.current.nmrResidue:
+      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
