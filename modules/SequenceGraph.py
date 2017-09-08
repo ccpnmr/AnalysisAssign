@@ -560,7 +560,7 @@ class SequenceGraphModule(CcpnModule):
     finally:
       self.application._endCommandBlock()      # should match the start block
 
-    self.scene.setSceneRect(self.scene.itemsBoundingRect())  # resize to the new items
+    self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
 
   def resetSequenceGraph(self):
 
