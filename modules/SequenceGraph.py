@@ -502,6 +502,8 @@ class SequenceGraphModule(CcpnModule):
 
     # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
     if not nmrChain:
+      self.scene.clear()
+      self.scene.setSceneRect(self.scene.itemsBoundingRect())
       return
 
     ###self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
