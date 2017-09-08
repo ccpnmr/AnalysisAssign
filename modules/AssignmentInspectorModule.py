@@ -37,10 +37,11 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column
 from ccpn.util.Logging import getLogger
-from ccpn.core.lib.peakUtils import getPeakPosition, getPeakAnnotation
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
 from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget
 from ccpn.ui.gui.widgets.Widget import Widget
+from ccpn.core.lib.peakUtils import getPeakPosition, getPeakAnnotation
+from ccpn.core.lib.Notifiers import Notifier
 
 logger = getLogger()
 ALL = '<all>'
@@ -152,29 +153,64 @@ class AssignmentInspectorModule(CcpnModule):
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
 
-    self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
-    self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
-    self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
+    self._registerNotifiers()
 
     # update if current.nmrResidue is defined
     if self.application.current.nmrResidue is not None:
       self._updateModuleCallback([self.application.current.nmrResidue])
 
+  def _registerNotifiers(self):
+    # self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
+    # self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
+    # self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
+
+    self._updateNotifier = Notifier(self.current
+                                    , triggers=[Notifier.CURRENT]
+                                    , targetName='nmrResidues'
+                                    , callback=self._updateModuleCallback)
+    self._nmrAtomNotifier = Notifier(self.project
+                                     , triggers=[Notifier.CHANGE]
+                                     , targetName='NmrAtom'
+                                     , callback=self._refreshTable)
+    self._peakNotifier = Notifier(self.project
+                                  , triggers=[Notifier.CHANGE]
+                                  , targetName='Peak'
+                                  , callback=self._refreshTable)
+
+  def _unregisterNotifiers(self):
+    # self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
+    # self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
+    # self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
+
+    if self._updateNotifier:
+      self._updateNotifier.unRegister()
+    if self._nmrAtomNotifier:
+      self._nmrAtomNotifier.unRegister()
+    if self._peakNotifier:
+      self._peakNotifier.unRegister()
+
   def _refreshTable(self, *args):
     self.assignedPeaksTable.update()
 
   def _closeModule(self):
-    self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
-    self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
-    self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
-
+    """
+    CCPN-INTERNAL: used to close the module
+    """
+    self._unregisterNotifiers()
     super(AssignmentInspectorModule, self)._closeModule()
 
-  def _updateModuleCallback(self, nmrResidues):
+  def close(self):
+    """
+    Close the table from the commandline
+    """
+    self._closeModule()
+
+  def _updateModuleCallback(self, data):
     """
     Callback function: Module responsive to nmrResidues; updates the list widget with nmrAtoms and updates peakTable if
     current.nmrAtom belongs to nmrResidue
     """
+    nmrResidues = data['value']
     self.attachedNmrAtomsList.clear()
     if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
       # get the pids and append <all>

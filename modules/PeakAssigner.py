@@ -97,7 +97,7 @@ class PeakAssigner(CcpnModule):
                                    callback=self._updateInterface,
                                    grid=(0,3))
 
-    multiCheckboxLabel = Label(self.settingsWidget, text="Allow multiple peaks ", grid=(0,4))
+    multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0,4))
     self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
                                    callback=self._updateInterface,
                                    grid=(0,5))
@@ -107,7 +107,7 @@ class PeakAssigner(CcpnModule):
                                 callback=self._updateInterface,
                                 grid=(0,7))
 
-    allChainCheckBoxLabel = Label(self.settingsWidget, "Allow selection from All", grid=(0,8))
+    allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0,8))
     self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=True,
                                 callback=self._updateInterface,
                                 grid=(0,9))
@@ -436,7 +436,7 @@ class PeakAssigner(CcpnModule):
     # self.project._appBase.current.nmrAtom = nmrAtom
     chain = nmrAtom.nmrResidue.nmrChain
     sequenceCode = nmrAtom.nmrResidue.sequenceCode
-    if self.allChainCheckBoxLabel.isChecked():
+    if not self.allChainCheckBoxLabel.isChecked():
       self.chainPulldowns[dim].setData([chain.id for chain in self.project.nmrChains])
       self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
       sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
@@ -627,10 +627,16 @@ class PeakAssigner(CcpnModule):
 
   def _closeModule(self):
     """
-    Re-implementation of closeModule function from CcpnModule to unregister notification on current.peaks
+    CCPN-INTERNAL: used to close the module
     """
     self.project._appBase.current.unRegisterNotify(self._updateInterface, 'peaks')
     super(PeakAssigner, self)._closeModule()
+
+  def close(self):
+    """
+    Close the table from the commandline
+    """
+    self._closeModule()
 
 class NotOnLine(object):
   """
