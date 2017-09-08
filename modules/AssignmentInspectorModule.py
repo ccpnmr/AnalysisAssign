@@ -205,25 +205,26 @@ class AssignmentInspectorModule(CcpnModule):
     """
     self._closeModule()
 
-  def _updateModuleCallback(self, data):
+  def _updateModuleCallback(self, data:dict):
     """
     Callback function: Module responsive to nmrResidues; updates the list widget with nmrAtoms and updates peakTable if
     current.nmrAtom belongs to nmrResidue
     """
-    nmrResidues = data['value']
-    self.attachedNmrAtomsList.clear()
-    if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
-      # get the pids and append <all>
-      self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [ALL]
-      self.attachedNmrAtomsList.addItems(self.ids)
-      # clear and fill the peak table
-      self.assignedPeaksTable.setObjects([])
-      if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
-        self._updatePeakTable(self.application.current.nmrAtom.id)
+    if data and 'value' in data:
+      nmrResidues = data['value']
+      self.attachedNmrAtomsList.clear()
+      if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
+        # get the pids and append <all>
+        self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [ALL]
+        self.attachedNmrAtomsList.addItems(self.ids)
+        # clear and fill the peak table
+        self.assignedPeaksTable.setObjects([])
+        if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
+          self._updatePeakTable(self.application.current.nmrAtom.id)
+        else:
+          self._updatePeakTable(ALL)
       else:
-        self._updatePeakTable(ALL)
-    else:
-      logger.debug('No valid nmrAtom/nmrResidue defined')
+        logger.debug('No valid nmrAtom/nmrResidue defined')
 
   def _updatePeakTableCallback(self, item):
     """
