@@ -51,7 +51,7 @@ from ccpn.core.NmrChain import NmrChain
 
 from ccpn.util.Constants import ccpnmrJsonData
 from ccpn.util.Logging import getLogger
-from ccpn.ui.gui.widgets.MessageDialog import showWarning
+from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
 
 logger = getLogger()
 
@@ -572,33 +572,39 @@ class SequenceGraphModule(CcpnModule):
     super(SequenceGraphModule, self)._closeModule()
 
   def disconnectPreviousNmrResidue(self):
-    try:
-      self.current.nmrResidue.disconnectPrevious()
-    except Exception as es:
-      showWarning(str(self.windowTitle()), str(es))
+    with progressManager('disconnecting Previous NmrResidue...'):
+      try:
+        self.current.nmrResidue.disconnectPrevious()
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
 
     if self.current.nmrResidue:
-      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      self._updateShownAssignments()
+      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     ###self.updateNmrResidueTable()
 
   def disconnectNmrResidue(self):
-    try:
-      self.current.nmrResidue.disconnect()
-    except Exception as es:
-      showWarning(str(self.windowTitle()), str(es))
+    with progressManager('disconnecting NmrResidue...'):
+      try:
+        self.current.nmrResidue.disconnect()
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
 
     if self.current.nmrResidue:
-      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      self._updateShownAssignments()
+      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def disconnectNextNmrResidue(self):
-    try:
-      self.current.nmrResidue.disconnectNext()
-    except Exception as es:
-      showWarning(str(self.windowTitle()), str(es))
+    with progressManager('disconnecting Next NmrResidue...'):
+      try:
+        self.current.nmrResidue.disconnectNext()
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
 
     if self.current.nmrResidue:
-      self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      self._updateShownAssignments()
+      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
   def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
