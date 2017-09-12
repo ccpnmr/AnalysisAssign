@@ -6,14 +6,12 @@ Responds to current.peaks
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-
 __copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2017"
 __credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timothy J Ragan & Geerten W Vuister")
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
-
 #=========================================================================================
 # Last code modification
 #=========================================================================================
@@ -50,7 +48,6 @@ from ccpn.ui.gui.widgets.Table import ObjectTable, Column
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpnmodel.ccpncore.lib.Constants import  defaultNmrChainCode
-
 
 logger = getLogger()
 
@@ -132,10 +129,13 @@ class PeakAssigner(CcpnModule):
 
     self.closeModule = self._closeModule
 
-  def __del__(self):
+  def _unregisterNotifiers(self):
     self.current.unRegisterNotify(self._updateInterface, 'peaks')
     self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
     self.project.unRegisterNotifier('NmrAtom', 'change', self.update)
+
+  def __del__(self):
+    self._unregisterNotifiers()
 
   def _createEmptyNmrAtomsTable(self, dim:int):
     """Create an empty table for the specified peak dimension to contain possible Nmr Atoms that
@@ -147,6 +147,7 @@ class PeakAssigner(CcpnModule):
 
     objectTable = ObjectTable(self, columns,
                               actionCallback=partial(self._assignNmrAtomToDim, dim),
+                              selectionCallback=partial(self._updatePulldownLists, dim),
                               objects=[], autoResize=True)
 
     self.objectTables.append(objectTable)
@@ -432,44 +433,60 @@ class PeakAssigner(CcpnModule):
     Update all information in assignment widget when NmrAtom is selected in list widget of that
     assignment widget.
     """
-    nmrAtom = self.project.getByPid(item.text())
-    # self.project._appBase.current.nmrAtom = nmrAtom
-    chain = nmrAtom.nmrResidue.nmrChain
-    sequenceCode = nmrAtom.nmrResidue.sequenceCode
-    if not self.allChainCheckBoxLabel.isChecked():
-      self.chainPulldowns[dim].setData([chain.id for chain in self.project.nmrChains])
-      self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
-      sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
-      self.seqCodePulldowns[dim].setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
-      self.seqCodePulldowns[dim].setIndex(self.seqCodePulldowns[dim].texts.index(sequenceCode))
-      atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[dim][-1]
-      atomNames = [atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name]
-      self.atomTypePulldowns[dim].setData(atomNames)
-      self.atomTypePulldowns[dim].setIndex(self.atomTypePulldowns[dim].texts.index(nmrAtom.name))
+    nmrAtom = None
+
+    if isinstance(item, NmrAtom):
+      nmrAtom = item
     else:
+      if item:
+        nmrAtom = self.project.getByPid(item.text())
 
-      # only allow selection of peaks from the table
-      atoms = self.objectTables[dim].getObjects()
-      if atoms:
-        options = [None] * 4    # 4 empty lists
-        for atom in atoms:
-          thisOpt = atom.id.split('.')
-
-          for optionNum in range(0, len(thisOpt)):
-            if options[optionNum]:
-              if thisOpt[optionNum] not in options[optionNum]:
-                options[optionNum].append(thisOpt[optionNum])
-            else:
-              options[optionNum] = [thisOpt[optionNum]]
-
-        self.chainPulldowns[dim].setData(options[0])
-        self.seqCodePulldowns[dim].setData(options[1])
-        self.atomTypePulldowns[dim].setData(options[3])
+    # self.project._appBase.current.nmrAtom = nmrAtom
+    if nmrAtom:
+      chain = nmrAtom.nmrResidue.nmrChain
+      sequenceCode = nmrAtom.nmrResidue.sequenceCode
+      if not self.allChainCheckBoxLabel.isChecked():
+        self.chainPulldowns[dim].setData([chain.id for chain in self.project.nmrChains])
+        self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
+        sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
+        self.seqCodePulldowns[dim].setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
+        self.seqCodePulldowns[dim].setIndex(self.seqCodePulldowns[dim].texts.index(sequenceCode))
+        atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[dim][-1]
+        atomNames = [atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name]
+        self.atomTypePulldowns[dim].setData(atomNames)
+        self.atomTypePulldowns[dim].setIndex(self.atomTypePulldowns[dim].texts.index(nmrAtom.name))
       else:
-        self.chainPulldowns[dim].clear()
-        self.seqCodePulldowns[dim].clear()
-        self.atomTypePulldowns[dim].clear()
-      pass
+
+        # only allow selection of peaks from the table
+        atoms = self.objectTables[dim].getObjects()
+        if atoms:
+          options = [None] * 4    # 4 empty lists
+          for atom in atoms:
+            thisOpt = atom.id.split('.')
+
+            for optionNum in range(0, len(thisOpt)):
+              if options[optionNum]:
+                if thisOpt[optionNum] not in options[optionNum]:
+                  options[optionNum].append(thisOpt[optionNum])
+              else:
+                options[optionNum] = [thisOpt[optionNum]]
+
+          self.chainPulldowns[dim].setData(options[0])
+          self.seqCodePulldowns[dim].setData(options[1])
+          self.atomTypePulldowns[dim].setData(options[3])
+        else:
+          self.chainPulldowns[dim].clear()
+          self.seqCodePulldowns[dim].clear()
+          self.atomTypePulldowns[dim].clear()
+
+        try:
+          self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
+          self.seqCodePulldowns[dim].setIndex(self.seqCodePulldowns[dim].texts.index(sequenceCode))
+          self.atomTypePulldowns[dim].setIndex(self.atomTypePulldowns[dim].texts.index(nmrAtom.name))
+        except:
+          self.chainPulldowns[dim].setIndex(0)
+          self.seqCodePulldowns[dim].setIndex(0)
+          self.atomTypePulldowns[dim].setIndex(0)
 
   def _setResidueType(self, dim:int, index:int):
     """
@@ -594,6 +611,27 @@ class PeakAssigner(CcpnModule):
     finally:
       self.project._endCommandEchoBlock()
 
+  def _updatePulldownLists(self, dim:int, row:int=None, col:int=None, obj:object=None):
+    # objectTable = self.objectTables[dim]
+    # nmrAtom = objectTable.getCurrentObject()
+    # if nmrAtom is NOL:
+    #   return
+    #
+    # if nmrAtom:
+    #   chain = nmrAtom.nmrResidue.nmrChain
+    #   sequenceCode = nmrAtom.nmrResidue.sequenceCode
+    #
+    #   try:
+    #     self.chainPulldowns[dim].setIndex(self.chainPulldowns[dim].texts.index(chain.id))
+    #     self.seqCodePulldowns[dim].setIndex(self.seqCodePulldowns[dim].texts.index(sequenceCode))
+    #     self.atomTypePulldowns[dim].setIndex(self.atomTypePulldowns[dim].texts.index(nmrAtom.name))
+    #   except:
+
+    objectTable = self.objectTables[dim]
+    nmrAtom = objectTable.getCurrentObject()
+    self._updateAssignmentWidget(dim, nmrAtom)
+
+
   def _assignNmrAtomToDim(self, dim:int, row:int=None, col:int=None, obj:object=None):
     '''Assign the nmrAtom that is double clicked to the
        the corresponding dimension of the selected
@@ -629,7 +667,7 @@ class PeakAssigner(CcpnModule):
     """
     CCPN-INTERNAL: used to close the module
     """
-    self.project._appBase.current.unRegisterNotify(self._updateInterface, 'peaks')
+    self._unregisterNotifiers()
     super(PeakAssigner, self)._closeModule()
 
   def close(self):

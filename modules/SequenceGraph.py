@@ -39,13 +39,14 @@ from ccpn.core.NmrChain import NmrChain
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 from ccpn.core.lib.Notifiers import Notifier
+from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
 from ccpn.ui.gui.guiSettings import textFont, textFontBold, textFontLarge
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
 
-from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
+from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, ListCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 from ccpn.core.NmrChain import NmrChain
 
@@ -54,6 +55,7 @@ from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
 
 logger = getLogger()
+ALL = '<all>'
 
 
 class GuiNmrAtom(QtGui.QGraphicsTextItem):
@@ -158,6 +160,7 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     self.mousePressEvent = self._mousePressEvent
     self.mouseMoveEvent = self._mouseMoveEvent
     self.mouseReleaseEvent = self._mouseReleaseEvent      # ejb - new for popup menu
+    self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
 
   def _update(self):
     self.setPlainText(self.nmrResidue.id)
@@ -223,6 +226,13 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     else:
       super(GuiNmrResidue, self).mouseReleaseEvent(event)
 
+  def _mouseDoubleClickEvent(self, event):
+    if event.button() == QtCore.Qt.LeftButton:
+      self._showNmrResidue()
+      event.accept()
+    else:
+      super(GuiNmrResidue, self).mouseDoubleClickEvent(event)
+
   def _raiseContextMenu(self, event:QtGui.QMouseEvent):
     """
     Creates and raises a context menu enabling items to be disconnected
@@ -234,6 +244,8 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     contextMenu.addAction('disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
     contextMenu.addAction('disconnect nmrResidue', partial(self._disconnectNmrResidue))
     contextMenu.addAction('disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
+    contextMenu.addSeparator()
+    contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
     cursor = QtGui.QCursor()
     contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
     contextMenu.exec()
@@ -246,6 +258,9 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
 
   def _disconnectNextNmrResidue(self):
     self.parent.disconnectNextNmrResidue()
+
+  def _showNmrResidue(self):
+    self.parent.navigateToNmrResidue()
 
 
 class AssignmentLine(QtGui.QGraphicsLineItem):
@@ -350,10 +365,42 @@ class SequenceGraphModule(CcpnModule):
                                                       checked=False,
                                                       tipText='Show peak assignments as a tree below the main backbone',
                                                       callback=self._updateShownAssignments,
-                                                      grid=(0, 4), gridSpan=(1,1))
+                                                      grid=(0, 0), gridSpan=(1,1))
 
-    self._settingsScrollArea.setFixedHeight(30)
-    self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+    self.sequentialStripsWidget = CheckBoxCompoundWidget(self.settingsWidget,
+                                              labelText = 'Show sequential strips:',
+                                              checked = False,
+                                              tipText='Show nmrResidue in all strips',
+                                              callback=self._updateShownAssignments,
+                                              grid=(0, 1), gridSpan=(1, 1))
+
+    self.markPositionsWidget = CheckBoxCompoundWidget(self.settingsWidget,
+                                              labelText = 'Mark positions:',
+                                              checked = True,
+                                              tipText='Mark positions in strips',
+                                              callback = self._updateShownAssignments,
+                                              grid = (0, 2), gridSpan = (1, 1))
+
+    colwidth = 140
+    self.displaysWidget = ListCompoundWidget(self.settingsWidget,
+                                             grid=(1,0), gridSpan=(1,2),
+                                             vAlign='top', stretch=(0,0), hAlign='left',
+                                             vPolicy='minimal',
+                                             #minimumWidths=(colwidth, 0, 0),
+                                             fixedWidths=(colwidth, 2*colwidth, None),
+                                             orientation = 'left',
+                                             labelText='Display(s):',
+                                             tipText = 'SpectrumDisplay modules to respond to double-click',
+                                             texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
+                                             )
+    self.displaysWidget.setFixedHeigths((None, None, 40))
+    self.displaysWidget.pulldownList.set(ALL)
+
+    # self._settingsScrollArea.setFixedHeight(30)
+    # self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Expanding)
+    # self.settingsWidget.setFixedHeight(30)
+    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.MinimumExpanding)
+
     # self.assignmentsTreeCheckBox.setFixedHeight(30)
     # self.assignmentsTreeCheckBox.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
 
@@ -1103,6 +1150,54 @@ class SequenceGraphModule(CcpnModule):
 
     self.ghostList.append((nmrResidueCon1.pid, nmrResidueCon0.pid, atoms))
     return atoms
+
+  def _getDisplays(self):
+    """
+    Return list of displays to navigate - if needed
+    """
+    displays = []
+    # check for valid displays
+    gids = self.displaysWidget.getTexts()
+    if len(gids) == 0: return displays
+    if ALL in gids:
+        displays = self.application.ui.mainWindow.spectrumDisplays
+    else:
+        displays = [self.application.getByGid(gid) for gid in gids if gid != ALL]
+    return displays
+
+  def navigateToNmrResidue(self):
+    """
+    Navigate in selected displays to nmrResidue; skip if none defined
+    """
+    nmrResidue = self.current.nmrResidue
+    logger.debug('nmrResidue=%s' % (nmrResidue.id))
+
+    displays = self._getDisplays()
+
+    if len(displays) == 0:
+      logger.warning('Undefined display module(s); select in settings first')
+      showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
+      return
+
+    self.application._startCommandBlock('%s.navigateToNmrResidue(project.getByPid(%r))' %
+        (self.className, nmrResidue.pid))
+    try:
+        # optionally clear the marks
+        # if self.autoClearMarksWidget.checkBox.isChecked():
+        self.application.ui.mainWindow.clearMarks()
+
+        # navigate the displays
+        for display in displays:
+            if len(display.strips) > 0:
+                navigateToNmrResidueInDisplay(nmrResidue, display, stripIndex=0,
+                                              widths=['full'] * len(display.strips[0].axisCodes),
+                                              showSequentialResidues = (len(display.axisCodes) > 2) and
+                                              self.sequentialStripsWidget.checkBox.isChecked(),
+                                              markPositions = self.markPositionsWidget.checkBox.isChecked()
+                )
+    finally:
+        self.application._endCommandBlock()
+
 
 import math
 atomSpacing = 66
