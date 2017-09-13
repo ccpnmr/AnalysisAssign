@@ -245,6 +245,11 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     contextMenu.addAction('disconnect nmrResidue', partial(self._disconnectNmrResidue))
     contextMenu.addAction('disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
     contextMenu.addSeparator()
+    contextMenu.addAction('disconnect all nmrResidues', partial(self._disconnectAllNmrResidues))
+    if self.nmrResidue.residue:
+      contextMenu.addSeparator()
+      contextMenu.addAction('deassign nmrChain', partial(self._deassignNmrChain))
+    contextMenu.addSeparator()
     contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
     cursor = QtGui.QCursor()
     contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
@@ -258,6 +263,12 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
 
   def _disconnectNextNmrResidue(self):
     self.parent.disconnectNextNmrResidue()
+
+  def _disconnectAllNmrResidues(self):
+    self.parent.disconnectAllNmrResidues()
+
+  def _deassignNmrChain(self):
+    self.parent.deassignNmrChain()
 
   def _showNmrResidue(self):
     self.parent.navigateToNmrResidue()
@@ -646,6 +657,30 @@ class SequenceGraphModule(CcpnModule):
     with progressManager('disconnecting Next NmrResidue...'):
       try:
         self.current.nmrResidue.disconnectNext()
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
+
+    if self.current.nmrResidue:
+      self._updateShownAssignments()
+      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    #self.updateNmrResidueTable()
+
+  def disconnectAllNmrResidues(self):
+    with progressManager('disconnecting all NmrResidues...'):
+      try:
+        self.current.nmrResidue.disconnectAll()
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
+
+    if self.current.nmrResidue:
+      self._updateShownAssignments()
+      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+    #self.updateNmrResidueTable()
+
+  def deassignNmrChain(self):
+    with progressManager('deassigning NmrChain...'):
+      try:
+        self.current.nmrResidue.deassignNmrChain()
       except Exception as es:
         showWarning(str(self.windowTitle()), str(es))
 
