@@ -146,11 +146,16 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
 
     super(GuiNmrResidue, self).__init__()
     self.setPlainText(nmrResidue.id)
-    project = nmrResidue.project
+
+    self.mainWindow = parent.mainWindow
+    self.application = self.mainWindow.application
+    self.project = self.mainWindow.project
+    self.current = self.mainWindow.application.current
+
     self.setFont(textFont)
-    if project._appBase.colourScheme == 'dark':
+    if self.project._appBase.colourScheme == 'dark':
       self.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
-    elif project._appBase.colourScheme == 'light':
+    elif self.project._appBase.colourScheme == 'light':
       self.setDefaultTextColor(QtGui.QColor('#555D85'))
     self.setPos(caAtom.x()-caAtom.boundingRect().width()/2, caAtom.y()+30)
     ###self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
@@ -164,7 +169,6 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
 
   def _update(self):
     self.setPlainText(self.nmrResidue.id)
-
 
   def _mouseMoveEvent(self, event):
 
@@ -256,22 +260,22 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     contextMenu.exec()
 
   def _disconnectPreviousNmrResidue(self):
-    self.parent.disconnectPreviousNmrResidue()
+    self.parent.disconnectPreviousNmrResidue(selectedNmrResidue=self.nmrResidue)
 
   def _disconnectNmrResidue(self):
-    self.parent.disconnectNmrResidue()
+    self.parent.disconnectNmrResidue(selectedNmrResidue=self.nmrResidue)
 
   def _disconnectNextNmrResidue(self):
-    self.parent.disconnectNextNmrResidue()
+    self.parent.disconnectNextNmrResidue(selectedNmrResidue=self.nmrResidue)
 
   def _disconnectAllNmrResidues(self):
-    self.parent.disconnectAllNmrResidues()
+    self.parent.disconnectAllNmrResidues(selectedNmrResidue=self.nmrResidue)
 
   def _deassignNmrChain(self):
-    self.parent.deassignNmrChain()
+    self.parent.deassignNmrChain(selectedNmrResidue=self.nmrResidue)
 
   def _showNmrResidue(self):
-    self.parent.navigateToNmrResidue()
+    self.parent.navigateToNmrResidue(selectedNmrResidue=self.nmrResidue)
 
 
 class AssignmentLine(QtGui.QGraphicsLineItem):
@@ -629,8 +633,9 @@ class SequenceGraphModule(CcpnModule):
     #delattr(self.parent, 'sequenceGraph')
     super(SequenceGraphModule, self)._closeModule()
 
-  def disconnectPreviousNmrResidue(self):
-    with progressManager('disconnecting Previous NmrResidue...'):
+  def disconnectPreviousNmrResidue(self, selectedNmrResidue=None):
+    selected = str(self.current.nmrResidue.pid)
+    with progressManager('disconnecting Previous NmrResidue to:\n '+selected):
       try:
         self.current.nmrResidue.disconnectPrevious()
       except Exception as es:
@@ -641,8 +646,9 @@ class SequenceGraphModule(CcpnModule):
       # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     ###self.updateNmrResidueTable()
 
-  def disconnectNmrResidue(self):
-    with progressManager('disconnecting NmrResidue...'):
+  def disconnectNmrResidue(self, selectedNmrResidue=None):
+    selected = str(self.current.nmrResidue.pid)
+    with progressManager('disconnecting NmrResidue:\n '+selected):
       try:
         self.current.nmrResidue.disconnect()
       except Exception as es:
@@ -653,8 +659,9 @@ class SequenceGraphModule(CcpnModule):
       # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
-  def disconnectNextNmrResidue(self):
-    with progressManager('disconnecting Next NmrResidue...'):
+  def disconnectNextNmrResidue(self, selectedNmrResidue=None):
+    selected = str(self.current.nmrResidue.pid)
+    with progressManager('disconnecting Next NmrResidue to:\n '+selected):
       try:
         self.current.nmrResidue.disconnectNext()
       except Exception as es:
@@ -665,8 +672,9 @@ class SequenceGraphModule(CcpnModule):
       # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
-  def disconnectAllNmrResidues(self):
-    with progressManager('disconnecting all NmrResidues...'):
+  def disconnectAllNmrResidues(self, selectedNmrResidue=None):
+    selected = str(self.current.nmrResidue.pid)
+    with progressManager('disconnecting all NmrResidues connected to:\n '+selected):
       try:
         self.current.nmrResidue.disconnectAll()
       except Exception as es:
@@ -677,8 +685,9 @@ class SequenceGraphModule(CcpnModule):
       # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
     #self.updateNmrResidueTable()
 
-  def deassignNmrChain(self):
-    with progressManager('deassigning NmrChain...'):
+  def deassignNmrChain(self, selectedNmrResidue=None):
+    selected = str(self.current.nmrResidue.nmrChain.pid)
+    with progressManager('deassigning nmrResidues in NmrChain:\n '+selected):
       try:
         self.current.nmrResidue.deassignNmrChain()
       except Exception as es:
@@ -1200,7 +1209,7 @@ class SequenceGraphModule(CcpnModule):
         displays = [self.application.getByGid(gid) for gid in gids if gid != ALL]
     return displays
 
-  def navigateToNmrResidue(self):
+  def navigateToNmrResidue(self, selectedNmrResidue=None):
     """
     Navigate in selected displays to nmrResidue; skip if none defined
     """
