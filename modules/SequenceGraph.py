@@ -476,7 +476,8 @@ class SequenceGraphModule(CcpnModule):
     self._nmrResidueNotifier = Notifier(self.project
                                         , [Notifier.RENAME, Notifier.CHANGE]
                                         , NmrResidue.__name__
-                                        , self._resetNmrResiduePidForAssigner)
+                                        , self._resetNmrResiduePidForAssigner
+                                        , onceOnly=True)
 
     self._peakNotifier = Notifier(self.project
                                   , [Notifier.CHANGE]
@@ -489,13 +490,11 @@ class SequenceGraphModule(CcpnModule):
                                       , Spectrum.__name__
                                       , self._updateShownAssignments)
 
-    # need another notifier to register that disconnect has been undone
     # self._nmrChainNotifier = Notifier(self.project
-    #                               , [Notifier.CHANGE]
-    #                               , NmrChain.__name__
-    #                               , self._updateShownAssignments
-    #                               , onceOnly=True)
-
+    #                                     , [Notifier.CREATE, Notifier.DELETE]
+    #                                     , NmrChain.__name__
+    #                                     , self._updateShownAssignments()
+    #                                     , onceOnly=True)
 
   def _unRegisterNotifiers(self):
     # self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
