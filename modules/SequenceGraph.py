@@ -363,7 +363,7 @@ class SequenceGraphModule(CcpnModule):
 
     self.assignmentsCheckBox = CheckBoxCompoundWidget(self.mainWidget,
                                                       labelText='Show peak assignments:',
-                                                      checked=False,
+                                                      checked=True,
                                                       tipText='Show peak assignments on display coloured by positiveContourColour',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 2), gridSpan=(1,1))
