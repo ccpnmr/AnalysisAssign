@@ -259,6 +259,9 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
     contextMenu.exec()
 
+  def _unlinkNearestNmrResidue(self):
+    self.parent.unlinkNearestNmrResidue(selectedNmrResidue=self.nmrResidue)
+
   def _disconnectPreviousNmrResidue(self):
     self.parent.disconnectPreviousNmrResidue(selectedNmrResidue=self.nmrResidue)
 
@@ -631,6 +634,24 @@ class SequenceGraphModule(CcpnModule):
     self._unRegisterNotifiers()
     #delattr(self.parent, 'sequenceGraph')
     super(SequenceGraphModule, self)._closeModule()
+
+  def unlinkNearestNmrResidue(self, selectedNmrResidue=None):
+    selected = str(self.current.nmrResidue.pid)
+    if self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
+      with progressManager('unlinking Previous NmrResidue to:\n ' + selected):
+        try:
+          self.current.nmrResidue.unlinkPreviousNmrResidue()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+    elif self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
+      with progressManager('unlinking Next NmrResidue to:\n ' + selected):
+        try:
+          self.current.nmrResidue.unlinkNextNmrResidue()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+
+    if self.current.nmrResidue:
+      self._updateShownAssignments()
 
   def disconnectPreviousNmrResidue(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.pid)
