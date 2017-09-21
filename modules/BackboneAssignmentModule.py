@@ -282,7 +282,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       try:
 
         self.nmrResidueTable.setUpdateSilence(True)
-
         matchNmrResidue = None
         try:                          # display popup warning
           if data['shiftLeftMouse']:
@@ -299,12 +298,16 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         except Exception as es:
           showWarning('Connect NmrResidue', str(es))
         finally:
+          self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
+          if matchNmrResidue:
+            self.navigateToNmrResidue(matchNmrResidue)
+
           self.nmrResidueTable.setUpdateSilence(False)
 
         # update the NmrResidueTable
-        self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
-        if matchNmrResidue:
-          self.navigateToNmrResidue(matchNmrResidue)
+        # self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
+        # if matchNmrResidue:
+        #   self.navigateToNmrResidue(matchNmrResidue)
 
       except Exception as es:
         # getLogger().warning(str(es))
