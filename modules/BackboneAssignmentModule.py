@@ -306,8 +306,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
           self.navigateToNmrResidue(matchNmrResidue)
 
       except Exception as es:
-        # getLogger().warning(str(es))
-        raise es
+        getLogger().warning(str(es))
+        # raise es
       finally:
         nmrResidue._endCommandEchoBlock()
 
