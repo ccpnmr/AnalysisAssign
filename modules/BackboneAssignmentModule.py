@@ -277,8 +277,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     # put in try/finally block because otherwise if exception thrown in the following code
     # (which can happen) then you no longer get updates of the NmrResidue table
 
-    with progressManager("assigning %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid)):
-      nmrResidue._startCommandEchoBlock("assigning %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
+    with progressManager("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid)):
+      nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
       try:
 
         self.nmrResidueTable.setUpdateSilence(True)
@@ -300,16 +300,17 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         finally:
           self.nmrResidueTable.setUpdateSilence(False)
 
+        # update the NmrResidueTable
+        self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
+        if matchNmrResidue:
+          self.navigateToNmrResidue(matchNmrResidue)
+
       except Exception as es:
         # getLogger().warning(str(es))
         raise es
       finally:
         nmrResidue._endCommandEchoBlock()
 
-        # update the NmrResidueTable
-        self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
-        if matchNmrResidue:
-          self.navigateToNmrResidue(matchNmrResidue)
 
   def _centreStripForNmrResidue(self, nmrResidue, strip):
     """
