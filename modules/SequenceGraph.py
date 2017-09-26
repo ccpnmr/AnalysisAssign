@@ -721,10 +721,14 @@ class SequenceGraphModule(CcpnModule):
   def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
     """Reset pid for NmrResidue and all offset NmrResidues"""
     nmrResidue = data['object']
-    for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
-      for guiNmrResidue in self.guiNmrResidues:
-        if guiNmrResidue.nmrResidue is nr:
-          guiNmrResidue._update()
+
+    nmrChainPid = self.nmrChainPulldown.getText()
+    if self.project.getByPid(nmrChainPid):
+
+      for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
+        for guiNmrResidue in self.guiNmrResidues:
+          if guiNmrResidue.nmrResidue is nr:
+            guiNmrResidue._update()
 
   def clearAllItems(self):
     """
