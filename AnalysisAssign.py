@@ -65,7 +65,7 @@ class Assign(Framework):
                       ("Atom Selector", self.showAtomSelector, [('shortcut', 'as')]),
                       ()
                     ]
-    self.addApplicationMenuItems('View', viewMenuItems, position=8)
+    self.addApplicationMenuItems('View', viewMenuItems, position=9)
 
   # overrides superclass
   def _closeExtraWindows(self):

@@ -609,6 +609,8 @@ class SequenceGraphModule(CcpnModule):
             nmrResidue = nmrResidue.nextNmrResidue
 
         if len(self.predictedStretch) > 2:
+
+          # TODO:ED causes a crash from here GuiNmrResidue has been deleted
           self.predictSequencePosition(self.predictedStretch)
 
       ###elif self.modePulldown.currentText() == 'Assigned - backbone':
