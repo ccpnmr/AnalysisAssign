@@ -337,7 +337,7 @@ class SequenceGraphModule(CcpnModule):
     # # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
 
     # self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
-    self.addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
+    self.mainWidget.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
 
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
