@@ -41,6 +41,7 @@ from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable, NmrResidueTableModule
 from ccpn.ui.gui.widgets.Base import Base
 from ccpn.ui.gui.widgets.Button import Button
+from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.ButtonList import ButtonList
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
 from ccpn.ui.gui.widgets.DoubleSpinbox import DoubleSpinbox
@@ -80,18 +81,27 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.current = mainWindow.application.current
 
     # Main widget
-    self.restrictedPickButton = Button(text='Restricted Pick', callback=self.restrictedPick)
-    self.restrictedPickButton.setMinimumWidth(105)
-    self.nmrResidueTable.addWidgetToTop(self.restrictedPickButton, col=2)
+    self.restrictedPickButton = Button(text='Restricted\nPick', callback=self.restrictedPick
+                                       , setLayout=True, spacing=(0,0))
+    # self.restrictedPickButton.setMinimumWidth(105)
+    # self.nmrResidueTable.addWidgetToTop(self.restrictedPickButton, col=2)
+    self.nmrResidueTable.addWidgetToPos(self.restrictedPickButton, row=1, col=2)
 
-    self.assignSelectedButton = Button(text='Assign Selected', callback=self.assignSelected)
-    self.assignSelectedButton.setMinimumWidth(105)
-    self.nmrResidueTable.addWidgetToTop(self.assignSelectedButton, col=3)
+    self.assignSelectedButton = Button(text='Assign\nSelected', callback=self.assignSelected
+                                       , setLayout=True, spacing=(0, 0))
+    # self.assignSelectedButton.setMinimumWidth(105)
+    # self.nmrResidueTable.addWidgetToTop(self.assignSelectedButton, col=3)
+    self.nmrResidueTable.addWidgetToPos(self.assignSelectedButton, row=1, col=3)
 
-    self.restrictedPickAndAssignButton = Button(text='Restricted Pick and Assign',
-                                                callback=self.restrictedPickAndAssign)
-    self.restrictedPickAndAssignButton.setMinimumWidth(160)
-    self.nmrResidueTable.addWidgetToTop(self.restrictedPickAndAssignButton, col=4)
+    self.restrictedPickAndAssignButton = Button(text='Restricted\nPick and Assign'
+                                                , setLayout=True, spacing=(0, 0)
+                                                , callback=self.restrictedPickAndAssign)
+    # self.restrictedPickAndAssignButton.setMinimumWidth(160)
+    # self.nmrResidueTable.addWidgetToTop(self.restrictedPickAndAssignButton, col=4)
+    self.nmrResidueTable.addWidgetToPos(self.restrictedPickAndAssignButton, row=1, col=4)
+    self._spacer = Frame(None, setLayout=True)
+    self._spacer.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+    self.nmrResidueTable.addWidgetToPos(self._spacer, row=1, col=5)
 
     # ejb - change to a narrower widget to the right of the pulldown list
     # self.buttonBox = ButtonList(None, texts=['Restricted Pick', 'Assign Selected', 'Restricted Pick and Assign']
@@ -121,6 +131,14 @@ class PickAndAssignModule(NmrResidueTableModule):
       f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
                        grid=(row+1,0), gridSpan=(1,1+len(spectrum.axisCodes)), vAlign='top')
       self._spectraWidgets[spectrum.pid] = f
+
+    # add a spacer in the bottom-right corner to stop everything moving
+    rows = self.settingsWidget.layout().rowCount()
+    cols = self.settingsWidget.layout().columnCount()
+    Spacer(self.settingsWidget, 5, 5
+           , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+           , grid=(rows,cols), gridSpan=(1,1))
+
 
   def _closeModule(self):
     """
