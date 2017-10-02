@@ -47,7 +47,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 import typing
 from functools import partial
 
-from PyQt4 import QtCore
+from PyQt4 import QtCore, QtGui
 
 from ccpn.core.Peak import Peak
 from ccpn.core.lib.AssignmentLib import isInterOnlyExpt, getNmrAtomPrediction, CCP_CODES
@@ -59,6 +59,7 @@ from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.RadioButton import RadioButton
 from ccpn.ui.gui.widgets.Widget import Widget
+from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 
 from ccpn.util.Logging import getLogger
@@ -92,11 +93,17 @@ class AtomSelectorModule(CcpnModule):
     # Settings Widget
     self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
     self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=['protein', 'DNA', 'RNA', 'carbohydrate', 'other'])
-    self.radioButton1 = RadioButton(self.settingsWidget, grid=(0, 2), hAlign='r', callback=self._createBackBoneButtons)
+    self._spacer = Spacer(self.settingsWidget, 15, 5
+                         , QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+                         , grid=(0,2), gridSpan=(1,1))
+    self.radioButton1 = RadioButton(self.settingsWidget, grid=(0, 3), hAlign='r', callback=self._createBackBoneButtons)
     self.radioButton1.setChecked(True)
-    self.label1 = Label(self.settingsWidget, 'Backbone', grid=(0, 3), hAlign='l')
-    self.radioButton2 = RadioButton(self.settingsWidget, grid=(0, 4), hAlign='r', callback=self._createSideChainButtons)
-    self.label2 = Label(self.settingsWidget, 'Side chain', grid=(0, 5), hAlign='l')
+    self.label1 = Label(self.settingsWidget, 'Backbone', grid=(0, 4), hAlign='l')
+    self.radioButton2 = RadioButton(self.settingsWidget, grid=(0, 5), hAlign='r', callback=self._createSideChainButtons)
+    self.label2 = Label(self.settingsWidget, 'Side chain', grid=(0, 6), hAlign='l')
+    self._spacer = Spacer(self.settingsWidget, 5, 5
+                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , grid=(3,12), gridSpan=(1,1))
 
     # modifiers for sidechain
     self.offsetLabel = Label(self.settingsWidget, 'Display for:   offset =', grid=(1,0))

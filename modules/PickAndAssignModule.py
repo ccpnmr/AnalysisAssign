@@ -66,6 +66,7 @@ class PickAndAssignModule(NmrResidueTableModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2
+  settingsPosition = 'top'
   settingsMinimumSizes = (500, 200)
 
   def __init__(self, mainWindow, name='Pick and Assign'):
@@ -110,10 +111,10 @@ class PickAndAssignModule(NmrResidueTableModule):
     self._spectraWidget = Frame(parent=self.settingsWidget,
                                 setLayout=True, showBorder=True, hPolicy='minimal',
                                 grid=(0, 1), gridSpan=(4,1), vAlign='top', hAlign='left')
-    self._spectrumLabel = Label(parent=self._spectraWidget, text='Spectrum', bold=True,
-                                grid=(0,0), hAlign='left', vAlign='top')
-    self._useLabel = Label(parent=self._spectraWidget, text='Use?', bold=True,
-                           grid=(0, 1), hAlign='left', vAlign='top')
+    # self._spectrumLabel = Label(parent=self._spectraWidget, text='Spectrum', bold=True,
+    #                             grid=(0,0), hAlign='left', vAlign='top')
+    # self._useLabel = Label(parent=self._spectraWidget, text='Use?', bold=True,
+    #                        grid=(0, 1), hAlign='left', vAlign='top')
 
     self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
     for row, spectrum in enumerate(self.application.project.spectra):

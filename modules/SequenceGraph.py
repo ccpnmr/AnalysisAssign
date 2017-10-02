@@ -45,7 +45,7 @@ from ccpn.ui.gui.guiSettings import textFont, textFontBold, textFontLarge
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
-
+from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, ListCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 from ccpn.core.NmrChain import NmrChain
@@ -308,7 +308,7 @@ class SequenceGraphModule(CcpnModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsPosition = 'top'
+  settingsPosition = 'left'
 
   def __init__(self, mainWindow, name='Sequence Graph', nmrChain=None):
 
@@ -390,18 +390,18 @@ class SequenceGraphModule(CcpnModule):
                                               checked = False,
                                               tipText='Show nmrResidue in all strips',
                                               callback=self._updateShownAssignments,
-                                              grid=(0, 1), gridSpan=(1, 1))
+                                              grid=(1, 0), gridSpan=(1, 1))
 
     self.markPositionsWidget = CheckBoxCompoundWidget(self.settingsWidget,
                                               labelText = 'Mark positions:',
                                               checked = True,
                                               tipText='Mark positions in strips',
                                               callback = self._updateShownAssignments,
-                                              grid = (0, 2), gridSpan = (1, 1))
+                                              grid = (2, 0), gridSpan = (1, 1))
 
     colwidth = 140
     self.displaysWidget = ListCompoundWidget(self.settingsWidget,
-                                             grid=(1,0), gridSpan=(1,2),
+                                             grid=(3,0), gridSpan=(1,2),
                                              vAlign='top', stretch=(0,0), hAlign='left',
                                              vPolicy='minimal',
                                              #minimumWidths=(colwidth, 0, 0),
@@ -413,11 +413,13 @@ class SequenceGraphModule(CcpnModule):
                                              )
     self.displaysWidget.setFixedHeigths((None, None, 40))
     self.displaysWidget.pulldownList.set(ALL)
-
+    self._spacer = Spacer(self.settingsWidget, 5, 5
+                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , grid=(4,2), gridSpan=(1,1))
     # self._settingsScrollArea.setFixedHeight(30)
     # self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Expanding)
     # self.settingsWidget.setFixedHeight(30)
-    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.MinimumExpanding)
+    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
 
     # self.assignmentsTreeCheckBox.setFixedHeight(30)
     # self.assignmentsTreeCheckBox.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)

@@ -42,6 +42,7 @@ from ccpn.ui.gui.widgets.Button import Button
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Label import Label
+from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column
@@ -88,26 +89,38 @@ class PeakAssigner(CcpnModule):
     self.doubleToleranceCheckbox = CheckBox(self.settingsWidget, checked=False,
                                             callback=self._updateInterface,
                                             grid=(0,1))
+    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+                         , grid=(0,2), gridSpan=(1,1))
 
-    intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0,2))
+    intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0,3))
     self.intraCheckbox = CheckBox(self.settingsWidget, checked=False,
                                    callback=self._updateInterface,
-                                   grid=(0,3))
+                                   grid=(0,4))
+    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+                         , grid=(0,5), gridSpan=(1,1))
 
-    multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0,4))
+    multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0,6))
     self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
                                    callback=self._updateInterface,
-                                   grid=(0,5))
+                                   grid=(0,7))
+    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+                         , grid=(0,8), gridSpan=(1,1))
 
-    expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0,6))
+    expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0,9))
     self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
                                 callback=self._updateInterface,
-                                grid=(0,7))
+                                grid=(0,10))
+    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+                         , grid=(0,11), gridSpan=(1,1))
 
-    allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0,8))
+    allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0,12))
     self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=True,
                                 callback=self._updateInterface,
-                                grid=(0,9))
+                                grid=(0,13))
+
+    self._spacer = Spacer(self.settingsWidget, 5, 5
+                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , grid=(1,14), gridSpan=(1,1))
 
     # Main content widgets
     self.peakLabel = Label(self.mainWidget, text='Peak:', bold=True, grid=(0,0), vAlign='center', margins=[2,5,2,5])

@@ -27,6 +27,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 
 import typing
 from collections import OrderedDict
+from PyQt4 import QtGui
 
 from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
 from ccpn.core.ChemicalShift import ChemicalShift
@@ -42,7 +43,7 @@ from ccpn.ui.gui.widgets.CheckBox import CheckBox
 from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget, PulldownListCompoundWidget
 from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
 from ccpn.ui.gui.widgets.PulldownListsForObjects import ChemicalShiftListPulldown
-
+from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
 from ccpn.ui.gui.widgets.DropBase import DropBase
 
@@ -58,7 +59,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsPosition = 'top'
+  settingsPosition = 'left'
   settingsMinimumSizes = (500, 200)
 
   def __init__(self, mainWindow, name='Backbone Assignment'):
@@ -117,6 +118,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                      callback=self._setupShiftDicts, default=0
                                                      )
     self._setupShiftDicts()
+    self._spacer = Spacer(self.settingsWidget, 5, 5
+                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , grid=(row+1,10), gridSpan=(1,1))
 
     # for compatibility with previous implementation
     #self.moduleList = self.matchWidget.listWidget
