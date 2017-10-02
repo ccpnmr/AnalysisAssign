@@ -182,7 +182,7 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
         if nmrItem:
           drag = QtGui.QDrag(event.widget())
           mimeData = QtCore.QMimeData()
-          itemData = json.dumps({'pids': [nmrChain.pid]})
+          itemData = json.dumps({'pids': [nmrChain.pid, nmrItem.nmrResidue.pid]})
           mimeData.setData(ccpnmrJsonData, itemData)
           mimeData.setText(itemData)
           drag.setMimeData(mimeData)
