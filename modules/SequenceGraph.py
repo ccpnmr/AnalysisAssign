@@ -182,7 +182,7 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
         if nmrItem:
           drag = QtGui.QDrag(event.widget())
           mimeData = QtCore.QMimeData()
-          itemData = json.dumps({'pids': [nmrChain.pid]})
+          itemData = json.dumps({'pids': [nmrChain.pid, nmrItem.nmrResidue.pid]})
           mimeData.setData(ccpnmrJsonData, itemData)
           mimeData.setText(itemData)
           drag.setMimeData(mimeData)
@@ -337,7 +337,7 @@ class SequenceGraphModule(CcpnModule):
     # # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
 
     # self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
-    self.addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
+    self.mainWidget.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
 
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
@@ -723,10 +723,14 @@ class SequenceGraphModule(CcpnModule):
   def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
     """Reset pid for NmrResidue and all offset NmrResidues"""
     nmrResidue = data['object']
-    for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
-      for guiNmrResidue in self.guiNmrResidues:
-        if guiNmrResidue.nmrResidue is nr:
-          guiNmrResidue._update()
+
+    nmrChainPid = self.nmrChainPulldown.getText()
+    if self.project.getByPid(nmrChainPid):
+
+      for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
+        for guiNmrResidue in self.guiNmrResidues:
+          if guiNmrResidue.nmrResidue is nr:
+            guiNmrResidue._update()
 
   def clearAllItems(self):
     """
