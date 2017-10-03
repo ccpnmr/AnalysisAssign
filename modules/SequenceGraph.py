@@ -183,7 +183,14 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
           drag = QtGui.QDrag(event.widget())
           mimeData = QtCore.QMimeData()
           itemData = json.dumps({'pids': [nmrChain.pid, nmrItem.nmrResidue.pid]})
-          mimeData.setData(ccpnmrJsonData, itemData)
+
+          # ejb - added so that itemData works with PyQt5
+          tempData = QtCore.QByteArray()
+          stream = QtCore.QDataStream(tempData, QtCore.QIODevice.WriteOnly)
+          stream.writeQString(itemData)
+          mimeData.setData(ccpnmrJsonData, tempData)
+
+          # mimeData.setData(ccpnmrJsonData, itemData)
           mimeData.setText(itemData)
           drag.setMimeData(mimeData)
 
@@ -196,7 +203,9 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
           elif nmrItem.nmrResidue.project._appBase.colourScheme == 'light':
             dragLabel.setStyleSheet('color : #555D85')
 
-          pixmap = QtGui.QPixmap.grabWidget(dragLabel)    # ejb -    this gets the whole window   event.widget())
+          # pixmap = QtGui.QPixmap.grabWidget(dragLabel)    # ejb -    this gets the whole window   event.widget())
+          pixmap = dragLabel.grab()     # ejb -    this gets the whole window   event.widget())
+
           painter = QtGui.QPainter(pixmap)
           painter.setCompositionMode(painter.CompositionMode_DestinationIn)
           painter.fillRect(pixmap.rect(), QtGui.QColor(0, 0, 0, 240))
@@ -204,7 +213,8 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
           drag.setPixmap(pixmap)
           drag.setHotSpot(QtCore.QPoint(dragLabel.width() / 2, dragLabel.height() / 2))
 
-          drag.start(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
+          # drag.start(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
+          drag.exec_(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
 
           # if drag.exec_(QtCore.Qt.MoveAction | QtCore.Qt.CopyAction, QtCore.Qt.CopyAction) == QtCore.Qt.MoveAction:
           #   pass
