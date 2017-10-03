@@ -321,7 +321,7 @@ class SequenceGraphModule(CcpnModule):
     self.current = mainWindow.application.current
 
     ###frame = Frame(parent=self.mainWidget)
-    self._sequenceGraphScrollArea = QtGui.QScrollArea()
+    self._sequenceGraphScrollArea = QtWidgets.QScrollArea()
     self._sequenceGraphScrollArea.setWidgetResizable(True)
 
     self.resetScene()
