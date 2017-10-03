@@ -29,7 +29,7 @@ import json
 import typing
 
 import numpy as np
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
@@ -58,7 +58,7 @@ logger = getLogger()
 ALL = '<all>'
 
 
-class GuiNmrAtom(QtGui.QGraphicsTextItem):
+class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
   """
   A graphical object specifying the position and name of an atom when created by the Assigner.
   Can be linked to a Nmr Atom.
@@ -80,8 +80,8 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
 
     # wb104: not sure why below is needed rather than setFlags() but it is
     self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-    ###self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
-    #self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
+    ###self.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable | self.flags())
+    #self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
 
     if project._appBase.colourScheme == 'dark':
       colour1 = '#F7FFFF'
@@ -136,7 +136,7 @@ class GuiNmrAtom(QtGui.QGraphicsTextItem):
     else:
       return 0
 
-class GuiNmrResidue(QtGui.QGraphicsTextItem):
+class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   """
   Object linking residues displayed in Assigner and Nmr Residues. Contains functionality for drag and
   drop assignment in conjunction with the Sequence Module.
@@ -158,8 +158,8 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     elif self.project._appBase.colourScheme == 'light':
       self.setDefaultTextColor(QtGui.QColor('#555D85'))
     self.setPos(caAtom.x()-caAtom.boundingRect().width()/2, caAtom.y()+30)
-    ###self.setFlags(QtGui.QGraphicsItem.ItemIsSelectable | self.flags())
-    self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
+    ###self.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable | self.flags())
+    self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
     self.parent = parent
     self.nmrResidue = nmrResidue
     self.mousePressEvent = self._mousePressEvent
@@ -188,7 +188,7 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
           drag.setMimeData(mimeData)
 
           #TODO:ED get rid of _appBase
-          dragLabel = QtGui.QLabel()
+          dragLabel = QtWidgets.QLabel()
           dragLabel.setText(self.toPlainText())
           dragLabel.setFont(textFontLarge)
           if nmrItem.nmrResidue.project._appBase.colourScheme == 'dark':
@@ -281,12 +281,12 @@ class GuiNmrResidue(QtGui.QGraphicsTextItem):
     self.parent.navigateToNmrResidue(selectedNmrResidue=self.nmrResidue)
 
 
-class AssignmentLine(QtGui.QGraphicsLineItem):
+class AssignmentLine(QtWidgets.QGraphicsLineItem):
   """
   Object to create lines between GuiNmrAtoms with specific style, width, colour and displacement.
   """
   def __init__(self, x1, y1, x2, y2, colour, width, style=None):
-    QtGui.QGraphicsLineItem.__init__(self)
+    QtWidgets.QGraphicsLineItem.__init__(self)
     self.pen = QtGui.QPen()
     self.pen.setColor(QtGui.QColor(colour))
     self.pen.setCosmetic(True)
@@ -326,12 +326,12 @@ class SequenceGraphModule(CcpnModule):
 
     self.resetScene()
 
-    # self.scene = QtGui.QGraphicsScene(self)
-    # self.scrollContents = QtGui.QGraphicsView(self.scene, self)
+    # self.scene = QtWidgets.QGraphicsScene(self)
+    # self.scrollContents = QtWidgets.QGraphicsView(self.scene, self)
     # self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
     # self.scrollContents.setInteractive(True)
     # self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
-    # ###self.horizontalLayout2 = QtGui.QHBoxLayout(self.scrollContents)
+    # ###self.horizontalLayout2 = QtWidgets.QHBoxLayout(self.scrollContents)
     # self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     # self._sequenceGraphScrollArea.setWidget(self.scrollContents)
     # # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
@@ -414,15 +414,15 @@ class SequenceGraphModule(CcpnModule):
     self.displaysWidget.setFixedHeigths((None, None, 40))
     self.displaysWidget.pulldownList.set(ALL)
     self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
                          , grid=(4,2), gridSpan=(1,1))
     # self._settingsScrollArea.setFixedHeight(30)
-    # self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Expanding)
+    # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
     # self.settingsWidget.setFixedHeight(30)
-    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+    self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
 
     # self.assignmentsTreeCheckBox.setFixedHeight(30)
-    # self.assignmentsTreeCheckBox.setSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+    # self.assignmentsTreeCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
     self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
@@ -755,8 +755,8 @@ class SequenceGraphModule(CcpnModule):
     Replace the scene with a new one to reset the size of the scrollbars.
     """
     # ejb - only needed to be done the first time, scene is resized at the end of setNmrChainDisplay
-    self.scene = QtGui.QGraphicsScene(self)
-    self.scrollContents = QtGui.QGraphicsView(self.scene, self)
+    self.scene = QtWidgets.QGraphicsScene(self)
+    self.scrollContents = QtWidgets.QGraphicsView(self.scene, self)
     self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
     self.scrollContents.setInteractive(True)
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 300, 400))
@@ -905,7 +905,7 @@ class SequenceGraphModule(CcpnModule):
     predictions = list(set(map(tuple, (getNmrResiduePrediction(nmrResidue, self.project.chemicalShiftLists[0])))))
     predictions.sort(key=lambda a: float(a[1][:-1]), reverse=True)
     for prediction in predictions:
-      predictionLabel = QtGui.QGraphicsTextItem()
+      predictionLabel = QtWidgets.QGraphicsTextItem()
       predictionLabel.setPlainText(prediction[0]+' '+prediction[1])
       if self.project._appBase.colourScheme == 'dark':
         predictionLabel.setDefaultTextColor(QtGui.QColor('#F7FFFF'))

@@ -33,7 +33,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 # Start of code
 #=========================================================================================
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 from ccpn.ui.gui.lib import PeakList
 from ccpn.ui.gui.lib import Strip
@@ -100,7 +100,7 @@ class PickAndAssignModule(NmrResidueTableModule):
     # self.nmrResidueTable.addWidgetToTop(self.restrictedPickAndAssignButton, col=4)
     self.nmrResidueTable.addWidgetToPos(self.restrictedPickAndAssignButton, row=1, col=4)
     self._spacer = Frame(None, setLayout=True)
-    self._spacer.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+    self._spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
     self.nmrResidueTable.addWidgetToPos(self._spacer, row=1, col=5)
 
     # ejb - change to a narrower widget to the right of the pulldown list
@@ -109,7 +109,7 @@ class PickAndAssignModule(NmrResidueTableModule):
     #                             , direction='v')
     # self.buttonBox.setMinimumWidth(160)
     # self.buttonBox.setMinimumHeight(49)
-    # self.buttonBox.buttons[2].setSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Fixed)
+    # self.buttonBox.buttons[2].setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
     # self.nmrResidueTable.addWidgetToPos(self.buttonBox, row=1, col=2, rowSpan=1, colSpan=1)
     # Settings widget
 
@@ -136,7 +136,7 @@ class PickAndAssignModule(NmrResidueTableModule):
     rows = self.settingsWidget.layout().rowCount()
     cols = self.settingsWidget.layout().columnCount()
     Spacer(self.settingsWidget, 5, 5
-           , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+           , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
            , grid=(rows,cols), gridSpan=(1,1))
 
 
