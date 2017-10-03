@@ -47,7 +47,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 import typing
 from functools import partial
 
-from PyQt4 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ccpn.core.Peak import Peak
 from ccpn.core.lib.AssignmentLib import isInterOnlyExpt, getNmrAtomPrediction, CCP_CODES
@@ -94,7 +94,7 @@ class AtomSelectorModule(CcpnModule):
     self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
     self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=['protein', 'DNA', 'RNA', 'carbohydrate', 'other'])
     self._spacer = Spacer(self.settingsWidget, 15, 5
-                         , QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+                         , QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
                          , grid=(0,2), gridSpan=(1,1))
     self.radioButton1 = RadioButton(self.settingsWidget, grid=(0, 3), hAlign='r', callback=self._createBackBoneButtons)
     self.radioButton1.setChecked(True)
@@ -102,7 +102,7 @@ class AtomSelectorModule(CcpnModule):
     self.radioButton2 = RadioButton(self.settingsWidget, grid=(0, 5), hAlign='r', callback=self._createSideChainButtons)
     self.label2 = Label(self.settingsWidget, 'Side chain', grid=(0, 6), hAlign='l')
     self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
                          , grid=(3,12), gridSpan=(1,1))
 
     # modifiers for sidechain

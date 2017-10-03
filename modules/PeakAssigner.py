@@ -31,7 +31,7 @@ import typing
 import numpy as np
 from functools import partial
 
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.Peak import Peak
@@ -89,28 +89,28 @@ class PeakAssigner(CcpnModule):
     self.doubleToleranceCheckbox = CheckBox(self.settingsWidget, checked=False,
                                             callback=self._updateInterface,
                                             grid=(0,1))
-    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
                          , grid=(0,2), gridSpan=(1,1))
 
     intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0,3))
     self.intraCheckbox = CheckBox(self.settingsWidget, checked=False,
                                    callback=self._updateInterface,
                                    grid=(0,4))
-    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
                          , grid=(0,5), gridSpan=(1,1))
 
     multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0,6))
     self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
                                    callback=self._updateInterface,
                                    grid=(0,7))
-    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
                          , grid=(0,8), gridSpan=(1,1))
 
     expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0,9))
     self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
                                 callback=self._updateInterface,
                                 grid=(0,10))
-    Spacer(self.settingsWidget, 10, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
                          , grid=(0,11), gridSpan=(1,1))
 
     allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0,12))
@@ -119,7 +119,7 @@ class PeakAssigner(CcpnModule):
                                 grid=(0,13))
 
     self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
                          , grid=(1,14), gridSpan=(1,1))
 
     # Main content widgets
@@ -145,7 +145,7 @@ class PeakAssigner(CcpnModule):
     self._updateInterface()
 
     self._settingsScrollArea.setFixedHeight(40)
-    self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
+    self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
     self.closeModule = self._closeModule
 
@@ -193,8 +193,8 @@ class PeakAssigner(CcpnModule):
     """
     Creates an assignment widget consisting of three PulldownLists.
     """
-    newAssignmentWidget = QtGui.QWidget()
-    newLayout = QtGui.QGridLayout()
+    newAssignmentWidget = QtWidgets.QWidget()
+    newLayout = QtWidgets.QGridLayout()
     chainLabel = Label(self, 'Chain', hAlign='c')
     seqCodeLabel = Label(self, 'Sequence', hAlign='c')
     atomTypeLabel = Label(self, 'Atom', hAlign='c')
@@ -310,8 +310,8 @@ class PeakAssigner(CcpnModule):
       self.selectionLayout.takeAt(0)
 
     for pair in self.widgetItems:
-      widget = QtGui.QWidget(self)
-      layout = QtGui.QGridLayout()
+      widget = QtWidgets.QWidget(self)
+      layout = QtWidgets.QGridLayout()
       #layout.setSpacing(10)
       #layout.setMargin(5)
       #layout.setContentsMargins(4, 4, 4, 4)

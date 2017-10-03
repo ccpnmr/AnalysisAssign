@@ -27,7 +27,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 
 import typing
 from collections import OrderedDict
-from PyQt4 import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
 from ccpn.core.ChemicalShift import ChemicalShift
@@ -119,7 +119,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                      )
     self._setupShiftDicts()
     self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
                          , grid=(row+1,10), gridSpan=(1,1))
 
     # for compatibility with previous implementation
