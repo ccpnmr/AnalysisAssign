@@ -123,12 +123,16 @@ class PeakAssigner(CcpnModule):
                          , grid=(1,14), gridSpan=(1,1))
 
     # Main content widgets
-    self.peakLabel = Label(self.mainWidget, text='Peak:', bold=True, grid=(0,0), vAlign='center', margins=[2,5,2,5])
-    self.selectionFrame = Frame(self.mainWidget, showBorder=True, fShape='noFrame', grid=(1, 0), vAlign='top')
-    self.selectionLayout = QtWidgets.QGridLayout()
-    self.selectionLayout.setSpacing(0)
-    self.selectionLayout.setContentsMargins(0, 0, 0, 0)
-    self.selectionFrame.setLayout(self.selectionLayout)
+    self.peakLabel = Label(self.mainWidget, text='Peak:', bold=True, grid=(0,0), margins=[2,5,2,5])
+
+    self.selectionFrame = Frame(self.mainWidget, setLayout=True
+                                , showBorder=False, fShape='noFrame'
+                                , grid=(1, 0), vAlign='top'
+                                , hPolicy='minimumexpanding', vPolicy='minimumexpanding')
+    self.selectionLayout = self.selectionFrame.layout()         # QtWidgets.QGridLayout()
+    # self.selectionLayout.setSpacing(0)
+    # self.selectionLayout.setContentsMargins(0, 0, 0, 0)
+    # self.selectionFrame.setLayout(self.selectionLayout)
 
     # respond to peaks
     self.current.registerNotify(self._updateInterface, 'peaks')
@@ -137,8 +141,8 @@ class PeakAssigner(CcpnModule):
 
     self._updateInterface()
 
-    self._settingsScrollArea.setFixedHeight(40)
-    self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+    self._settingsScrollArea.setMaximumHeight(35)
+    # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
     self.closeModule = self._closeModule
 

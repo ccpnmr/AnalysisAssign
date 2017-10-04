@@ -41,7 +41,7 @@ from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
-from ccpn.ui.gui.guiSettings import textFont, textFontBold, textFontLarge
+from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
@@ -152,7 +152,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     self.project = self.mainWindow.project
     self.current = self.mainWindow.application.current
 
-    self.setFont(textFont)
+    self.setFont(textFontSmall)
     if self.project._appBase.colourScheme == 'dark':
       self.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
     elif self.project._appBase.colourScheme == 'light':
@@ -197,7 +197,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
           #TODO:ED get rid of _appBase
           dragLabel = QtWidgets.QLabel()
           dragLabel.setText(self.toPlainText())
-          dragLabel.setFont(textFontLarge)
+          dragLabel.setFont(textFont)
           if nmrItem.nmrResidue.project._appBase.colourScheme == 'dark':
             dragLabel.setStyleSheet('color : #F7FFFF')
           elif nmrItem.nmrResidue.project._appBase.colourScheme == 'light':
@@ -921,7 +921,7 @@ class SequenceGraphModule(CcpnModule):
         predictionLabel.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
       elif self.project._appBase.colourScheme == 'light':
         predictionLabel.setDefaultTextColor(QtGui.QColor('#555D85'))
-      predictionLabel.setFont(textFontBold)
+      predictionLabel.setFont(textFontSmallBold)
       predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
                              caAtom.y()+(30*(predictions.index(prediction)+2)))
       self.scene.addItem(predictionLabel)
