@@ -642,13 +642,13 @@ class SequenceGraphModule(CcpnModule):
   def unlinkNearestNmrResidue(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.pid)
     if self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
-      with progressManager('unlinking Previous NmrResidue to:\n ' + selected):
+      with progressManager(self.mainWindow, 'unlinking Previous NmrResidue to:\n ' + selected):
         try:
           self.current.nmrResidue.unlinkPreviousNmrResidue()
         except Exception as es:
           showWarning(str(self.windowTitle()), str(es))
     elif self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
-      with progressManager('unlinking Next NmrResidue to:\n ' + selected):
+      with progressManager(self.mainWindow, 'unlinking Next NmrResidue to:\n ' + selected):
         try:
           self.current.nmrResidue.unlinkNextNmrResidue()
         except Exception as es:
@@ -659,7 +659,7 @@ class SequenceGraphModule(CcpnModule):
 
   def disconnectPreviousNmrResidue(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.pid)
-    with progressManager('disconnecting Previous NmrResidue to:\n '+selected):
+    with progressManager(self.mainWindow, 'disconnecting Previous NmrResidue to:\n '+selected):
       try:
         self.current.nmrResidue.disconnectPrevious()
       except Exception as es:
@@ -672,7 +672,7 @@ class SequenceGraphModule(CcpnModule):
 
   def disconnectNmrResidue(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.pid)
-    with progressManager('disconnecting NmrResidue:\n '+selected):
+    with progressManager(self.mainWindow, 'disconnecting NmrResidue:\n '+selected):
       try:
         self.current.nmrResidue.disconnect()
       except Exception as es:
@@ -685,7 +685,7 @@ class SequenceGraphModule(CcpnModule):
 
   def disconnectNextNmrResidue(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.pid)
-    with progressManager('disconnecting Next NmrResidue to:\n '+selected):
+    with progressManager(self.mainWindow, 'disconnecting Next NmrResidue to:\n '+selected):
       try:
         self.current.nmrResidue.disconnectNext()
       except Exception as es:
@@ -698,7 +698,7 @@ class SequenceGraphModule(CcpnModule):
 
   def disconnectAllNmrResidues(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.pid)
-    with progressManager('disconnecting all NmrResidues connected to:\n '+selected):
+    with progressManager(self.mainWindow, 'disconnecting all NmrResidues connected to:\n '+selected):
       try:
         self.current.nmrResidue.disconnectAll()
       except Exception as es:
@@ -711,7 +711,7 @@ class SequenceGraphModule(CcpnModule):
 
   def deassignNmrChain(self, selectedNmrResidue=None):
     selected = str(self.current.nmrResidue.nmrChain.pid)
-    with progressManager('deassigning nmrResidues in NmrChain:\n '+selected):
+    with progressManager(self.mainWindow, 'deassigning nmrResidues in NmrChain:\n '+selected):
       try:
         self.current.nmrResidue.deassignNmrChain()
       except Exception as es:

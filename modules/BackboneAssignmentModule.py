@@ -297,7 +297,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     else:
       progressText = "connecting  %s  <  %s" % (nmrResidue.pid, droppedNmrResidue.pid)
 
-    with progressManager(progressText):
+    with progressManager(self.mainWindow, progressText):
       nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
       try:
 
