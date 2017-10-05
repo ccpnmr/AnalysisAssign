@@ -185,9 +185,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
               # NB connections are made as connectPrevious / connectNext to passed-in NmrResidue
               # It follows that it IS the mainNMr Residue that should be passed in here
               # Note, though, that you get teh same connections WHICHEVER strip you drop on
-              notifier = GuiNotifier(strip.getStripLabel(),
-                                     [GuiNotifier.DROPEVENT], [DropBase.TEXT],
-                                     self._processDroppedNmrResidue, nmrResidue=nr)
+              notifier = GuiNotifier(strip.getStripLabel()
+                                     , [GuiNotifier.DROPEVENT], [DropBase.TEXT]
+                                     , self._processDroppedNmrResidue
+                                     , nmrResidue=self.project.getByPid(strip.getStripLabel().text()))
               self._stripNotifiers.append(notifier)
 
             strip.spectrumDisplay.setColumnStretches(True)
@@ -277,11 +278,26 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       getLogger().warning('Cannot connect residue to itself')
       return
 
+    allNmrResidues = nmrResidue._getAllConnectedList()
+    if data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) != 0:
+      showWarning(str(self.windowTitle()),'Illegal connection, must be on the first nmrResidue of the nmrChain')
+      getLogger().warning('Illegal conection, must be on the first nmrResidue of the nmrChain')
+      return
+    if not data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) != (len(allNmrResidues)-1):
+      showWarning(str(self.windowTitle()),'Illegal connection, must be on the last nmrResidue of the nmrChain')
+      getLogger().warning('Illegal conection, must be on the last nmrResidue of the nmrChain')
+      return
+
     # silence the update of the nmrResidueTable as we will to an explicit update later
     # put in try/finally block because otherwise if exception thrown in the following code
     # (which can happen) then you no longer get updates of the NmrResidue table
 
-    with progressManager("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid)):
+    if data['shiftLeftMouse']:
+      progressText = "connecting  %s  >  %s" % (droppedNmrResidue.pid, nmrResidue.pid)
+    else:
+      progressText = "connecting  %s  <  %s" % (nmrResidue.pid, droppedNmrResidue.pid)
+
+    with progressManager(progressText):
       nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
       try:
 
