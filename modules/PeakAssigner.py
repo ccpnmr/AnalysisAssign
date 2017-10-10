@@ -123,12 +123,19 @@ class PeakAssigner(CcpnModule):
                          , grid=(1,14), gridSpan=(1,1))
 
     # Main content widgets
-    self.peakLabel = Label(self.mainWidget, text='Peak:', bold=True, grid=(0,0), vAlign='center', margins=[2,5,2,5])
-    self.selectionFrame = Frame(self.mainWidget, showBorder=True, fShape='noFrame', grid=(1, 0), vAlign='top')
-    self.selectionLayout = QtGui.QGridLayout()
-    self.selectionLayout.setSpacing(0)
-    self.selectionLayout.setContentsMargins(0, 0, 0, 0)
-    self.selectionFrame.setLayout(self.selectionLayout)
+    self.selectionFrame = Frame(self.mainWidget, setLayout=True, spacing=(0,0)
+                                , showBorder=False, fShape='noFrame'
+                                , grid=(0, 0), vAlign='top'
+                                , hPolicy='expanding', vPolicy='expanding')
+    self.peakLabel = Label(self.mainWidget, setLayout=True
+                            , text='Peak:', bold=True
+                            , grid=(0,0), margins=[2,5,2,5], hAlign='left', vAlign='top'
+                            , hPolicy = 'fixed', vPolicy = 'fixed')
+
+    self.selectionLayout = self.selectionFrame.layout()
+    # self.selectionLayout.setSpacing(0)
+    # self.selectionLayout.setContentsMargins(0, 0, 0, 0)
+    # self.selectionFrame.setLayout(self.selectionLayout)
 
     # respond to peaks
     self.current.registerNotify(self._updateInterface, 'peaks')
@@ -299,6 +306,9 @@ class PeakAssigner(CcpnModule):
     self.widgetItems = list(zip(self.labels[:Ndimensions], self.listWidgets[:Ndimensions],
                     self.assignmentWidgets[:Ndimensions], self.objectTables[:Ndimensions]))
 
+    while self.selectionLayout.count():  # clear the layout and store
+      self.selectionLayout.takeAt(0)
+
     for pair in self.widgetItems:
       widget = QtGui.QWidget(self)
       layout = QtGui.QGridLayout()
@@ -307,16 +317,18 @@ class PeakAssigner(CcpnModule):
       #layout.setContentsMargins(4, 4, 4, 4)
       layout.setSpacing(2)
       layout.setMargin(1)
-      layout.setContentsMargins(2, 1, 2, 1)
+      layout.setContentsMargins(2, 25, 2, 1)
       layout.addWidget(pair[0], 0, 0, 1, 1)
       layout.addWidget(pair[1], 1, 0, 2, 1)
       layout.addWidget(pair[2], 1, 1, 2, 1)
-      layout.addWidget(pair[3], 3, 0, 1, 2)
+      layout.addWidget(pair[3], 3, 0, 4, 2)
       pair[2].setStyleSheet("PulldownList {border: 0px solid;}")
       pair[2].setStyleSheet("border: 0px solid")
       pair[3].setStyleSheet("color: black; border: 0px solid;")
+
       widget.setLayout(layout)
-      self.widgets.append(widget)
+      # self.widgets.append(widget)
+
       self.selectionLayout.addWidget(widget, 0, self.widgetItems.index(pair))
     #
     self._updateLayout(self.selectionLayout, Ndimensions)
@@ -330,12 +342,15 @@ class PeakAssigner(CcpnModule):
     """
     self._emptyAllTablesAndLists()
     if not self.current.peaks or not self._peaksAreCompatible():
-      return
-    self.peakLabel.setText('Peak: %s' % self.current.peak.id)
-    self._createEnoughTablesAndLists()
-    self._updateTables()
-    self._updateAssignedNmrAtomsListwidgets()
-    self._updateWidgetLabels()
+      # hide the table
+      self.selectionFrame.hide()
+    else:
+      self.peakLabel.setText('Peak: %s' % self.current.peak.id)
+      self._createEnoughTablesAndLists()
+      self._updateTables()
+      self._updateAssignedNmrAtomsListwidgets()
+      self._updateWidgetLabels()
+      self.selectionFrame.show()
 
   def _updateWidgetLabels(self):
 
