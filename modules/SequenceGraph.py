@@ -427,13 +427,13 @@ class SequenceGraphModule(CcpnModule):
     self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
-    self.disconnectPreviousIcon = Icon('icons/previous')
+    self.disconnectPreviousIcon = Icon('icons/previous2')
     self.disconnectPreviousAction.setIcon(self.disconnectPreviousIcon)
     self.disconnectAction = self.editingToolbar.addAction("disconnect", self.disconnectNmrResidue)
     self.disconnectIcon = Icon('icons/minus')
     self.disconnectAction.setIcon(self.disconnectIcon)
     self.disconnectNextAction = self.editingToolbar.addAction("disconnectNext", self.disconnectNextNmrResidue)
-    self.disconnectNextIcon = Icon('icons/next')
+    self.disconnectNextIcon = Icon('icons/next2')
     self.disconnectNextAction.setIcon(self.disconnectNextIcon)
     #self.editingToolbar.hide()
 
