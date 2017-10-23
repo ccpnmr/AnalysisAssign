@@ -144,8 +144,8 @@ class PeakAssigner(CcpnModule):
 
     self._updateInterface()
 
-    self._settingsScrollArea.setFixedHeight(40)
-    self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+    self._settingsScrollArea.setMaximumHeight(35)
+    # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
     self.closeModule = self._closeModule
 
