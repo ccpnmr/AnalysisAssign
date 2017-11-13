@@ -939,13 +939,14 @@ class SequenceGraphModule(CcpnModule):
     """
     from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
 
-    possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
-                      self.project.chains[0], self.project.chemicalShiftLists[0])
+    if self.project.chains and self.project.chemicalShiftLists:
+      possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
+                        self.project.chains[0], self.project.chemicalShiftLists[0])
 
-    for possibleMatch in possibleMatches:
-      if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
-        if hasattr(self.project._appBase, 'sequenceModule'):
-          self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+      for possibleMatch in possibleMatches:
+        if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
+          if hasattr(self.project._appBase, 'sequenceModule'):
+            self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
   def _updateShowTreeAssignments(self, peak=None):
     nmrChainPid = self.nmrChainPulldown.getText()
