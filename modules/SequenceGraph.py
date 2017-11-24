@@ -650,87 +650,93 @@ class SequenceGraphModule(CcpnModule):
     super(SequenceGraphModule, self)._closeModule()
 
   def unlinkNearestNmrResidue(self, selectedNmrResidue=None):
-    selected = str(self.current.nmrResidue.pid)
-    if self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
-      with progressManager(self.mainWindow, 'unlinking Previous NmrResidue to:\n ' + selected):
-        try:
-          self.current.nmrResidue.unlinkPreviousNmrResidue()
-        except Exception as es:
-          showWarning(str(self.windowTitle()), str(es))
-    elif self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
-      with progressManager(self.mainWindow, 'unlinking Next NmrResidue to:\n ' + selected):
-        try:
-          self.current.nmrResidue.unlinkNextNmrResidue()
-        except Exception as es:
-          showWarning(str(self.windowTitle()), str(es))
-
     if self.current.nmrResidue:
-      self._updateShownAssignments()
+      selected = str(self.current.nmrResidue.pid)
+      if self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
+        with progressManager(self.mainWindow, 'unlinking Previous NmrResidue to:\n ' + selected):
+          try:
+            self.current.nmrResidue.unlinkPreviousNmrResidue()
+          except Exception as es:
+            showWarning(str(self.windowTitle()), str(es))
+      elif self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
+        with progressManager(self.mainWindow, 'unlinking Next NmrResidue to:\n ' + selected):
+          try:
+            self.current.nmrResidue.unlinkNextNmrResidue()
+          except Exception as es:
+            showWarning(str(self.windowTitle()), str(es))
+
+      if self.current.nmrResidue:
+        self._updateShownAssignments()
 
   def disconnectPreviousNmrResidue(self, selectedNmrResidue=None):
-    selected = str(self.current.nmrResidue.pid)
-    with progressManager(self.mainWindow, 'disconnecting Previous NmrResidue to:\n '+selected):
-      try:
-        self.current.nmrResidue.disconnectPrevious()
-      except Exception as es:
-        showWarning(str(self.windowTitle()), str(es))
-
     if self.current.nmrResidue:
-      self._updateShownAssignments()
-      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    ###self.updateNmrResidueTable()
+      selected = str(self.current.nmrResidue.pid)
+      with progressManager(self.mainWindow, 'disconnecting Previous NmrResidue to:\n '+selected):
+        try:
+          self.current.nmrResidue.disconnectPrevious()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+
+      if self.current.nmrResidue:
+        self._updateShownAssignments()
+        # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      ###self.updateNmrResidueTable()
 
   def disconnectNmrResidue(self, selectedNmrResidue=None):
-    selected = str(self.current.nmrResidue.pid)
-    with progressManager(self.mainWindow, 'disconnecting NmrResidue:\n '+selected):
-      try:
-        self.current.nmrResidue.disconnect()
-      except Exception as es:
-        showWarning(str(self.windowTitle()), str(es))
-
     if self.current.nmrResidue:
-      self._updateShownAssignments()
-      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    #self.updateNmrResidueTable()
+      selected = str(self.current.nmrResidue.pid)
+      with progressManager(self.mainWindow, 'disconnecting NmrResidue:\n '+selected):
+        try:
+          self.current.nmrResidue.disconnect()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+
+      if self.current.nmrResidue:
+        self._updateShownAssignments()
+        # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      #self.updateNmrResidueTable()
 
   def disconnectNextNmrResidue(self, selectedNmrResidue=None):
-    selected = str(self.current.nmrResidue.pid)
-    with progressManager(self.mainWindow, 'disconnecting Next NmrResidue to:\n '+selected):
-      try:
-        self.current.nmrResidue.disconnectNext()
-      except Exception as es:
-        showWarning(str(self.windowTitle()), str(es))
-
     if self.current.nmrResidue:
-      self._updateShownAssignments()
-      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    #self.updateNmrResidueTable()
+      selected = str(self.current.nmrResidue.pid)
+      with progressManager(self.mainWindow, 'disconnecting Next NmrResidue to:\n '+selected):
+        try:
+          self.current.nmrResidue.disconnectNext()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+
+      if self.current.nmrResidue:
+        self._updateShownAssignments()
+        # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      #self.updateNmrResidueTable()
 
   def disconnectAllNmrResidues(self, selectedNmrResidue=None):
-    selected = str(self.current.nmrResidue.pid)
-    with progressManager(self.mainWindow, 'disconnecting all NmrResidues connected to:\n '+selected):
-      try:
-        self.current.nmrResidue.disconnectAll()
-      except Exception as es:
-        showWarning(str(self.windowTitle()), str(es))
-
     if self.current.nmrResidue:
-      self._updateShownAssignments()
-      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    #self.updateNmrResidueTable()
+      selected = str(self.current.nmrResidue.pid)
+      with progressManager(self.mainWindow, 'disconnecting all NmrResidues connected to:\n '+selected):
+        try:
+          self.current.nmrResidue.disconnectAll()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+
+      if self.current.nmrResidue:
+        self._updateShownAssignments()
+        # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      #self.updateNmrResidueTable()
 
   def deassignNmrChain(self, selectedNmrResidue=None):
-    selected = str(self.current.nmrResidue.nmrChain.pid)
-    with progressManager(self.mainWindow, 'deassigning nmrResidues in NmrChain:\n '+selected):
-      try:
-        self.current.nmrResidue.deassignNmrChain()
-      except Exception as es:
-        showWarning(str(self.windowTitle()), str(es))
-
     if self.current.nmrResidue:
-      self._updateShownAssignments()
-      # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
-    #self.updateNmrResidueTable()
+      selected = str(self.current.nmrResidue.nmrChain.pid)
+      with progressManager(self.mainWindow, 'deassigning nmrResidues in NmrChain:\n '+selected):
+        try:
+          self.current.nmrResidue.deassignNmrChain()
+        except Exception as es:
+          showWarning(str(self.windowTitle()), str(es))
+
+      if self.current.nmrResidue:
+        self._updateShownAssignments()
+        # self.setNmrChainDisplay(self.current.nmrResidue.nmrChain.pid)
+      #self.updateNmrResidueTable()
 
   def _resetNmrResiduePidForAssigner(self, data):      #nmrResidue, oldPid:str):
     """Reset pid for NmrResidue and all offset NmrResidues"""
