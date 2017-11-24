@@ -299,6 +299,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     with progressManager(self.mainWindow, progressText):
       nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
+
       try:
 
         self.nmrResidueTable.setUpdateSilence(True)
