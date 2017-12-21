@@ -141,6 +141,7 @@ class PeakAssigner(CcpnModule):
     self.current.registerNotify(self._updateInterface, 'peaks')
     self.current.registerNotify(self._updateInterface, 'nmrAtoms')
     self.project.registerNotifier('NmrAtom', 'change', self.update)   # just refresh the table
+    self.project.registerNotifier('NmrResidue', 'change', self.update)   # just refresh the table
 
     self._updateInterface()
 
@@ -153,6 +154,7 @@ class PeakAssigner(CcpnModule):
     self.current.unRegisterNotify(self._updateInterface, 'peaks')
     self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
     self.project.unRegisterNotifier('NmrAtom', 'change', self.update)
+    self.project.unRegisterNotifier('NmrResidue', 'change', self.update)
 
   def __del__(self):
     self._unregisterNotifiers()
