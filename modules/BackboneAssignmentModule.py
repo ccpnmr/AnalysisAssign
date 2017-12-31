@@ -127,6 +127,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     self._stripNotifiers = []  # list to store GuiNotifiers for strips
 
+    self.nmrResidueTable._setWidgetHeight(48)
+
   def _getDisplays(self):
     "return list of displays to navigate"
     displays = []

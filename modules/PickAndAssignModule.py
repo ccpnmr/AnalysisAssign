@@ -139,6 +139,7 @@ class PickAndAssignModule(NmrResidueTableModule):
            , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
            , grid=(rows,cols), gridSpan=(1,1))
 
+    self.nmrResidueTable._setWidgetHeight(40)
 
   def _closeModule(self):
     """
