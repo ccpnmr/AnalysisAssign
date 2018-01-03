@@ -453,6 +453,14 @@ class SequenceGraphModule(CcpnModule):
     if nmrChain is not None:
       self.selectSequence(nmrChain)
 
+    # # connect to SequenceModule
+    # from ccpn.ui.gui.modules.SequenceModule import SequenceModule
+    # seqMods = [sm for sm in SequenceModule.getinstances()]
+    #
+    # # populate if the sequenceModule has an nmrChain attached
+    # if seqMods:
+    #   self.selectSequence(seqMods[0].nmrChain)
+
   def selectSequence(self, nmrChain=None):
     """
     Manually select a Sequence from the pullDown
@@ -495,11 +503,12 @@ class SequenceGraphModule(CcpnModule):
                                       , Spectrum.__name__
                                       , self._updateShownAssignments)
 
-    # self._nmrChainNotifier = Notifier(self.project
-    #                                     , [Notifier.CREATE, Notifier.DELETE]
-    #                                     , NmrChain.__name__
-    #                                     , self._updateShownAssignments()
-    #                                     , onceOnly=True)
+    # notifier for changing the selected chain
+    self._nmrChainNotifier = Notifier(self.project
+                                        , [Notifier.CHANGE, Notifier.DELETE]
+                                        , NmrChain.__name__
+                                        , self._updateShownAssignments
+                                        , onceOnly=True)
 
   def _unRegisterNotifiers(self):
     # self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
@@ -513,8 +522,8 @@ class SequenceGraphModule(CcpnModule):
       self._peakNotifier.unRegister()
     if self._spectrumNotifier:
       self._spectrumNotifier.unRegister()
-    # if self._nmrChainNotifier:
-    #   self._nmrChainNotifier.unRegister()
+    if self._nmrChainNotifier:
+      self._nmrChainNotifier.unRegister()
 
   def _repopulateModule(self):
     """
@@ -629,6 +638,7 @@ class SequenceGraphModule(CcpnModule):
       self.application._endCommandBlock()      # should match the start block
 
     self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
+    self.nmrChain = nmrChain
 
   def resetSequenceGraph(self):
 

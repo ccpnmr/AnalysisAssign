@@ -141,6 +141,17 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
     return displays
 
+  def navigateToNmrResidueCallBack(self, data):
+    """
+    Navigate in selected displays to nmrResidue; skip if none defined
+    """
+    from ccpn.core.lib.CallBack import CallBack
+
+    nmrResidue = data[CallBack.OBJECT]
+    row = data[CallBack.ROW]
+    col = data[CallBack.COL]
+    self.navigateToNmrResidue(nmrResidue, row=row, col=col)
+
   def navigateToNmrResidue(self, nmrResidue, row=None, col=None):
     """
     Navigate in selected displays to nmrResidue; skip if no displays defined
