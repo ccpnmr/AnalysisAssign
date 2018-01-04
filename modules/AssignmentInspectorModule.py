@@ -297,6 +297,7 @@ class AssignmentInspectorModule(CcpnModule):
       peaks = list(set([pk for nmrAtom in self.application.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
 
       self.project.blankNotification()
+      objs = self.assignedPeaksTable.getSelectedObjects()
       self._dataFrameObject = self.assignedPeaksTable.getDataFrameFromList(table=self.assignedPeaksTable
                                                                            , buildList=peaks
                                                                            , colDefs=self.getColumns()
@@ -304,6 +305,7 @@ class AssignmentInspectorModule(CcpnModule):
 
       # populate from the Pandas dataFrame inside the dataFrameObject
       self.assignedPeaksTable.setTableFromDataFrameObject(dataFrameObject=self._dataFrameObject)
+      self.assignedPeaksTable._highLightObjs(objs)
       self.project.unblankNotification()
 
       # self.assignedPeaksTable.setObjects(peaks)
@@ -317,6 +319,7 @@ class AssignmentInspectorModule(CcpnModule):
       if nmrAtom is not None:
 
         self.project.blankNotification()
+        objs = self.assignedPeaksTable.getSelectedObjects()
         self._dataFrameObject = self.assignedPeaksTable.getDataFrameFromList(table=self.assignedPeaksTable
                                                           , buildList=nmrAtom.assignedPeaks
                                                           , colDefs=self.getColumns()
@@ -324,6 +327,7 @@ class AssignmentInspectorModule(CcpnModule):
 
         # populate from the Pandas dataFrame inside the dataFrameObject
         self.assignedPeaksTable.setTableFromDataFrameObject(dataFrameObject=self._dataFrameObject)
+        self.assignedPeaksTable._highLightObjs(objs)
         self.project.unblankNotification()
 
         # self.assignedPeaksTable.setObjects(nmrAtom.assignedPeaks)
