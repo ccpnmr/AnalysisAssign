@@ -43,6 +43,8 @@ from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.core.lib.peakUtils import getPeakPosition, getPeakAnnotation
 from ccpn.core.lib.Notifiers import Notifier
+from ccpn.core.NmrAtom import NmrAtom, NmrResidue
+from ccpn.core.Peak import Peak
 
 logger = getLogger()
 ALL = '<all>'
@@ -58,6 +60,8 @@ class AssignmentInspectorModule(CcpnModule):
 
   # overide in specific module implementations
   className = 'AssignmentInspectorModule'
+  attributeName = 'peaks'
+
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   Position = 'top'
@@ -170,23 +174,24 @@ class AssignmentInspectorModule(CcpnModule):
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
 
-    self._registerNotifiers()
+    # self._registerNotifiers()
 
     # update if current.nmrResidue is defined
     if self.application.current.nmrResidue is not None:
       self._updateModuleCallback([self.application.current.nmrResidue])
 
     # set the required table notifiers
-    # self.setTableNotifiers(tableClass=NmrChain
-    #                        , rowClass=NmrResidue
-    #                        , cellClassNames=(NmrAtom, 'nmrAtom')
-    #                        , tableName='nmrChain', rowName='nmrResidue'
-    #                        , changeFunc=self.displayTableForNmrChain
-    #                        , className=self.attributeName
-    #                        , updateFunc=self._update
-    #                        , tableSelection='nmrChain'
-    #                        , pullDownWidget=self.ncWidget
-    #                        , selectCurrentCallBack=self._selectOnTableCurrentNmrResiduesNotifierCallback)
+    self.assignedPeaksTable.setTableNotifiers(tableClass=None
+                           , rowClass=Peak
+                           , cellClassNames=None
+                           , tableName='peakList', rowName='peak'
+                           , changeFunc=self._refreshTable
+                           , className=self.attributeName
+                           , updateFunc=self._refreshTable
+                           , tableSelection=None    #'nmrChain'
+                           , pullDownWidget=None     #self.ncWidget
+                           , callBackClass=NmrResidue
+                           , selectCurrentCallBack=self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
 
     # install the event filter to handle maximising from floated dock
     self.installMaximiseEventHandler(self._maximise)
@@ -197,35 +202,35 @@ class AssignmentInspectorModule(CcpnModule):
     """
     self._refreshTable()
 
-  def _registerNotifiers(self):
-    # self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
-    # self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
-    # self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
-
-    self._updateNotifier = Notifier(self.current
-                                    , triggers=[Notifier.CURRENT]
-                                    , targetName='nmrResidues'
-                                    , callback=self._updateModuleCallback)
-    self._nmrAtomNotifier = Notifier(self.project
-                                     , triggers=[Notifier.CHANGE]
-                                     , targetName='NmrAtom'
-                                     , callback=self._refreshTable)
-    self._peakNotifier = Notifier(self.project
-                                  , triggers=[Notifier.CHANGE]
-                                  , targetName='Peak'
-                                  , callback=self._refreshTable)
-
-  def _unregisterNotifiers(self):
-    # self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
-    # self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
-    # self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
-
-    if self._updateNotifier:
-      self._updateNotifier.unRegister()
-    if self._nmrAtomNotifier:
-      self._nmrAtomNotifier.unRegister()
-    if self._peakNotifier:
-      self._peakNotifier.unRegister()
+  # def _registerNotifiers(self):
+  #   # self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
+  #   # self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
+  #   # self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
+  #
+  #   self._updateNotifier = Notifier(self.current
+  #                                   , triggers=[Notifier.CURRENT]
+  #                                   , targetName='nmrResidues'
+  #                                   , callback=self._updateModuleCallback)
+  #   self._nmrAtomNotifier = Notifier(self.project
+  #                                    , triggers=[Notifier.CHANGE]
+  #                                    , targetName='NmrAtom'
+  #                                    , callback=self._refreshTable)
+  #   self._peakNotifier = Notifier(self.project
+  #                                 , triggers=[Notifier.CHANGE]
+  #                                 , targetName='Peak'
+  #                                 , callback=self._refreshTable)
+  #
+  # def _unregisterNotifiers(self):
+  #   # self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
+  #   # self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
+  #   # self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
+  #
+  #   if self._updateNotifier:
+  #     self._updateNotifier.unRegister()
+  #   if self._nmrAtomNotifier:
+  #     self._nmrAtomNotifier.unRegister()
+  #   if self._peakNotifier:
+  #     self._peakNotifier.unRegister()
 
   def _refreshTable(self, *args):
     self.assignedPeaksTable.update()
@@ -259,10 +264,10 @@ class AssignmentInspectorModule(CcpnModule):
 
         # # clear and fill the peak table
         # self.assignedPeaksTable.setObjects([])
-        # if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
-        #   self._updatePeakTable(self.application.current.nmrAtom.id)
-        # else:
-        #   self._updatePeakTable(ALL)
+        if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
+          self._updatePeakTable(self.application.current.nmrAtom.id)
+        else:
+          self._updatePeakTable(ALL)
 
         # new to populate table
       else:
