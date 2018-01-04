@@ -454,9 +454,9 @@ class SequenceGraphModule(CcpnModule):
       self.selectSequence(nmrChain)
 
     # # connect to SequenceModule
-    # from ccpn.ui.gui.modules.SequenceModule import SequenceModule
-    # seqMods = [sm for sm in SequenceModule.getinstances()]
-    #
+    from ccpn.ui.gui.modules.SequenceModule import SequenceModule
+    seqMods = [sm for sm in SequenceModule.getinstances()]
+
     # # populate if the sequenceModule has an nmrChain attached
     # if seqMods:
     #   self.selectSequence(seqMods[0].nmrChain)
@@ -634,6 +634,8 @@ class SequenceGraphModule(CcpnModule):
       if self.assignmentsCheckBox.isChecked():
         self._getAssignmentsFromSpectra()
 
+    except Exception as es:
+      pass
     finally:
       self.application._endCommandBlock()      # should match the start block
 
