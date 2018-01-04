@@ -131,6 +131,8 @@ class PeakAssigner(CcpnModule):
                             , text='Peak:', bold=True
                             , grid=(0,0), margins=[2,5,2,5], hAlign='left', vAlign='top'
                             , hPolicy = 'fixed', vPolicy = 'fixed')
+    Spacer(self.mainWidget, 5, 5, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding
+                         , grid=(5,0), gridSpan=(1,1))
 
     self.selectionLayout = self.selectionFrame.layout()
     # self.selectionLayout.setSpacing(0)
@@ -281,16 +283,14 @@ class PeakAssigner(CcpnModule):
     return pulldownList
 
   def _createEnoughTablesAndLists(self):
-    '''Makes sure there are enough tables for the amount
-       of dimensions of the currently selected peak(s).
-       This method only runs when all peaks have the same
-       amount of dimensions as is guaranteed by running
-       _peaksAreCompatible.py
-
-    '''
-
+    """
+    Makes sure there are enough tables for the amount
+     of dimensions of the currently selected peak(s).
+     This method only runs when all peaks have the same
+     amount of dimensions as is guaranteed by running
+     _peaksAreCompatible.py
+    """
     Ndimensions = len(self.current.peak.position)
-
 
     # Create extra tables if needed.
     for dim in range(len(self.objectTables), Ndimensions):
@@ -331,7 +331,9 @@ class PeakAssigner(CcpnModule):
       widget.setLayout(layout)
       # self.widgets.append(widget)
 
-      self.selectionLayout.addWidget(widget, 0, self.widgetItems.index(pair))
+      # self.selectionLayout.addWidget(widget, 0, self.widgetItems.index(pair))
+      # vertical stacking
+      self.selectionLayout.addWidget(widget, self.widgetItems.index(pair), 0)
     #
     self._updateLayout(self.selectionLayout, Ndimensions)
 
@@ -340,7 +342,6 @@ class PeakAssigner(CcpnModule):
   def _updateInterface(self, peaks:typing.List[Peak]=None):
     """Updates the whole module, including recalculation
        of which nmrAtoms fit to the peaks.
-
     """
     self._emptyAllTablesAndLists()
     if not self.current.peaks or not self._peaksAreCompatible():
