@@ -471,7 +471,7 @@ class PeakAssigner(CcpnModule):
 
         self.currentList.append([str(a.pid) for a in self.nmrAtoms])    # ejb - keep another list
 
-        # TODO:ED poplulate the left set of tables
+        # TODO:ED populate the left set of tables
         self.axisTables[dim].setAssignedTable(self.nmrAtoms)
 
   def _updateNmrAtomsFromListWidgets(self):
@@ -816,7 +816,8 @@ class AxisAssignmentObject(Frame):
                               , actionCallback=partial(self._assignNmrAtomToDim, 0)
                               , selectionCallback=partial(self._updatePulldownLists, 0)
                               , grid=(2,0), gridSpan=(1,1)
-                              , vPolicy='minimumexpanding', hPolicy='minimumexpanding')
+                              , vPolicy='minimumexpanding', hPolicy='minimumexpanding'
+                              , acceptDrops=True)
 
                   , QuickTable(parent=self
                               , mainWindow=mainWindow
@@ -825,7 +826,8 @@ class AxisAssignmentObject(Frame):
                               , autoResize=True, multiSelect=False
                               , actionCallback=partial(self._assignNmrAtomToDim, 1)
                               , selectionCallback=partial(self._updatePulldownLists, 1)
-                              , grid=(2,2), gridSpan=(5,1))
+                              , grid=(2,2), gridSpan=(5,1)
+                              , acceptDrops=True)
                   ]
 
     # add pulldowns for editing new assignment
@@ -886,6 +888,8 @@ class AxisAssignmentObject(Frame):
        peaks.
 
     '''
+
+    # TODO:ED not updated yet
     #### Should be
     objectTable = self.objectTables[dim]
     nmrAtom = objectTable.getCurrentObject()
@@ -919,7 +923,7 @@ class AxisAssignmentObject(Frame):
 
   def _createChainPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
     """
-    Creates a PulldownList with callback.
+    Creates a PulldownList with callback, editable.
     """
     pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan)
     pulldownList.setEditable(True)
@@ -928,20 +932,24 @@ class AxisAssignmentObject(Frame):
 
   def _createPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
     """
-    Creates a PulldownList.
+    Creates a PulldownList with a callback, editable.
     """
     pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan)
     pulldownList.setEditable(True)
+    pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
     return pulldownList
 
   def _addItemToPulldown(self, pulldown:object):
     """
-    Generic function to add items to pulldown list if text in pulldown list widget is changed
+    Add items to pulldown list if changed
     """
     if pulldown.lineEdit().isModified():
-      text = pulldown.lineEdit().text()
-      if text not in pulldown.texts:
-        pulldown.addItem(text)
+      text = pulldown.currentText()
+      if text and text not in pulldown.texts:
+
+        # TODO:ED this is old, should be able to delete
+        # pulldown.addItem(text)
+        pass
 
   # def _createNewNmrAtom(self, dim):
   #   isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
