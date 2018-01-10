@@ -840,12 +840,19 @@ class AxisAssignmentObject(Frame):
     self.project = mainWindow.application.project
     self.current = mainWindow.application.current
 
+    # TODO:ED change divider at the top
+    row = 0
+    self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=QtCore.Qt.lightGray, height=10)
+
     # add the labelling to the top of the frame
-    self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(0,0))
-    self._assignmentsLabel = Label(self, 'Assignments', hAlign='l', grid=(1,0))
-    self._alternativesLabel = Label(self, 'Alternatives', hAlign='l', grid=(1,2))
+    row += 1
+    self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(row,0))
+    row += 1
+    self._assignmentsLabel = Label(self, 'Assignments', hAlign='l', grid=(row,0))
+    self._alternativesLabel = Label(self, 'Alternatives', hAlign='l', grid=(row,2))
 
     # add two tables - left is current assignments, right is alternatives
+    row += 1
     self.tables = [QuickTable(parent=self
                               , mainWindow=mainWindow
                               , dataFrameObject=None
@@ -853,7 +860,7 @@ class AxisAssignmentObject(Frame):
                               , autoResize=True, multiSelect=False
                               , actionCallback=partial(self._assignDeassignNmrAtom, 0)
                               , selectionCallback=partial(self._updatePulldownLists, 0)
-                              , grid=(2,0), gridSpan=(1,1)
+                              , grid=(row,0), gridSpan=(1,1)
                               , stretchLastSection=False
                               , acceptDrops=True)
 
@@ -864,7 +871,7 @@ class AxisAssignmentObject(Frame):
                               , autoResize=True, multiSelect=False
                               , actionCallback=partial(self._assignDeassignNmrAtom, 1)
                               , selectionCallback=partial(self._updatePulldownLists, 1)
-                              , grid=(2,2), gridSpan=(5,1)
+                              , grid=(row,2), gridSpan=(7,1)
                               , stretchLastSection=False
                               , acceptDrops=True)
                   ]
@@ -890,11 +897,17 @@ class AxisAssignmentObject(Frame):
                            , pullDownWidget=None
                            , callBackClass=NmrAtom)
 
+    # add a spacer to pad out the middle
+    row += 1
+    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.MinimumExpanding
+          , grid=(row,1), gridSpan=(1,1))
+
     # add pulldowns for editing new assignment
+    row += 1
     self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(0,0)
                                 , showBorder=False, fShape='noFrame'
                                 , vAlign='top'
-                                , grid=(3,0), gridSpan=(1,1))
+                                , grid=(row,0), gridSpan=(1,1))
 
     chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='l', grid=(0,0))
     seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='l', grid=(0,1))
@@ -920,20 +933,17 @@ class AxisAssignmentObject(Frame):
     # self.pulldownFrame.hide()
 
     # add a spacer to balance the frame
-    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.MinimumExpanding
-          , grid=(4,1), gridSpan=(1,1))
-
-    self.buttonList = ButtonList(parent=self, texts=['New', 'Deassign', 'Assign']
-                                 , callbacks=[partial(parentModule._createNewNmrAtom, index)
+    row += 1
+    self.buttonList = ButtonList(parent=self, texts=['New', 'Delete', 'Deassign', 'Assign']
+                                 , callbacks=[partial(self._createNewNmrAtom, index)
+                                              , partial(self._deleteNmrAtom, index)
                                               , partial(self._deassignNmrAtom, index)
                                               , partial(self._assignNmrAtom, index)]
-                                 , grid=(5,0), gridSpan=(1,1)
+                                 , grid=(row,0), gridSpan=(1,1)
                                  , vPolicy='minimum')
-    self.buttonList.buttons[1].setEnabled(False)
-    self.buttonList.buttons[2].setEnabled(True)
-
-    # TODO:ED change divider
-    self.divider = HLine(self.pulldownFrame, grid=(0,0), colour=QtCore.Qt.lightGray)
+    self.buttonList.setButtonEnabled('Delete', False)
+    self.buttonList.setButtonEnabled('Deassign', False)
+    self.buttonList.setButtonEnabled('Assign', False)
 
     self.layout().setColumnStretch(0, 1)
     self.layout().setColumnStretch(1, 0)
@@ -989,6 +999,7 @@ class AxisAssignmentObject(Frame):
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
+    pulldownList.lineEdit().editingFinished.connect(partial(self._pulldownEdited, pulldownList))
     return pulldownList
 
   def _createPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
@@ -1013,28 +1024,36 @@ class AxisAssignmentObject(Frame):
         # pulldown.addItem(text)
         pass
 
-  # def _createNewNmrAtom(self, dim):
-  #   isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
-  #   nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
-  #                                          ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
-  #
-  #   self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
-  #   try:
-  #
-  #     for peak in self.current.peaks:
-  #       if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-  #         # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
-  #
-  #         newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]    # ejb - changed to list
-  #         axisCode = peak.peakList.spectrum.axisCodes[dim]
-  #         peak.assignDimension(axisCode, newAssignments)
-  #     self.listWidgets[dim].addItem(nmrAtom.pid)
-  #     self._updateTables()
-  #
-  #   except Exception as es:
-  #     showWarning(str(self.windowTitle()), str(es))
-  #   finally:
-  #     self.project._endCommandEchoBlock()
+  def _createNewNmrAtom(self, dim):
+    isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
+    nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
+                                           ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
+
+    self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
+    try:
+
+      for peak in self.current.peaks:
+        if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+          # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+
+          newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]    # ejb - changed to list
+          axisCode = peak.peakList.spectrum.axisCodes[dim]
+          peak.assignDimension(axisCode, newAssignments)
+      self.parent._updateInterface()
+
+      # highlight on the table and populate the pulldowns
+      self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+      self._updateAssignmentWidget(0, nmrAtom)
+      self.buttonList.setButtonEnabled('Delete', True)
+      self.buttonList.setButtonEnabled('Deassign', False)
+      self.buttonList.setButtonEnabled('Assign', False)
+
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+    finally:
+      self.project._endCommandEchoBlock()
+
+      # TODO:ED select the new item in the table
 
   def _assignNmrAtom(self, dim:int):
     """
@@ -1076,8 +1095,9 @@ class AxisAssignmentObject(Frame):
 
         # self._updateInterface()
         self.parent._updateInterface()
-        self.buttonList.buttons[1].setEnabled(False)
-        self.buttonList.buttons[2].setEnabled(True)
+        self.buttonList.setButtonEnabled('Delete', True)
+        self.buttonList.setButtonEnabled('Deassign', False)
+        self.buttonList.setButtonEnabled('Assign', True)
 
     except Exception as es:
       showWarning('Assign Peak to NmrAtom', str(es))
@@ -1111,8 +1131,9 @@ class AxisAssignmentObject(Frame):
 
       # self._updateInterface()
       self.parent._updateInterface()
-      self.buttonList.buttons[1].setEnabled(False)
-      self.buttonList.buttons[2].setEnabled(True)
+      self.buttonList.setButtonEnabled('Delete', True)
+      self.buttonList.setButtonEnabled('Deassign', False)
+      self.buttonList.setButtonEnabled('Assign', True)
 
     except Exception as es:
       showWarning('Deassign Peak from NmrAtom', str(es))
@@ -1219,3 +1240,11 @@ class AxisAssignmentObject(Frame):
           self.seqCodePulldown.setIndex(0)
           self.resTypePulldown.setIndex(0)
           self.atomTypePulldown.setIndex(0)
+
+  def _deleteNmrAtom(self, dim:int):
+    """
+    delete selected nmrAtom from project
+    """
+    self.tables[self.index].deleteObjFromTable()
+
+  #TODO:ED add pulldownselections
