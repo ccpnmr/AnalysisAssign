@@ -165,9 +165,9 @@ class PeakAssigner(CcpnModule):
     # respond to peaks
     # TODO:ED check which of these are still needed
     self.current.registerNotify(self._updateInterface, 'peaks')
-    self.current.registerNotify(self._updateInterface, 'nmrAtoms')
-    self.project.registerNotifier('NmrAtom', 'change', self.update)   # just refresh the table
-    self.project.registerNotifier('NmrResidue', 'change', self.update)   # just refresh the table
+    # self.current.registerNotify(self._updateInterface, 'nmrAtoms')
+    # self.project.registerNotifier('NmrAtom', 'change', self._update)   # just refresh the table
+    self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
 
     self._updateInterface()
 
@@ -178,9 +178,13 @@ class PeakAssigner(CcpnModule):
 
   def _unregisterNotifiers(self):
     self.current.unRegisterNotify(self._updateInterface, 'peaks')
-    self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
-    self.project.unRegisterNotifier('NmrAtom', 'change', self.update)
-    self.project.unRegisterNotifier('NmrResidue', 'change', self.update)
+    # self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
+    # self.project.unRegisterNotifier('NmrAtom', 'change', self._update)
+    self.project.unRegisterNotifier('NmrResidue', 'change', self._update)
+    pass
+
+  def _update(self, *args):
+    self._updateInterface()
 
   def __del__(self):
     self._unregisterNotifiers()
@@ -844,7 +848,7 @@ class AxisAssignmentObject(Frame):
 
     # TODO:ED change divider at the top
     row = 0
-    self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=QtCore.Qt.lightGray, height=10)
+    self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=QtCore.Qt.lightGray, height=15)
 
     # add the labelling to the top of the frame
     row += 1
@@ -863,7 +867,7 @@ class AxisAssignmentObject(Frame):
                               , actionCallback=partial(self._assignDeassignNmrAtom, 0)
                               , selectionCallback=partial(self._updatePulldownLists, 0)
                               , grid=(row,0), gridSpan=(1,1)
-                              , stretchLastSection=False
+                              , stretchLastSection=True
                               , acceptDrops=True)
 
                   , QuickTable(parent=self
