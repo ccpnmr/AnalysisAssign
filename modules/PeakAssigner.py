@@ -142,7 +142,6 @@ class PeakAssigner(CcpnModule):
                                 , grid=(1,0), vAlign='top'
                                 , hPolicy='expanding', vPolicy='expanding')
 
-
     # self.axisTables = AxisAssignmentObject(self, index=0
     #                                       , parent=self.mainWidget
     #                                       , mainWindow=self.mainWindow
@@ -153,6 +152,7 @@ class PeakAssigner(CcpnModule):
                                 , hPolicy='expanding', vPolicy='expanding')
     self.axisTables = []
     self.NDims = 0
+    self.currentAtoms = None
 
     Spacer(self.axisFrame, 5, 5, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
                          , grid=(6,0), gridSpan=(1,1))
@@ -163,6 +163,7 @@ class PeakAssigner(CcpnModule):
     # self.selectionFrame.setLayout(self.selectionLayout)
 
     # respond to peaks
+    # TODO:ED check which of these are still needed
     self.current.registerNotify(self._updateInterface, 'peaks')
     self.current.registerNotify(self._updateInterface, 'nmrAtoms')
     self.project.registerNotifier('NmrAtom', 'change', self.update)   # just refresh the table
@@ -839,6 +840,7 @@ class AxisAssignmentObject(Frame):
     self.application = mainWindow.application
     self.project = mainWindow.application.project
     self.current = mainWindow.application.current
+    self.currentAtoms = None
 
     # TODO:ED change divider at the top
     row = 0
@@ -848,7 +850,7 @@ class AxisAssignmentObject(Frame):
     row += 1
     self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(row,0))
     row += 1
-    self._assignmentsLabel = Label(self, 'Assignments', hAlign='l', grid=(row,0))
+    self._assignmentsLabel = Label(self, 'Current Assignments', hAlign='l', grid=(row,0))
     self._alternativesLabel = Label(self, 'Alternatives', hAlign='l', grid=(row,2))
 
     # add two tables - left is current assignments, right is alternatives
@@ -883,7 +885,7 @@ class AxisAssignmentObject(Frame):
                            , changeFunc=parentModule._updateInterface
                            , className='peakLists'
                            , updateFunc=parentModule._updateInterface
-                           , tableSelection='peaks'
+                           , tableSelection='currentAtoms'
                            , pullDownWidget=None
                            , callBackClass=NmrAtom)
     self.tables[1].setTableNotifiers(tableClass=Peak
@@ -893,7 +895,7 @@ class AxisAssignmentObject(Frame):
                            , changeFunc=parentModule._updateInterface
                            , className='peakLists'
                            , updateFunc=parentModule._updateInterface
-                           , tableSelection='peaks'
+                           , tableSelection='currentAtoms'
                            , pullDownWidget=None
                            , callBackClass=NmrAtom)
 
@@ -954,6 +956,7 @@ class AxisAssignmentObject(Frame):
     self.parent = parentModule
     self.dataFrameAssigned=None
     self.dataFrameAlternatives=None
+    self.lastTableSelected = None
 
     # set column definitions and hidden columns for each table
     self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None),
@@ -976,6 +979,7 @@ class AxisAssignmentObject(Frame):
       self._assignNmrAtom(self.index)
 
   def _updatePulldownLists(self, tableNum, data):
+    self.lastTableSelected = tableNum
     if tableNum == 0:
       obj = data[Notifier.OBJECT]
       if obj:
@@ -1046,9 +1050,10 @@ class AxisAssignmentObject(Frame):
 
       # highlight on the table and populate the pulldowns
       self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+      self.tables[1].clearSelection()
       self._updateAssignmentWidget(0, nmrAtom)
       self.buttonList.setButtonEnabled('Delete', True)
-      self.buttonList.setButtonEnabled('Deassign', False)
+      self.buttonList.setButtonEnabled('Deassign', True)
       self.buttonList.setButtonEnabled('Assign', False)
 
     except Exception as es:
@@ -1252,7 +1257,12 @@ class AxisAssignmentObject(Frame):
     """
     delete selected nmrAtom from project
     """
-    self.tables[self.index].deleteObjFromTable()
+    if self.lastTableSelected is not None:
+      self.tables[self.lastTableSelected].deleteObjFromTable()
+      if not self.tables[self.lastTableSelected].getSelectedObjects():
+        self.buttonList.setButtonEnabled('Delete', False)
+        self.buttonList.setButtonEnabled('Deassign', False)
+        self.buttonList.setButtonEnabled('Assign', False)
 
   #TODO:ED add pulldownselections
   def _pulldownEdited(self, dim:int):
