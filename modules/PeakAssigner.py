@@ -899,7 +899,7 @@ class AxisAssignmentObject(Frame):
 
     # add a spacer to pad out the middle
     row += 1
-    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.MinimumExpanding
+    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
           , grid=(row,1), gridSpan=(1,1))
 
     # add pulldowns for editing new assignment
@@ -981,15 +981,17 @@ class AxisAssignmentObject(Frame):
       if obj:
         self._updateAssignmentWidget(tableNum, obj[0])
         self.tables[1].clearSelection()
-        self.buttonList.buttons[1].setEnabled(True)
-        self.buttonList.buttons[2].setEnabled(True)
+        self.buttonList.setButtonEnabled('Delete', True)
+        self.buttonList.setButtonEnabled('Deassign', True)
+        self.buttonList.setButtonEnabled('Assign', False)
     elif tableNum == 1:
       obj = data[Notifier.OBJECT]
       if obj:
         self._updateAssignmentWidget(tableNum, obj[0])
         self.tables[0].clearSelection()
-        self.buttonList.buttons[1].setEnabled(False)
-        self.buttonList.buttons[2].setEnabled(True)
+        self.buttonList.setButtonEnabled('Delete', True)
+        self.buttonList.setButtonEnabled('Deassign', False)
+        self.buttonList.setButtonEnabled('Assign', True)
 
   def _createChainPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
     """
@@ -999,7 +1001,7 @@ class AxisAssignmentObject(Frame):
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
-    pulldownList.lineEdit().editingFinished.connect(partial(self._pulldownEdited, pulldownList))
+    pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
     return pulldownList
 
   def _createPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
@@ -1010,6 +1012,7 @@ class AxisAssignmentObject(Frame):
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
+    pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
     return pulldownList
 
   def _addItemToPulldown(self, pulldown:object):
@@ -1095,9 +1098,11 @@ class AxisAssignmentObject(Frame):
 
         # self._updateInterface()
         self.parent._updateInterface()
+        self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+        self._updateAssignmentWidget(0, nmrAtom)
         self.buttonList.setButtonEnabled('Delete', True)
-        self.buttonList.setButtonEnabled('Deassign', False)
-        self.buttonList.setButtonEnabled('Assign', True)
+        self.buttonList.setButtonEnabled('Deassign', True)
+        self.buttonList.setButtonEnabled('Assign', False)
 
     except Exception as es:
       showWarning('Assign Peak to NmrAtom', str(es))
@@ -1129,11 +1134,13 @@ class AxisAssignmentObject(Frame):
           finally:
             self.project._endCommandEchoBlock()
 
-      # self._updateInterface()
-      self.parent._updateInterface()
-      self.buttonList.setButtonEnabled('Delete', True)
-      self.buttonList.setButtonEnabled('Deassign', False)
-      self.buttonList.setButtonEnabled('Assign', True)
+          # self._updateInterface()
+          self.parent._updateInterface()
+          self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
+          self._updateAssignmentWidget(1, currentObject[0])
+          self.buttonList.setButtonEnabled('Delete', True)
+          self.buttonList.setButtonEnabled('Deassign', False)
+          self.buttonList.setButtonEnabled('Assign', True)
 
     except Exception as es:
       showWarning('Deassign Peak from NmrAtom', str(es))
@@ -1248,3 +1255,8 @@ class AxisAssignmentObject(Frame):
     self.tables[self.index].deleteObjFromTable()
 
   #TODO:ED add pulldownselections
+  def _pulldownEdited(self, dim:int):
+    """
+    Enable the assignment button if the text has changed in the pulldown
+    """
+    self.buttonList.setButtonEnabled('Assign', True)
