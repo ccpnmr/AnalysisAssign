@@ -878,7 +878,7 @@ class AxisAssignmentObject(Frame):
                               , actionCallback=partial(self._assignDeassignNmrAtom, 1)
                               , selectionCallback=partial(self._updatePulldownLists, 1)
                               , grid=(row,2), gridSpan=(7,1)
-                              , stretchLastSection=False
+                              , stretchLastSection=True
                               , acceptDrops=True)
                   ]
 
@@ -1081,6 +1081,8 @@ class AxisAssignmentObject(Frame):
       nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText()
                                             , self.resTypePulldown.currentText())
       if nmrResidue:
+
+        # TODO:ED check in here that if only residueType has changed then popup dialog
         nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
         for peak in self.current.peaks:
           # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
@@ -1110,11 +1112,12 @@ class AxisAssignmentObject(Frame):
 
         # self._updateInterface()
         self.parent._updateInterface()
-        # self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-        self._updateAssignmentWidget(0, None)       # nmrAtom)
+        self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+        self._updateAssignmentWidget(0, nmrAtom)
 
-        self.buttonList.setButtonEnabled('Delete', False)
-        self.buttonList.setButtonEnabled('Deassign', False)
+        self.lastTableSelected = 0
+        self.buttonList.setButtonEnabled('Delete', True)
+        self.buttonList.setButtonEnabled('Deassign', True)
         self.buttonList.setButtonEnabled('Assign', False)
 
     except Exception as es:
@@ -1149,12 +1152,13 @@ class AxisAssignmentObject(Frame):
 
           # self._updateInterface()
           self.parent._updateInterface()
-          # self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
-          self._updateAssignmentWidget(1, None)     # currentObject[0])
+          self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
+          self._updateAssignmentWidget(1, currentObject[0])
 
-          self.buttonList.setButtonEnabled('Delete', False)
+          self.lastTableSelected = 1
+          self.buttonList.setButtonEnabled('Delete', True)
           self.buttonList.setButtonEnabled('Deassign', False)
-          self.buttonList.setButtonEnabled('Assign', False)
+          self.buttonList.setButtonEnabled('Assign', True)
 
     except Exception as es:
       showWarning('Deassign Peak from NmrAtom', str(es))
