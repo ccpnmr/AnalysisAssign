@@ -904,8 +904,7 @@ class AxisAssignmentObject(Frame):
                            , callBackClass=NmrAtom)
 
     # add a spacer to pad out the middle
-    row += 1
-    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Expanding
           , grid=(row,1), gridSpan=(1,1))
 
     # add pulldowns for editing new assignment
@@ -968,6 +967,9 @@ class AxisAssignmentObject(Frame):
                                    ('Shift', lambda nmrAtom: parentModule._getShift(nmrAtom), 'Chemical shift', None),
                                    ('Delta', lambda nmrAtom: parentModule.getDeltaShift(nmrAtom, index), 'Delta shift', None)])
     self._hiddenColumns = [['Pid', 'Shift'], ['Pid', 'Shift']]
+
+    # set the fixed height of the frame
+    self.setFixedHeight(175)
 
   def _assignDeassignNmrAtom(self, tableNum:int, data):
     """
@@ -1107,10 +1109,11 @@ class AxisAssignmentObject(Frame):
 
         # self._updateInterface()
         self.parent._updateInterface()
-        self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-        self._updateAssignmentWidget(0, nmrAtom)
-        self.buttonList.setButtonEnabled('Delete', True)
-        self.buttonList.setButtonEnabled('Deassign', True)
+        # self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+        self._updateAssignmentWidget(0, None)       # nmrAtom)
+
+        self.buttonList.setButtonEnabled('Delete', False)
+        self.buttonList.setButtonEnabled('Deassign', False)
         self.buttonList.setButtonEnabled('Assign', False)
 
     except Exception as es:
@@ -1145,11 +1148,12 @@ class AxisAssignmentObject(Frame):
 
           # self._updateInterface()
           self.parent._updateInterface()
-          self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
-          self._updateAssignmentWidget(1, currentObject[0])
-          self.buttonList.setButtonEnabled('Delete', True)
+          # self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
+          self._updateAssignmentWidget(1, None)     # currentObject[0])
+
+          self.buttonList.setButtonEnabled('Delete', False)
           self.buttonList.setButtonEnabled('Deassign', False)
-          self.buttonList.setButtonEnabled('Assign', True)
+          self.buttonList.setButtonEnabled('Assign', False)
 
     except Exception as es:
       showWarning('Deassign Peak from NmrAtom', str(es))
@@ -1256,6 +1260,11 @@ class AxisAssignmentObject(Frame):
           self.seqCodePulldown.setIndex(0)
           self.resTypePulldown.setIndex(0)
           self.atomTypePulldown.setIndex(0)
+    else:
+      self.chainPulldown.clear()
+      self.seqCodePulldown.clear()
+      self.resTypePulldown.clear()
+      self.atomTypePulldown.clear()
 
   def _deleteNmrAtom(self, dim:int):
     """
