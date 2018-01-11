@@ -882,6 +882,7 @@ class AxisAssignmentObject(Frame):
                               , acceptDrops=True)
                   ]
 
+    # need to make this a little cleaner
     self.tables[0].setTableNotifiers(tableClass=Peak
                            , rowClass=NmrAtom
                            , cellClassNames=None
@@ -889,7 +890,7 @@ class AxisAssignmentObject(Frame):
                            , changeFunc=parentModule._updateInterface
                            , className='peakLists'
                            , updateFunc=parentModule._updateInterface
-                           , tableSelection='currentAtoms'
+                           , tableSelection=None
                            , pullDownWidget=None
                            , callBackClass=NmrAtom)
     self.tables[1].setTableNotifiers(tableClass=Peak
@@ -899,7 +900,7 @@ class AxisAssignmentObject(Frame):
                            , changeFunc=parentModule._updateInterface
                            , className='peakLists'
                            , updateFunc=parentModule._updateInterface
-                           , tableSelection='currentAtoms'
+                           , tableSelection=None
                            , pullDownWidget=None
                            , callBackClass=NmrAtom)
 
