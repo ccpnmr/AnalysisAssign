@@ -51,6 +51,7 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column
 from ccpn.ui.gui.widgets.QuickTable import QuickTable
 from ccpn.ui.gui.widgets.Column import ColumnClass
+from ccpn.ui.gui.widgets.MessageDialog import showYesNoWarning
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpnmodel.ccpncore.lib.Constants import  defaultNmrChainCode
@@ -961,6 +962,7 @@ class AxisAssignmentObject(Frame):
     self.dataFrameAssigned=None
     self.dataFrameAlternatives=None
     self.lastTableSelected = None
+    self.lastNmrAtomSelected = None
 
     # set column definitions and hidden columns for each table
     self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None),
@@ -1077,17 +1079,37 @@ class AxisAssignmentObject(Frame):
     # FIXME Potential Bug: no error checks for dim. It can give easily an IndexError
 
     try:
-      nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
-      nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText()
-                                            , self.resTypePulldown.currentText())
-      if nmrResidue:
+      currentNmrAtomSelected = (self.chainPulldown.currentText()
+                                , self.seqCodePulldown.currentText()
+                                , self.resTypePulldown.currentText()
+                                , self.atomTypePulldown.currentText())
+      atomCompare = self._atomCompare(self.lastNmrAtomSelected, currentNmrAtomSelected)
 
-        # TODO:ED check in here that if only residueType has changed then popup dialog
+      nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
+
+      if atomCompare[0] == True and \
+          atomCompare[1] == True and \
+          atomCompare[2] == False:
+
+        seqCode = self.seqCodePulldown.currentText()
+        newResType = self.resTypePulldown.currentText()
+        if showYesNoWarning('Assigning nmrAtoms'
+            , 'This will change all nmrAtoms to the residueType %s, continue?' % newResType):
+          nmrResidue = nmrChain.fetchNmrResidue(seqCode)
+
+          # change the residueType
+          nmrResidue.rename('.'.join([seqCode, newResType]))
+        else:
+          return
+
+      else:
+        nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText()
+                                                , self.resTypePulldown.currentText())
+
+      if nmrResidue:
         nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
         for peak in self.current.peaks:
-          # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
-
-          dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])   # ejb - changed to list
+          dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
           currentObject = self.tables[0].getSelectedObjects()
           if not currentObject:
             currentObject = nmrAtom
@@ -1098,7 +1120,7 @@ class AxisAssignmentObject(Frame):
 
           self.project._startCommandEchoBlock('application.peakAssigner.assignNmrAtom', peak.pid)
           try:
-            toAssign = dimNmrAtoms.index(currentObject)                   # error here..
+            toAssign = dimNmrAtoms.index(currentObject)
 
             dimNmrAtoms[toAssign] = nmrAtom
             allAtoms = list(peak.dimensionNmrAtoms)
@@ -1112,8 +1134,8 @@ class AxisAssignmentObject(Frame):
 
         # self._updateInterface()
         self.parent._updateInterface()
-        self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-        self._updateAssignmentWidget(0, nmrAtom)
+        self.tables[self.lastTableSelected].selectObjects([nmrAtom], setUpdatesEnabled=False)
+        self._updateAssignmentWidget(self.lastTableSelected, nmrAtom)
 
         self.lastTableSelected = 0
         self.buttonList.setButtonEnabled('Delete', True)
@@ -1122,6 +1144,8 @@ class AxisAssignmentObject(Frame):
 
     except Exception as es:
       showWarning('Assign Peak to NmrAtom', str(es))
+      self._updateAssignmentWidget(self.lastTableSelected, None)
+      self.buttonList.setButtonEnabled('Assign', False)
 
   def _deassignNmrAtom(self, dim:int):
     """
@@ -1265,11 +1289,17 @@ class AxisAssignmentObject(Frame):
           self.seqCodePulldown.setIndex(0)
           self.resTypePulldown.setIndex(0)
           self.atomTypePulldown.setIndex(0)
+
+      self.lastNmrAtomSelected = (self.chainPulldown.currentText()
+                                   , self.seqCodePulldown.currentText()
+                                   , self.resTypePulldown.currentText()
+                                   , self.atomTypePulldown.currentText())
     else:
       self.chainPulldown.clear()
       self.seqCodePulldown.clear()
       self.resTypePulldown.clear()
       self.atomTypePulldown.clear()
+      self.lastNmrAtomSelected = None
 
   def _deleteNmrAtom(self, dim:int):
     """
@@ -1287,4 +1317,12 @@ class AxisAssignmentObject(Frame):
     """
     Enable the assignment button if the text has changed in the pulldown
     """
-    self.buttonList.setButtonEnabled('Assign', True)
+    currentNmrAtomSelected = (self.chainPulldown.currentText()
+                              , self.seqCodePulldown.currentText()
+                              , self.resTypePulldown.currentText()
+                              , self.atomTypePulldown.currentText())
+    self.buttonList.setButtonEnabled('Assign', False in self._atomCompare(self.lastNmrAtomSelected
+                                                                          , currentNmrAtomSelected))
+
+  def _atomCompare(self, atom1:tuple, atom2:tuple):
+    return [True if a == b else False for a, b in zip(atom1, atom2)]
