@@ -985,7 +985,7 @@ class AxisAssignmentObject(Frame):
       self._deassignNmrAtom(self.index)
     elif tableNum == 1:
       # assign from right to left
-      self._assignNmrAtom(self.index)
+      self._assignNmrAtom(self.index, action=True)
 
   def _updatePulldownLists(self, tableNum, data):
     self.lastTableSelected = tableNum
@@ -1072,9 +1072,11 @@ class AxisAssignmentObject(Frame):
 
       # TODO:ED select the new item in the table
 
-  def _assignNmrAtom(self, dim:int):
+  def _assignNmrAtom(self, dim:int, action:bool=False):
     """
     Assigns dimensionNmrAtoms to peak dimension when called using Assign Button in assignment widget.
+    :param dim - axis dimension of the atom:
+    :param action - True if callback is action from the table:
     """
     # FIXME Potential Bug: no error checks for dim. It can give easily an IndexError
 
@@ -1087,9 +1089,9 @@ class AxisAssignmentObject(Frame):
 
       nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
 
-      if atomCompare[0] == True and \
-          atomCompare[1] == True and \
-          atomCompare[2] == False:
+      if not action and (atomCompare[0] == True and
+          atomCompare[1] == True and
+          atomCompare[2] == False):
 
         seqCode = self.seqCodePulldown.currentText()
         newResType = self.resTypePulldown.currentText()
@@ -1110,13 +1112,18 @@ class AxisAssignmentObject(Frame):
         nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
         for peak in self.current.peaks:
           dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
-          currentObject = self.tables[0].getSelectedObjects()
-          if not currentObject:
-            currentObject = nmrAtom
+
+          # currentObject = self.tables[0].getSelectedObjects()
+          # if not currentObject:
+          #   currentObject = nmrAtom
+          #   dimNmrAtoms.append(nmrAtom)
+          # else:
+          #   # get the first item from the list
+          #   currentObject = currentObject[0]
+
+          currentObject = nmrAtom
+          if nmrAtom not in dimNmrAtoms:
             dimNmrAtoms.append(nmrAtom)
-          else:
-            # get the first item from the list
-            currentObject = currentObject[0]
 
           self.project._startCommandEchoBlock('application.peakAssigner.assignNmrAtom', peak.pid)
           try:
