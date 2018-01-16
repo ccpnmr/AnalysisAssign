@@ -60,6 +60,7 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.RadioButton import RadioButton
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.widgets.Spacer import Spacer
+from ccpn.ui.gui.widgets.MessageDialog import showYesNo
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 
 from ccpn.util.Logging import getLogger
@@ -356,9 +357,20 @@ class AtomSelectorModule(CcpnModule):
               spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
               index = spectrumIndices[1]
               axisCode = peak.axisCodes[index]
-              nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
-              peak.assignDimension(axisCode, nmrAtoms)
-      self.current.peaks = []
+
+              currentList = list(peak.dimensionNmrAtoms[index])
+              if newNmrAtom not in currentList:
+                nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
+                peak.assignDimension(axisCode, nmrAtoms)
+              else:
+
+                # TODO:ED nmrAtom may already exist - need to choose what to do with it
+                if showYesNo('Atom Selector', 'nmrAtom %s exists, do you want to delete?' % newNmrAtom):
+                  newNmrAtom.delete()
+
+      # self.current.peaks = []
+      # flag a change on this peak
+
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
     finally:

@@ -122,16 +122,16 @@ class PeakAssigner(CcpnModule):
 
     # Main content widgets
     # TODO:ED check the overlapping of these widgets
-    self.peakLabel = Label(parent=self.mainWidget, setLayout=True
+    self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0,0)
                             , text='Peak:', bold=True
-                            , grid=(0,0), margins=[2,5,2,5], hAlign='left', vAlign='center'
+                            , grid=(0,0), margins=(2,2,2,2), hAlign='left', vAlign='t'
                             , hPolicy = 'fixed', vPolicy = 'fixed')
     self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
-    self.peakLabel.setFixedHeight(30)
+    self.peakLabel.setFixedHeight(20)
 
     self.axisFrame = Frame(parent=self.mainWidget, setLayout=True, spacing=(0,0)
                                 , showBorder=False, fShape='noFrame'
-                                , grid=(2,0)
+                                , grid=(1,0)
                                 , hPolicy='expanding', vPolicy='expanding')
     self.axisTables = []
     self.NDims = 0
@@ -395,10 +395,11 @@ class AxisAssignmentObject(Frame):
     self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=QtCore.Qt.lightGray, height=15)
 
     # add the labelling to the top of the frame
+    # row += 1
+    # self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(row,0))
     row += 1
-    self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(row,0))
-    row += 1
-    self._assignmentsLabel = Label(self, 'Current Assignments', hAlign='l', grid=(row,0))
+    # self._assignmentsLabel = Label(self, 'Current Assignments', hAlign='l', grid=(row,0))
+    self.axisLabel = Label(self, 'Axis', hAlign='l', grid=(row, 0), bold=True)
     self._alternativesLabel = Label(self, 'Alternatives', hAlign='l', grid=(row,2))
 
     # add two tables - left is current assignments, right is alternatives
@@ -454,23 +455,29 @@ class AxisAssignmentObject(Frame):
 
     # add pulldowns for editing new assignment
     row += 1
-    self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(0,0)
+    self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(5,0), margins=(0,0,0,0)
                                 , showBorder=False, fShape='noFrame'
                                 , vAlign='top'
                                 , grid=(row,0), gridSpan=(1,1))
 
-    chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='l', grid=(0,0))
-    seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='l', grid=(0,1))
-    resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='l', grid=(0,2))
-    atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='l', grid=(0,3))
+    chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
+    seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
+    resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
+    atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
     self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame
                                                    , grid=(1,0), gridSpan=(1,1))
     self.seqCodePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,1), gridSpan=(1,1))
-    self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame
                                                    , grid=(1,2), gridSpan=(1,1))
+    self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame
+                                                   , grid=(1,4), gridSpan=(1,1))
     self.atomTypePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,3), gridSpan=(1,1))
+                                                   , grid=(1,6), gridSpan=(1,1))
+    Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+          , grid=(1,1), gridSpan=(1,1))
+    Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+          , grid=(1,3), gridSpan=(1,1))
+    Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+          , grid=(1,5), gridSpan=(1,1))
 
     self.chainPulldown.setMinimumWidth(70)
     self.seqCodePulldown.setMinimumWidth(70)
@@ -482,7 +489,19 @@ class AxisAssignmentObject(Frame):
 
     # self.pulldownFrame.hide()
 
-    # add a spacer to balance the frame
+    self.pulldownFrame.setStyleSheet("""QComboBox {
+                                    padding: px;
+                                    margin: 0px 0px 0px 0px;
+                                    border: 0px;
+                              }
+                            """)
+
+    # another spacer
+    row += 1
+    Spacer(self, 10, 10, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+          , grid=(row,0), gridSpan=(1,1))
+
+    # add a buttonlist
     row += 1
     self.buttonList = ButtonList(parent=self, texts=['New', 'Delete', 'Deassign', 'Assign']
                                  , callbacks=[partial(self._createNewNmrAtom, index)
@@ -490,7 +509,8 @@ class AxisAssignmentObject(Frame):
                                               , partial(self._deassignNmrAtom, index)
                                               , partial(self._assignNmrAtom, index)]
                                  , grid=(row,0), gridSpan=(1,1)
-                                 , vPolicy='minimum')
+                                 , vPolicy='minimum', hPolicy='expanding'
+                                 , vAlign='b')
     self.buttonList.setButtonEnabled('Delete', False)
     self.buttonList.setButtonEnabled('Deassign', False)
     self.buttonList.setButtonEnabled('Assign', False)
@@ -564,7 +584,7 @@ class AxisAssignmentObject(Frame):
     """
     Creates a PulldownList with a callback, editable.
     """
-    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan)
+    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan, spacing=(0,0), margins=(0,0,0,0))
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))

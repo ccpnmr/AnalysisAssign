@@ -279,6 +279,7 @@ class PickAndAssignModule(NmrResidueTableModule):
             widths = ['default', 'default']
           else:
             widths = ['default', 'full'] + (n-2)*['']
+
           Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
         self.application.current.nmrResidue = nmrResidue
     finally:
