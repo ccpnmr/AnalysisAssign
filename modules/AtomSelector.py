@@ -50,6 +50,8 @@ from functools import partial
 from PyQt4 import QtCore, QtGui
 
 from ccpn.core.Peak import Peak
+from ccpn.core.NmrResidue import NmrResidue
+from ccpn.core.lib import Pid
 from ccpn.core.lib.AssignmentLib import isInterOnlyExpt, getNmrAtomPrediction, CCP_CODES
 from ccpn.core.lib.AssignmentLib import peaksAreOnLine
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
@@ -151,11 +153,13 @@ class AtomSelectorModule(CcpnModule):
     "Callback if current.nmrResidue changes"
     if nmrResidues is not None and self.current.nmrResidue:
       self._updateWidget()
+      # self._predictAssignments(self.current.peaks)
 
   def _offsetPullDownCallback(self, tmp=None):
     "Callback if offset pullDown changes"
     if self.current.nmrResidue:
       self._updateWidget()
+      # self._predictAssignments(self.current.peaks)
 
   def _updateWidget(self):
     "Update the widget to reflect the proper state"
@@ -186,14 +190,18 @@ class AtomSelectorModule(CcpnModule):
     for ii, atom in enumerate(atoms):
       self.buttons[atom] = []
       for jj, offset in enumerate(['-1', '0', '+1']):
-        btext = atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']'
-        button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj), callback=partial(self.assignSelected, offset, atom))
+        btext = self.atomLabel(atom, offset)
+        button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj)
+                        , callback=partial(self.assignSelected, offset, atom))
         button.setMinimumSize(45, 24)
+
         self.buttons[atom].append(button)
 
     for buttons in self.buttons.values():
       for button in buttons:
         button.clicked.connect(self._returnButtonsToNormal)
+
+    # self._predictAssignments(self.current.peaks)
 
   def _createSideChainButtons(self):
     self._cleanupPickAndAssignWidget()
@@ -205,6 +213,7 @@ class AtomSelectorModule(CcpnModule):
     ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
 
     self._updateLayout()
+    # self._predictAssignments(self.current.peaks)
 
   def _toggleBox(self):
     if self.radioButton1.isChecked():
@@ -212,6 +221,7 @@ class AtomSelectorModule(CcpnModule):
     elif self.radioButton2.isChecked():
       for w in self._sidechainModifiers: w.show()
     self._updateLayout()
+    # self._predictAssignments(self.current.peaks)
 
   def _getAtomsForButtons(self, atomList, atomName):
     [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
@@ -287,7 +297,7 @@ class AtomSelectorModule(CcpnModule):
           for jj, atom in enumerate(atomList):
             self.buttons[atom] = []
             offset = self.offsetSelector.currentText()
-            btext = atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']'
+            btext = self.atomLabel(atom, offset)
             button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj), hAlign='t',
                             callback=partial(self.assignSelected, offset, atom))
             button.setMinimumSize(45, 24)
@@ -329,6 +339,53 @@ class AtomSelectorModule(CcpnModule):
             item.widget().hide()
         layout.removeItem(item)
 
+  def atomLabel(self, atom, offset):
+    return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
+
+  def checkAssignedAtoms(self, nmrResidue):
+    """
+    Check if the i-1, i, i+1 nmrAtoms for the current residue exist
+    :param nmrResidue:
+    :return foundAtoms - dict containing True for each found nmrAtom:
+    """
+    foundAtoms = {}
+    atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+    for ii, atom in enumerate(atoms):
+      for jj, offset in enumerate(['-1', '0', '+1']):
+        btext = self.atomLabel(atom, offset)
+
+        if self._checkAssignedAtom(nmrResidue, offset, atom):
+          foundAtoms[btext] = True
+
+    return foundAtoms
+
+  def _getNmrResidue(self, nmrChain, sequenceCode: typing.Union[int, str] = None,
+                       residueType: str = None) -> typing.Optional[NmrResidue]:
+    partialId = '%s.%s.' % (nmrChain.id, str(sequenceCode).translate(Pid.remapSeparators))
+    ll = self.project.getObjectsByPartialId(className='NmrResidue', idStartsWith=partialId)
+    if ll:
+      return ll[0]
+    else:
+      return None
+
+  def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
+    name = atomType
+    if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
+      r = nmrResidue.previousNmrResidue
+      if not r:
+        r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '-1')
+    elif offset == '+1' and '+1' not in self.current.nmrResidue.sequenceCode:
+      r = nmrResidue.nextNmrResidue
+      if not r:
+        r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '+1')
+    else:
+      r = nmrResidue
+
+    if r:
+      return r.getNmrAtom(name.translate(Pid.remapSeparators))
+    else:
+      return None
+
   def assignSelected(self, offset:int, atomType:str):
     """
     Takes a position either -1, 0 or +1 and an atom type, fetches an NmrAtom with name corresponding
@@ -349,24 +406,27 @@ class AtomSelectorModule(CcpnModule):
       else:
         r = self.current.nmrResidue
 
-      newNmrAtom = r.fetchNmrAtom(name=name)
-      for peak in self.current.peaks:
-        for strip in self.project.strips:
-          for peakListView in strip.peakListViews:
-            if peak in peakListView.peakItems.keys():
-              spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
-              index = spectrumIndices[1]
-              axisCode = peak.axisCodes[index]
+      # check whether the nmrAtom already exists
+      newNmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
+      if newNmrAtom:
+        if showYesNo('Atom Selector', 'nmrAtom %s exists, do you want to delete?' % newNmrAtom):
+          newNmrAtom.delete()
+      else:
+        newNmrAtom = r.fetchNmrAtom(name=name)
+        for peak in self.current.peaks:
+          for strip in self.project.strips:
+            for peakListView in strip.peakListViews:
+              if peak in peakListView.peakItems.keys():
+                spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
+                index = spectrumIndices[1]
+                axisCode = peak.axisCodes[index]
 
-              currentList = list(peak.dimensionNmrAtoms[index])
-              if newNmrAtom not in currentList:
-                nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
-                peak.assignDimension(axisCode, nmrAtoms)
-              else:
-
-                # TODO:ED nmrAtom may already exist - need to choose what to do with it
-                if showYesNo('Atom Selector', 'nmrAtom %s exists, do you want to delete?' % newNmrAtom):
-                  newNmrAtom.delete()
+                currentList = list(peak.dimensionNmrAtoms[index])
+                if newNmrAtom not in currentList:
+                  nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
+                  peak.assignDimension(axisCode, nmrAtoms)
+                else:
+                  getLogger().warning('Error adding new nmrAtom to %s' % self.current.nmrResidue)
 
       # self.current.peaks = []
       # flag a change on this peak
@@ -377,6 +437,7 @@ class AtomSelectorModule(CcpnModule):
       # self.project._endCommandEchoBlock()
       self.application._endCommandBlock()
       self._returnButtonsToNormal()
+      # self._predictAssignments(self.current.peaks)
 
   def _returnButtonsToNormal(self):
     """
@@ -392,7 +453,7 @@ class AtomSelectorModule(CcpnModule):
     for buttons in self.buttons.values():
       for button in buttons:
         button.setStyleSheet(
-          """Dock QPushButton { background-color: %s}
+          """Dock QPushButton { background-color: %s }
              Dock QPushButton::hover { background-color: %s}""" % (backgroundColour1, backgroundColour2)
         )
 
@@ -405,7 +466,10 @@ class AtomSelectorModule(CcpnModule):
     if self.current.nmrResidue is None or len(peaks) == 0:
       return
 
-    # check if peaks conincide
+    # new routine to check whether any of the nmrAtoms already exists
+    foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue)
+
+    # check if peaks coincide
     for dim in range(peaks[0].peakList.spectrum.dimensionCount):
       if not peaksAreOnLine(peaks, dim):
         logger.debug('dimension %s: peaksAreonLine=False' % dim)
@@ -436,13 +500,13 @@ class AtomSelectorModule(CcpnModule):
             atomPredictions.add(atomPred)
 
         for atomPred in atomPredictions:
-          if atomPred == 'CB':
+          if atomPred == 'CB' and self.buttons['CB']:
             if anyInterOnlyExperiments:
               self.buttons['CB'][0].setStyleSheet('background-color: green')
             else:
               self.buttons['CB'][0].setStyleSheet('background-color: green')
               self.buttons['CB'][1].setStyleSheet('background-color: green')
-          if atomPred == 'CA':
+          if atomPred == 'CA' and self.buttons['CA']:
             if anyInterOnlyExperiments:
               self.buttons['CA'][0].setStyleSheet('background-color: green')
             else:
