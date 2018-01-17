@@ -153,13 +153,13 @@ class AtomSelectorModule(CcpnModule):
     "Callback if current.nmrResidue changes"
     if nmrResidues is not None and self.current.nmrResidue:
       self._updateWidget()
-      # self._predictAssignments(self.current.peaks)
+      self._predictAssignments(self.current.peaks)
 
   def _offsetPullDownCallback(self, tmp=None):
     "Callback if offset pullDown changes"
     if self.current.nmrResidue:
       self._updateWidget()
-      # self._predictAssignments(self.current.peaks)
+      self._predictAssignments(self.current.peaks)
 
   def _updateWidget(self):
     "Update the widget to reflect the proper state"
@@ -197,11 +197,11 @@ class AtomSelectorModule(CcpnModule):
 
         self.buttons[atom].append(button)
 
-    for buttons in self.buttons.values():
-      for button in buttons:
-        button.clicked.connect(self._returnButtonsToNormal)
+    # for buttons in self.buttons.values():
+    #   for button in buttons:
+    #     button.clicked.connect(self._returnButtonsToNormal)
 
-    # self._predictAssignments(self.current.peaks)
+    self._predictAssignments(self.current.peaks)
 
   def _createSideChainButtons(self):
     self._cleanupPickAndAssignWidget()
@@ -213,7 +213,7 @@ class AtomSelectorModule(CcpnModule):
     ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
 
     self._updateLayout()
-    # self._predictAssignments(self.current.peaks)
+    self._predictAssignments(self.current.peaks)
 
   def _toggleBox(self):
     if self.radioButton1.isChecked():
@@ -221,7 +221,7 @@ class AtomSelectorModule(CcpnModule):
     elif self.radioButton2.isChecked():
       for w in self._sidechainModifiers: w.show()
     self._updateLayout()
-    # self._predictAssignments(self.current.peaks)
+    self._predictAssignments(self.current.peaks)
 
   def _getAtomsForButtons(self, atomList, atomName):
     [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
@@ -342,7 +342,7 @@ class AtomSelectorModule(CcpnModule):
   def atomLabel(self, atom, offset):
     return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
 
-  def checkAssignedAtoms(self, nmrResidue):
+  def checkAssignedAtoms(self, nmrResidue, predictAtoms):
     """
     Check if the i-1, i, i+1 nmrAtoms for the current residue exist
     :param nmrResidue:
@@ -356,6 +356,15 @@ class AtomSelectorModule(CcpnModule):
 
         if self._checkAssignedAtom(nmrResidue, offset, atom):
           foundAtoms[btext] = True
+          if atom in self.buttons.keys():
+            for button in self.buttons[atom]:
+              if button.getText() == btext:
+
+                # colour the button if the atom exists
+                if btext in predictAtoms:
+                  button.setStyleSheet('background-color: Mediumseagreen')
+                else:
+                  button.setStyleSheet('background-color: cornflowerblue')
 
     return foundAtoms
 
@@ -368,8 +377,9 @@ class AtomSelectorModule(CcpnModule):
     else:
       return None
 
-  def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
+  def _getCorrectResidue(self, nmrResidue, offset:int, atomType:str):
     name = atomType
+    r = None
     if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
       r = nmrResidue.previousNmrResidue
       if not r:
@@ -381,8 +391,12 @@ class AtomSelectorModule(CcpnModule):
     else:
       r = nmrResidue
 
+    return r
+
+  def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
+    r = self._getCorrectResidue(nmrResidue=nmrResidue, offset=offset, atomType=atomType)
     if r:
-      return r.getNmrAtom(name.translate(Pid.remapSeparators))
+      return r.getNmrAtom(atomType.translate(Pid.remapSeparators))
     else:
       return None
 
@@ -399,15 +413,23 @@ class AtomSelectorModule(CcpnModule):
     self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
     try:
       name = atomType
+
+      # search for and create the nmrResidue if it doesn't exists
       if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
         r = self.current.nmrResidue.previousNmrResidue
         if not r:
           r = self.current.nmrResidue.nmrChain.fetchNmrResidue(sequenceCode=self.current.nmrResidue.sequenceCode+'-1')
+      elif offset == '+1' and '+1' not in self.current.nmrResidue.sequenceCode:
+        r = self.current.nmrResidue.nextNmrResidue
+        if not r:
+          r = self.current.nmrResidue.nmrChain.fetchNmrResidue(
+            sequenceCode=self.current.nmrResidue.sequenceCode + '+1')
       else:
         r = self.current.nmrResidue
 
       # check whether the nmrAtom already exists
       newNmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
+
       if newNmrAtom:
         if showYesNo('Atom Selector', 'nmrAtom %s exists, do you want to delete?' % newNmrAtom):
           newNmrAtom.delete()
@@ -436,8 +458,8 @@ class AtomSelectorModule(CcpnModule):
     finally:
       # self.project._endCommandEchoBlock()
       self.application._endCommandBlock()
-      self._returnButtonsToNormal()
-      # self._predictAssignments(self.current.peaks)
+      # self._returnButtonsToNormal()
+      self._predictAssignments(self.current.peaks)
 
   def _returnButtonsToNormal(self):
     """
@@ -465,9 +487,6 @@ class AtomSelectorModule(CcpnModule):
     self._returnButtonsToNormal()
     if self.current.nmrResidue is None or len(peaks) == 0:
       return
-
-    # new routine to check whether any of the nmrAtoms already exists
-    foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue)
 
     # check if peaks coincide
     for dim in range(peaks[0].peakList.spectrum.dimensionCount):
@@ -499,19 +518,30 @@ class AtomSelectorModule(CcpnModule):
           if score > 90:
             atomPredictions.add(atomPred)
 
+        predictAtoms = []
         for atomPred in atomPredictions:
           if atomPred == 'CB' and self.buttons['CB']:
             if anyInterOnlyExperiments:
               self.buttons['CB'][0].setStyleSheet('background-color: green')
+              predictAtoms.append(self.atomLabel('CB', '-1'))
             else:
               self.buttons['CB'][0].setStyleSheet('background-color: green')
               self.buttons['CB'][1].setStyleSheet('background-color: green')
+              predictAtoms.append(self.atomLabel('CB', '-1'))
+              predictAtoms.append(self.atomLabel('CB', '0'))
           if atomPred == 'CA' and self.buttons['CA']:
             if anyInterOnlyExperiments:
               self.buttons['CA'][0].setStyleSheet('background-color: green')
+              predictAtoms.append(self.atomLabel('CA', '-1'))
             else:
               self.buttons['CA'][0].setStyleSheet('background-color: green')
               self.buttons['CA'][1].setStyleSheet('background-color: green')
+              predictAtoms.append(self.atomLabel('CA', '-1'))
+              predictAtoms.append(self.atomLabel('CA', '0'))
+
+        # new routine to colour any existing atoms
+        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue
+                                             , predictAtoms)
 
       # sidechain is checked
       elif self.radioButton2.isChecked():
@@ -545,6 +575,7 @@ class AtomSelectorModule(CcpnModule):
                   button.setStyleSheet('background-color: orange')
                 if score < 50:
                   button.setStyleSheet('background-color: red')
+
 
 
 

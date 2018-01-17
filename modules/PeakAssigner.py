@@ -229,8 +229,8 @@ class PeakAssigner(CcpnModule):
       nmrAtomsForTables[dim] = [nmr for nmr in nmrAtomsForTables[dim] if nmr not in self.nmrAtoms]
       if peaksAreOnLine(peaks, dim):
         self.axisTables[dim].setAlternativesTable(nmrAtomsForTables[dim])
-      # else:
-      #   self.axisTables[dim].tables[1].clearTable()
+      else:
+        self.axisTables[dim].setAlternativesTable(None)
 
       positions = [peak.position[dim] for peak in self.current.peaks]
       avgPos = round(sum(positions)/len(positions), 3)
@@ -423,7 +423,7 @@ class AxisAssignmentObject(Frame):
                               , actionCallback=partial(self._assignDeassignNmrAtom, 1)
                               , selectionCallback=partial(self._updatePulldownLists, 1)
                               , grid=(row,2), gridSpan=(7,1)
-                              , stretchLastSection=True
+                              , stretchLastSection=False
                               , acceptDrops=True)
                   ]
 
@@ -460,18 +460,24 @@ class AxisAssignmentObject(Frame):
                                 , vAlign='top'
                                 , grid=(row,0), gridSpan=(1,1))
 
-    chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
-    seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
-    resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
-    atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
+    # chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
+    # seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
+    # resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
+    # atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
+    Spacer(self.pulldownFrame, 10, 10, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+          , grid=(0,0), gridSpan=(1,1))
     self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,0), gridSpan=(1,1))
+                                                   , grid=(1,0), gridSpan=(1,1)
+                                                   , tipText='Chain code')
     self.seqCodePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,2), gridSpan=(1,1))
+                                                   , grid=(1,2), gridSpan=(1,1)
+                                                   , tipText='Sequence code')
     self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,4), gridSpan=(1,1))
+                                                   , grid=(1,4), gridSpan=(1,1)
+                                                   , tipText='Residue type')
     self.atomTypePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,6), gridSpan=(1,1))
+                                                   , grid=(1,6), gridSpan=(1,1)
+                                                   , tipText='Atom type')
     Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
           , grid=(1,1), gridSpan=(1,1))
     Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
@@ -569,22 +575,22 @@ class AxisAssignmentObject(Frame):
         self.buttonList.setButtonEnabled('Deassign', False)
         self.buttonList.setButtonEnabled('Assign', True)
 
-  def _createChainPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
+  def _createChainPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1), tipText='') -> PulldownList:
     """
     Creates a PulldownList with callback, editable.
     """
-    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan)
+    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan, tipText=tipText)
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
     pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
     return pulldownList
 
-  def _createPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1)) -> PulldownList:
+  def _createPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1), tipText='') -> PulldownList:
     """
     Creates a PulldownList with a callback, editable.
     """
-    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan, spacing=(0,0), margins=(0,0,0,0))
+    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan, tipText=tipText)
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
