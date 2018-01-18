@@ -422,8 +422,7 @@ class AtomSelectorModule(CcpnModule):
       elif offset == '+1' and '+1' not in self.current.nmrResidue.sequenceCode:
         r = self.current.nmrResidue.nextNmrResidue
         if not r:
-          r = self.current.nmrResidue.nmrChain.fetchNmrResidue(
-            sequenceCode=self.current.nmrResidue.sequenceCode + '+1')
+          r = self.current.nmrResidue.nmrChain.fetchNmrResidue(sequenceCode=self.current.nmrResidue.sequenceCode + '+1')
       else:
         r = self.current.nmrResidue
 
