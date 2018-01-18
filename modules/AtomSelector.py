@@ -342,27 +342,35 @@ class AtomSelectorModule(CcpnModule):
   def atomLabel(self, atom, offset):
     return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
 
-  def checkAssignedAtoms(self, nmrResidue, predictAtoms):
+  def checkAssignedAtoms(self, nmrResidue, atoms, predictAtoms):
     """
     Check if the i-1, i, i+1 nmrAtoms for the current residue exist
     :param nmrResidue:
     :return foundAtoms - dict containing True for each found nmrAtom:
     """
     foundAtoms = {}
-    atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+    # atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
     for ii, atom in enumerate(atoms):
       for jj, offset in enumerate(['-1', '0', '+1']):
-        btext = self.atomLabel(atom, offset)
+        bText = self.atomLabel(atom, offset)
 
         if self._checkAssignedAtom(nmrResidue, offset, atom):
-          foundAtoms[btext] = True
+          foundAtoms[bText] = True
           if atom in self.buttons.keys():
             for button in self.buttons[atom]:
-              if button.getText() == btext:
+              if button.getText() == bText:
 
                 # colour the button if the atom exists
-                if btext in predictAtoms:
-                  button.setStyleSheet('background-color: Mediumseagreen')
+                if bText in predictAtoms:
+                  score = predictAtoms[bText]
+                  
+                  if score >= 85:
+                    button.setStyleSheet('background-color: mediumseagreen')
+                  elif 50 < score < 85:
+                    button.setStyleSheet('background-color: lightsalmon')
+                  if score < 50:
+                    button.setStyleSheet('background-color: mediumvioletred')
+
                 else:
                   button.setStyleSheet('background-color: cornflowerblue')
 
@@ -517,33 +525,36 @@ class AtomSelectorModule(CcpnModule):
           if score > 90:
             atomPredictions.add(atomPred)
 
-        predictAtoms = []
+        # list containing those atoms that exist - used for colouring in 'checkAssignedAtoms'
+        foundPredictList = {}
         for atomPred in atomPredictions:
           if atomPred == 'CB' and self.buttons['CB']:
             if anyInterOnlyExperiments:
               self.buttons['CB'][0].setStyleSheet('background-color: green')
-              predictAtoms.append(self.atomLabel('CB', '-1'))
+              foundPredictList[self.atomLabel('CB', '-1')] = 100
             else:
               self.buttons['CB'][0].setStyleSheet('background-color: green')
               self.buttons['CB'][1].setStyleSheet('background-color: green')
-              predictAtoms.append(self.atomLabel('CB', '-1'))
-              predictAtoms.append(self.atomLabel('CB', '0'))
+              foundPredictList[self.atomLabel('CB', '-1')] = 100
+              foundPredictList[self.atomLabel('CB', '0')] = 100
           if atomPred == 'CA' and self.buttons['CA']:
             if anyInterOnlyExperiments:
               self.buttons['CA'][0].setStyleSheet('background-color: green')
-              predictAtoms.append(self.atomLabel('CA', '-1'))
+              foundPredictList[self.atomLabel('CA', '-1')] = 100
             else:
               self.buttons['CA'][0].setStyleSheet('background-color: green')
               self.buttons['CA'][1].setStyleSheet('background-color: green')
-              predictAtoms.append(self.atomLabel('CA', '-1'))
-              predictAtoms.append(self.atomLabel('CA', '0'))
+              foundPredictList[self.atomLabel('CA', '-1')] = 100
+              foundPredictList[self.atomLabel('CA', '0')] = 100
 
         # new routine to colour any existing atoms
-        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue
-                                             , predictAtoms)
+        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+                                             , foundPredictList)
 
       # sidechain is checked
       elif self.radioButton2.isChecked():
+        foundPredictList = {}
+
         if self.current.nmrResidue.residueType == '':
           # In this case, we loop over all CCP_CODES (i.e. residue types)
           predictedAtomTypes = []
@@ -561,20 +572,53 @@ class AtomSelectorModule(CcpnModule):
             nmrResidue = self.current.nmrResidue
           predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
 
-        #print('>predictAtomTypes>', predictedAtomTypes)
+        print('>predictAtomTypes>', predictedAtomTypes)
+        # find the maximum of each atomType
+        predictedDict = {}
         for type, score in predictedAtomTypes:
-          #print('>type, score>', type, score)
-          for atomType, buttons in self.buttons.items():
-            if type[1] == atomType:
+          if type[1] not in predictedDict:
+            predictedDict[type[1]] = (type[0], score)
+          else:
+            if score > predictedDict[type[1]][1]:
+              predictedDict[type[1]] = (type[0], score)
+        print ('>>>predictedDict', predictedDict)
+
+        for atomDictType in predictedDict.keys():
+          bText = self.atomLabel(atomDictType, '0')
+          for atomType, buttons in self.buttons.items():      # get the correct button list
+            if atomDictType == atomType:
               for button in buttons:
-                #print('>type[1], atomType, button>', type[1], atomType,  button.getText())
-                if score >= 85:
-                  button.setStyleSheet('background-color: green')
-                elif 50 < score < 85:
-                  button.setStyleSheet('background-color: orange')
-                if score < 50:
-                  button.setStyleSheet('background-color: red')
+                if bText == button.getText():
+                  print('>type[1], atomType, button>', atomDictType, bText)
+                  foundPredictList[self.atomLabel(atomDictType, '0')] = score
 
+                  if score >= 85:
+                    button.setStyleSheet('background-color: green')
+                  elif 50 < score < 85:
+                    button.setStyleSheet('background-color: orange')
+                  if score < 50:
+                    button.setStyleSheet('background-color: red')
 
+        # new routine to colour any existing atoms
+        atomButtonList = self._getAtomButtonList()
+        atomButtonList = [x for i in atomButtonList for x in i]
+        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, atomButtonList
+                                             , foundPredictList)
 
-
+        #
+        #
+        # for type, score in predictedAtomTypes:
+        #   #print('>type, score>', type, score)
+        #   for atomType, buttons in self.buttons.items():
+        #     if type[1] == atomType:
+        #       for button in buttons:
+        #         print('>type[1], atomType, button>', type[1], atomType,  button.getText())
+        #         if score >= 85:
+        #           button.setStyleSheet('background-color: green')
+        #         elif 50 < score < 85:
+        #           button.setStyleSheet('background-color: orange')
+        #         if score < 50:
+        #           button.setStyleSheet('background-color: red')
+        #
+        #
+        #
