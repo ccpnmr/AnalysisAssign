@@ -439,9 +439,28 @@ class AtomSelectorModule(CcpnModule):
 
       if newNmrAtom:
         if showYesNo('Atom Selector', 'nmrAtom %s exists, do you want to delete?' % newNmrAtom):
+          # remove newNmrAtom the the peak.dimensionNmrAtom lists
+          for peak in self.current.peaks:
+            for strip in self.project.strips:
+              for peakListView in strip.peakListViews:
+                if peak in peakListView.peakItems.keys():
+                  spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
+                  index = spectrumIndices[1]
+                  axisCode = peak.axisCodes[index]
+
+                  currentList = list(peak.dimensionNmrAtoms[index])
+                  if newNmrAtom in currentList:
+                    currentList.remove(newNmrAtom)
+                    peak.assignDimension(axisCode, currentList)
+                  else:
+                    getLogger().warning('Error deleting nmrAtom from %s' % self.current.nmrResidue)
+          # and delete the nmrAtom from the project
           newNmrAtom.delete()
+
       else:
         newNmrAtom = r.fetchNmrAtom(name=name)
+
+        # add newNmrAtom to the peak.dimensionNmrAtom lists
         for peak in self.current.peaks:
           for strip in self.project.strips:
             for peakListView in strip.peakListViews:
@@ -452,7 +471,7 @@ class AtomSelectorModule(CcpnModule):
 
                 currentList = list(peak.dimensionNmrAtoms[index])
                 if newNmrAtom not in currentList:
-                  nmrAtoms = list(peak.dimensionNmrAtoms[index]) + [newNmrAtom]
+                  nmrAtoms = currentList + [newNmrAtom]
                   peak.assignDimension(axisCode, nmrAtoms)
                 else:
                   getLogger().warning('Error adding new nmrAtom to %s' % self.current.nmrResidue)
