@@ -591,7 +591,7 @@ class AtomSelectorModule(CcpnModule):
             nmrResidue = self.current.nmrResidue
           predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
 
-        print('>predictAtomTypes>', predictedAtomTypes)
+        # print('>predictAtomTypes>', predictedAtomTypes)
         # find the maximum of each atomType
         predictedDict = {}
         for type, score in predictedAtomTypes:
@@ -600,7 +600,7 @@ class AtomSelectorModule(CcpnModule):
           else:
             if score > predictedDict[type[1]][1]:
               predictedDict[type[1]] = (type[0], score)
-        print ('>>>predictedDict', predictedDict)
+        # print ('>>>predictedDict', predictedDict)
 
         for atomDictType in predictedDict.keys():
           bText = self.atomLabel(atomDictType, '0')
@@ -608,7 +608,7 @@ class AtomSelectorModule(CcpnModule):
             if atomDictType == atomType:
               for button in buttons:
                 if bText == button.getText():
-                  print('>type[1], atomType, button>', atomDictType, bText)
+                  # print('>type[1], atomType, button>', atomDictType, bText)
                   foundPredictList[self.atomLabel(atomDictType, '0')] = score
 
                   if score >= 85:
