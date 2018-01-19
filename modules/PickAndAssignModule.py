@@ -51,7 +51,8 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, DoubleSpinBoxCompoundWidget
-
+from ccpn.core.lib.Notifiers import Notifier
+from ccpn.core.NmrResidue import NmrResidue
 from ccpn.util.Logging import getLogger
 logger = getLogger()
 
@@ -96,6 +97,11 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.restrictedPickAndAssignButton = Button(text='Restricted\nPick and Assign'
                                                 , setLayout=True, spacing=(0, 0)
                                                 , callback=self.restrictedPickAndAssign)
+
+    self.restrictedPickButton.setEnabled(False)
+    self.assignSelectedButton.setEnabled(False)
+    self.restrictedPickAndAssignButton.setEnabled(False)
+
     # self.restrictedPickAndAssignButton.setMinimumWidth(160)
     # self.nmrResidueTable.addWidgetToTop(self.restrictedPickAndAssignButton, col=4)
     self.nmrResidueTable.addWidgetToPos(self.restrictedPickAndAssignButton, row=1, col=4)
@@ -141,11 +147,46 @@ class PickAndAssignModule(NmrResidueTableModule):
 
     self.nmrResidueTable._setWidgetHeight(40)
 
+    # need to feedback to current.nmrResidueTable
+    self._selectOnTableCurrentNmrResiduesNotifier = None
+    self._registerNotifiers()
+
+  def _registerNotifiers(self):
+    """
+    set up the notifiers
+    """
+    self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current
+                                                 , [Notifier.CURRENT]
+                                                 , targetName=NmrResidue._pluralLinkName
+                                                 , callback=self._selectionCallback)
+
+  def _unRegisterNotifiers(self):
+    """
+    clean up the notifiers
+    """
+    if self._selectOnTableCurrentNmrResiduesNotifier is not None:
+      self._selectOnTableCurrentNmrResiduesNotifier.unRegister()
+
+  def _selectionCallback(self, data):
+    """
+    enable/disable the pick buttons
+    """
+    selected = data[Notifier.OBJECT].nmrResidue
+
+    if selected:
+      self.restrictedPickButton.setEnabled(True)
+      self.assignSelectedButton.setEnabled(True)
+      self.restrictedPickAndAssignButton.setEnabled(True)
+    else:
+      self.restrictedPickButton.setEnabled(False)
+      self.assignSelectedButton.setEnabled(False)
+      self.restrictedPickAndAssignButton.setEnabled(False)
+
   def _closeModule(self):
     """
     Unregister notifiers and close module.
     """
-    #self._unRegisterNotifiers()
+    self._unRegisterNotifiers()
     super(PickAndAssignModule, self)._closeModule()
 
   def assignSelected(self):
