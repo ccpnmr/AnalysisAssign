@@ -74,7 +74,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     self.nmrChains = self.application.project.nmrChains
     self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable._widget,
-                                        grid=(0,2), checked=True, text='Find matches')
+                                        grid=(1,2), checked=True, text='Find matches')
 
     ### Settings ###
 
@@ -82,6 +82,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self.sequentialStripsWidget.checkBox.setChecked(True)
     self.displaysWidget.addPulldownItem(0)
 
+    colWidth0 = 140
     colWidth = 200  # for labels of the compound widgets
     colWidth2 = 120  # for the numberOfMatchesWidget
 
@@ -90,9 +91,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Number of matches to show
     row += 1
-    self.numberOfMatchesWidget = PulldownListCompoundWidget(self.settingsWidget,
+    self.numberOfMatchesWidget = PulldownListCompoundWidget(self._NTSwidget,
                                           grid=(row,col), vAlign='top', hAlign='left',
-                                          fixedWidths=(colWidth2, colWidth2, colWidth2),
+                                          fixedWidths=(colWidth0, colWidth0, None),
                                           orientation='left',
                                           labelText="Matches to show:",
                                           texts=[str(tt) for tt in range(3,7)]
@@ -101,9 +102,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     # Match module selection
     row += 1
     # cannot set a notifier for displays, as these are not (yet?) implemented
-    self.matchWidget = ListCompoundWidget(self.settingsWidget,
+    self.matchWidget = ListCompoundWidget(self._NTSwidget,
                                           grid=(row,col), vAlign='top', hAlign='left',
-                                          fixedWidths=(colWidth, colWidth, colWidth),
+                                          fixedWidths=(colWidth0, colWidth0, colWidth0),
                                           orientation='left',
                                           labelText="Match module(s):",
                                           texts=[display.pid for display in self.mainWindow.spectrumDisplays]
@@ -112,9 +113,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Chemical shift list selection
     row += 1
-    self.shiftListWidget = ChemicalShiftListPulldown(self.settingsWidget, self.application.project,
+    self.shiftListWidget = ChemicalShiftListPulldown(self._NTSwidget, self.application.project,
                                                      grid=(row,col), vAlign='top', hAlign='left',
-                                                     fixedWidths=(colWidth, colWidth),
+                                                     fixedWidths=(colWidth0, colWidth0, None),
                                                      callback=self._setupShiftDicts, default=0
                                                      )
     self._setupShiftDicts()

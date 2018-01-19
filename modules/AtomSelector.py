@@ -69,6 +69,11 @@ from ccpn.ui.gui.widgets.MessageDialog import showWarning
 
 logger = getLogger()
 
+# TODO:ED Add DNA, RNA structures to the list
+# MOLECULE_TYPES = ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
+MOLECULE_TYPES = ['protein']
+ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+
 
 class AtomSelectorModule(CcpnModule):
   """
@@ -85,17 +90,19 @@ class AtomSelectorModule(CcpnModule):
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
+    if mainWindow:
+      self.application = mainWindow.application
+      self.project = mainWindow.application.project
+      self.current = mainWindow.application.current
 
-    self.current.registerNotify(self._predictAssignments, 'peaks')
-    self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
+      self.current.registerNotify(self._predictAssignments, 'peaks')
+      self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
 
     # Settings Widget
     self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
-    self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
+    self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=MOLECULE_TYPES
                                         , callback=self._changeMoleculeType)
+
     self._spacer = Spacer(self.settingsWidget, 15, 5
                          , QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
                          , grid=(0,2), gridSpan=(1,1))
@@ -146,7 +153,7 @@ class AtomSelectorModule(CcpnModule):
     self.buttons = {}
 
     self._updateWidget()
-    self._predictAssignments(self.current.peaks)
+    # self._predictAssignments(self.current.peaks)
 
   def _closeModule(self):
     self.current.unRegisterNotify(self._predictAssignments, 'peaks')
@@ -158,6 +165,9 @@ class AtomSelectorModule(CcpnModule):
     if nmrResidues is not None and self.current.nmrResidue:
       self._updateWidget()
       self._predictAssignments(self.current.peaks)
+      self.pickAndAssignWidget.show()
+    else:
+      self.pickAndAssignWidget.hide()
 
   def _offsetPullDownCallback(self, tmp=None):
     "Callback if offset pullDown changes"
@@ -167,18 +177,23 @@ class AtomSelectorModule(CcpnModule):
 
   def _updateWidget(self):
     "Update the widget to reflect the proper state"
-    if self.current.nmrResidue is not None:
-      self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-    else:
-      self.currentNmrResidueLabel.setText('<not-defined>')
+    try:
+      if self.current.nmrResidue is not None:
+        self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+        if self.radioButton1.isChecked():
+          for w in self._sidechainModifiers:
+            w.hide()
+          self._createBackBoneButtons()
+        elif self.radioButton2.isChecked():
+          for w in self._sidechainModifiers:
+            w.show()
+          self._createSideChainButtons()
+      else:
+        self.currentNmrResidueLabel.setText('<not-defined>')
 
-    if self.radioButton1.isChecked():
-      for w in self._sidechainModifiers: w.hide()
-      self._createBackBoneButtons()
-    elif self.radioButton2.isChecked():
-      for w in self._sidechainModifiers: w.show()
-      self._createSideChainButtons()
-    return
+      return
+    except:
+      return
 
   def _createBackBoneButtons(self):
     self._cleanupPickAndAssignWidget()
@@ -190,31 +205,42 @@ class AtomSelectorModule(CcpnModule):
     ###_Label = Label(self, text='')
     ###self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
     self.buttons = {}
-    atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+    atoms = ATOM_TYPES
 
-    for ii, atom in enumerate(atoms):
-      self.buttons[atom] = []
+    rowCount = self.pickAndAssignWidget.layout().rowCount()
+    colCount = self.pickAndAssignWidget.layout().columnCount()
 
-      # skip of startswith these atomTypes
-      if not self.cCheckBox.isChecked() and atom.startswith('C'):
-        continue
-      if not self.hCheckBox.isChecked() and atom.startswith('H'):
-        continue
-      if not self.nCheckBox.isChecked() and atom.startswith('N'):
-        continue
-      if not self.otherCheckBox.isChecked() and not atom.startswith('C')\
-                                            and not atom.startswith('H') \
-                                            and not atom.startswith('N'):
-        continue
+    for r in range(1, rowCount):
+      for m in range(colCount):
+        item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        if item:
+          if item.widget():
+            item.widget().hide()
+        self.pickAndAssignWidget.layout().removeItem(item)
 
-      for jj, offset in enumerate(['-1', '0', '+1']):
-        btext = self.atomLabel(atom, offset)
-        button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj)
-                        , callback=partial(self.assignSelected, offset, atom))
-        button.setMinimumSize(45, 24)
+    if self.current.nmrResidue:
+      for ii, atom in enumerate(atoms):
+        self.buttons[atom] = []
 
-        self.buttons[atom].append(button)
+        # skip of startswith these atomTypes
+        if not self.cCheckBox.isChecked() and atom.startswith('C'):
+          continue
+        if not self.hCheckBox.isChecked() and atom.startswith('H'):
+          continue
+        if not self.nCheckBox.isChecked() and atom.startswith('N'):
+          continue
+        if not self.otherCheckBox.isChecked() and not atom.startswith('C')\
+                                              and not atom.startswith('H') \
+                                              and not atom.startswith('N'):
+          continue
 
+        for jj, offset in enumerate(['-1', '0', '+1']):
+          btext = self.atomLabel(atom, offset)
+          button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj)
+                          , callback=partial(self.assignSelected, offset, atom))
+          button.setMinimumSize(45, 24)
+
+          self.buttons[atom].append(button)
 
     self._predictAssignments(self.current.peaks)
 
@@ -582,7 +608,7 @@ class AtomSelectorModule(CcpnModule):
               foundPredictList[self.atomLabel('CA', '0')] = 100
 
         # new routine to colour any existing atoms
-        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ATOM_TYPES
                                              , foundPredictList)
 
       # sidechain is checked
@@ -646,6 +672,28 @@ class AtomSelectorModule(CcpnModule):
     """
     pass
 
+  def getResidueTypes(self, moleculeType:str='protein'):
+    """
+    return a list of residue types assiciated with the moleculeType
+    :param moleculeType - str ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
+    :return list of str:
+    """
+    if moleculeType in MOLECULE_TYPES:
+      if moleculeType == 'protein':
+        return [atomName for atomName in PROTEIN_ATOM_NAMES.keys()]
+    else:
+      return None
+
+if __name__ == '__main__':
+  from ccpn.ui.gui.widgets.Application import TestApplication
+
+  app = TestApplication()
+
+  popup = AtomSelectorModule()
+
+  popup.show()
+  popup.raise_()
+  app.start()
 
 DNA_ATOMS = """
 Res    Name     Atom     Count        Min.        Max.       Avg.     Std Dev
