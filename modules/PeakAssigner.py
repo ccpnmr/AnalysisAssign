@@ -413,6 +413,7 @@ class AxisAssignmentObject(Frame):
                               , selectionCallback=partial(self._updatePulldownLists, 0)
                               , grid=(row,0), gridSpan=(1,1)
                               , stretchLastSection=True
+                              , enableSearch=False
                               , acceptDrops=True)
 
                   , QuickTable(parent=self
@@ -424,6 +425,7 @@ class AxisAssignmentObject(Frame):
                               , selectionCallback=partial(self._updatePulldownLists, 1)
                               , grid=(row,2), gridSpan=(7,1)
                               , stretchLastSection=False
+                              , enableSearch=False
                               , acceptDrops=True)
                   ]
 
