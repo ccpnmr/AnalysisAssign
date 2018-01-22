@@ -164,8 +164,11 @@ class AtomSelectorModule(CcpnModule):
     "Callback if current.nmrResidue changes"
     if nmrResidues is not None and self.current.nmrResidue:
       self._updateWidget()
-      self._predictAssignments(self.current.peaks)
-      self.pickAndAssignWidget.show()
+      if self.current.peaks:
+        self._predictAssignments(self.current.peaks)
+        self.pickAndAssignWidget.show()
+      else:
+        self.pickAndAssignWidget.hide()
     else:
       self.pickAndAssignWidget.hide()
 
@@ -380,8 +383,11 @@ class AtomSelectorModule(CcpnModule):
             item.widget().hide()
         layout.removeItem(item)
 
-  def atomLabel(self, atom, offset):
-    return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
+  def atomLabel(self, atom, offset, showAll=False):
+    if showAll:
+      return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
+    else:
+      return str(atom if offset == '0' else atom + ' [i' + offset + ']')
 
   def checkAssignedAtoms(self, nmrResidue, atoms, predictAtoms):
     """
@@ -455,7 +461,7 @@ class AtomSelectorModule(CcpnModule):
     to the atom type and the position and assigns it to correct dimension of current.peaks
     """
 
-    if not self.current.nmrResidue:
+    if not self.current.nmrResidue or not self.current.peaks:
       return
 
     # self.project._appBase._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
@@ -553,7 +559,11 @@ class AtomSelectorModule(CcpnModule):
     """
     self._returnButtonsToNormal()
     if self.current.nmrResidue is None or len(peaks) == 0:
+      self.pickAndAssignWidget.hide()
       return
+
+    # make sure that the widget is visible
+    self.pickAndAssignWidget.show()
 
     # check if peaks coincide
     for dim in range(peaks[0].peakList.spectrum.dimensionCount):
