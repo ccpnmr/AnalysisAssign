@@ -321,7 +321,10 @@ class PickAndAssignModule(NmrResidueTableModule):
           else:
             widths = ['default', 'full'] + (n-2)*['']
 
-          Strip.navigateToNmrAtomsInStrip(strip=strip, nmrAtoms=nmrResidue.nmrAtoms, widths=widths, markPositions=(n==2))
+          Strip.navigateToNmrAtomsInStrip(strip=strip
+                                          , nmrAtoms=nmrResidue.nmrAtoms
+                                          , widths=None   #strip._getCurrentZoomRatio(strip.viewBox.viewRange())
+                                          , markPositions=(n==2))
         self.application.current.nmrResidue = nmrResidue
     finally:
       self.application._endCommandBlock()
