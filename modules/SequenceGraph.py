@@ -635,7 +635,7 @@ class SequenceGraphModule(CcpnModule):
         self._getAssignmentsFromSpectra()
 
     except Exception as es:
-      pass
+      getLogger().warning('Error: %s' % str(es))
     finally:
       self.application._endCommandBlock()      # should match the start block
 
