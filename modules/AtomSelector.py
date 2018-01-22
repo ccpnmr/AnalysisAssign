@@ -137,6 +137,7 @@ class AtomSelectorModule(CcpnModule):
     #                             self.otherCheckBox, self.otherLabel]
     self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
+    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
     for w in self._sidechainModifiers:  w.hide()
 
     # Main widget
@@ -455,6 +456,12 @@ class AtomSelectorModule(CcpnModule):
     else:
       return None
 
+  def _assignDimension(self):
+    """
+    update the peak assignment and create a event to update the module
+    """
+    pass
+
   def assignSelected(self, offset:int, atomType:str):
     """
     Takes a position either -1, 0 or +1 and an atom type, fetches an NmrAtom with name corresponding
@@ -520,6 +527,8 @@ class AtomSelectorModule(CcpnModule):
                 if newNmrAtom not in currentList:
                   nmrAtoms = currentList + [newNmrAtom]
                   peak.assignDimension(axisCode, nmrAtoms)
+
+                  # TODO:ED add undo event here
                 else:
                   getLogger().warning('Error adding new nmrAtom to %s' % self.current.nmrResidue)
 

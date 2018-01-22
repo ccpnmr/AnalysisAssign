@@ -945,10 +945,11 @@ class SequenceGraphModule(CcpnModule):
       possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
                         self.project.chains[0], self.project.chemicalShiftLists[0])
 
-      for possibleMatch in possibleMatches:
-        if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
-          if hasattr(self.project._appBase, 'sequenceModule'):
-            self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+      if possibleMatches:
+        for possibleMatch in possibleMatches:
+          if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
+            if hasattr(self.project._appBase, 'sequenceModule'):
+              self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
   def _updateShowTreeAssignments(self, peak=None):
     nmrChainPid = self.nmrChainPulldown.getText()
