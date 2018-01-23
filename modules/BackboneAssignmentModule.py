@@ -34,7 +34,7 @@ from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 
-from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
+from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms, _getCurrentZoomRatio
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTableModule
@@ -187,8 +187,13 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       # navigate the displays
       for display in displays:
         if len(display.strips) > 0:
+
+          # if contains hsqc then keep zoom
+          newWidths = _getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
+          # newWidths = ['full']*len(display.strips[0].axisCodes)
+
           strips = navigateToNmrResidueInDisplay(nr, display, stripIndex=0,
-                                      widths=['full']*len(display.strips[0].axisCodes),
+                                      widths=newWidths,
                                       showSequentialResidues=(len(display.axisCodes) > 2) and
                                                              self.sequentialStripsWidget.checkBox.isChecked(),
                                       markPositions=False    #self.markPositionsWidget.checkBox.isChecked()
