@@ -202,6 +202,8 @@ class PickAndAssignModule(NmrResidueTableModule):
 
     self.application.project._appBase._startCommandBlock('application.pickAndAssignModule.assignSelected()')
     try:
+      lastNmrResidue = self.application.current.nmrResidue
+
       shiftDict = {}
       for atom in self.application.current.nmrResidue.nmrAtoms:
         shiftDict[atom.isotopeCode] = []
@@ -219,9 +221,13 @@ class PickAndAssignModule(NmrResidueTableModule):
               pValue = peak.position[ii]
               if abs(sValue-pValue) <= spectrum.assignmentTolerances[ii]:
                 peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
-      self.application.current.peaks = []
+
+      # self.application.current.peaks = []
       # update the NmrResidue table
       self.nmrResidueTable._update(self.application.current.nmrResidue.nmrChain)
+
+      # reset to the last selected nmrResidue - stops other tables messing up
+      self.application.current.nmrResidue = lastNmrResidue
 
     finally:
       self.application._endCommandBlock()
@@ -298,7 +304,7 @@ class PickAndAssignModule(NmrResidueTableModule):
       self.application.current.peaks = peaks
       self.assignSelected()
       # update the NmrResidue table
-      self.nmrResidueTable._update(nmrResidue.nmrChain)
+      # self.nmrResidueTable._update(nmrResidue.nmrChain)
 
     finally:
       self.application._endCommandBlock()

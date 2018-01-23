@@ -168,14 +168,16 @@ class AssignmentInspectorModule(CcpnModule):
                                          , autoResize=True, multiSelect=False
                                          , selectionCallback=self._setCurrentPeak
                                          , actionCallback=self._navigateToPeak
-                                         , grid=(1, 0), gridSpan=(1, 5), **policies
-                                         , enableDelete=False)
+                                         , grid=(1, 0), gridSpan=(1, 5)
+                                         , enableDelete=False, enableSearch=False
+                                         , **policies)
 
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
 
     # self._registerNotifiers()
 
+    self.assignedPeaksTable._peakList = None
     # update if current.nmrResidue is defined
     if self.application.current.nmrResidue is not None:
       self._updateModuleCallback([self.application.current.nmrResidue])
@@ -188,7 +190,7 @@ class AssignmentInspectorModule(CcpnModule):
                            , changeFunc=self._refreshTable
                            , className=self.attributeName
                            , updateFunc=self._refreshTable
-                           , tableSelection=None    #'nmrChain'
+                           , tableSelection='_peakList'
                            , pullDownWidget=None     #self.ncWidget
                            , callBackClass=NmrResidue
                            , selectCurrentCallBack=self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
@@ -283,6 +285,10 @@ class AssignmentInspectorModule(CcpnModule):
     else:
       logger.error('No valid item selected')
 
+  class emptyObject():
+    def __init__(self):
+      pass
+
   def _updatePeakTable(self, id):
     """
     Update peak table depending on value of id;
@@ -294,12 +300,14 @@ class AssignmentInspectorModule(CcpnModule):
       return
 
     if id == ALL:
-      peaks = list(set([pk for nmrAtom in self.application.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
+      self.assignedPeaksTable._peakList = self.emptyObject()
+
+      self.assignedPeaksTable._peakList.peaks = list(set([pk for nmrAtom in self.application.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
 
       self.project.blankNotification()
       objs = self.assignedPeaksTable.getSelectedObjects()
       self._dataFrameObject = self.assignedPeaksTable.getDataFrameFromList(table=self.assignedPeaksTable
-                                                                           , buildList=peaks
+                                                                           , buildList=self.assignedPeaksTable._peakList.peaks
                                                                            , colDefs=self.getColumns()
                                                                            , hiddenColumns=self._hiddenColumns)
 
