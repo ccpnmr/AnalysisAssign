@@ -369,7 +369,7 @@ class PeakAssigner(CcpnModule):
     """
     CCPN-INTERNAL: used to close the module
     """
-    self._unregisterNotifiers()
+    self._unRegisterNotifiers()
     super(PeakAssigner, self)._closeModule()
 
   def close(self):
