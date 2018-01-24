@@ -166,7 +166,7 @@ class AtomSelectorModule(CcpnModule):
     if nmrResidues is not None and self.current.nmrResidue:
       self._updateWidget()
       if self.current.peaks:
-        self._predictAssignments(self.current.peaks)
+        # self._predictAssignments(self.current.peaks)
         self.pickAndAssignWidget.show()
       else:
         self.pickAndAssignWidget.hide()
@@ -390,13 +390,17 @@ class AtomSelectorModule(CcpnModule):
     else:
       return str(atom if offset == '0' else atom + ' [i' + offset + ']')
 
-  def checkAssignedAtoms(self, nmrResidue, atoms, predictAtoms):
+  def checkAssignedAtoms(self, nmrResidue, atoms, predictAtoms, checkMode='backbone'):
     """
     Check if the i-1, i, i+1 nmrAtoms for the current residue exist
     :param nmrResidue:
     :return foundAtoms - dict containing True for each found nmrAtom:
     """
     foundAtoms = {}
+    if checkMode == 'backbone':
+      # all residues are displayed so use the central mainNmrResidue
+      nmrResidue = self._getMainNmrResidue(nmrResidue)
+
     # atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
     for ii, atom in enumerate(atoms):
       for jj, offset in enumerate(['-1', '0', '+1']):
@@ -436,11 +440,11 @@ class AtomSelectorModule(CcpnModule):
   def _getCorrectResidue(self, nmrResidue, offset:int, atomType:str):
     name = atomType
     r = None
-    if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
+    if offset == '-1' and '-1' not in nmrResidue.sequenceCode:
       r = nmrResidue.previousNmrResidue
       if not r:
         r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '-1')
-    elif offset == '+1' and '+1' not in self.current.nmrResidue.sequenceCode:
+    elif offset == '+1' and '+1' not in nmrResidue.sequenceCode:
       r = nmrResidue.nextNmrResidue
       if not r:
         r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '+1')
@@ -456,6 +460,13 @@ class AtomSelectorModule(CcpnModule):
     else:
       return None
 
+  def _getMainNmrResidue(self, nmrResidue):
+    if nmrResidue:
+      if nmrResidue.relativeOffset and nmrResidue.relativeOffset != 0:
+        return nmrResidue.mainNmrResidue
+        
+    return nmrResidue
+  
   def _assignDimension(self):
     """
     update the peak assignment and create a event to update the module
@@ -471,22 +482,24 @@ class AtomSelectorModule(CcpnModule):
     if not self.current.nmrResidue or not self.current.peaks:
       return
 
+    assignResidue = self._getMainNmrResidue(self.current.nmrResidue)
+
     # self.project._appBase._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
     self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
     try:
       name = atomType
 
       # search for and create the nmrResidue if it doesn't exists
-      if offset == '-1' and '-1' not in self.current.nmrResidue.sequenceCode:
-        r = self.current.nmrResidue.previousNmrResidue
+      if offset == '-1' and '-1' not in assignResidue.sequenceCode:
+        r = assignResidue.previousNmrResidue
         if not r:
-          r = self.current.nmrResidue.nmrChain.fetchNmrResidue(sequenceCode=self.current.nmrResidue.sequenceCode+'-1')
-      elif offset == '+1' and '+1' not in self.current.nmrResidue.sequenceCode:
-        r = self.current.nmrResidue.nextNmrResidue
+          r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode+'-1')
+      elif offset == '+1' and '+1' not in assignResidue.sequenceCode:
+        r = assignResidue.nextNmrResidue
         if not r:
-          r = self.current.nmrResidue.nmrChain.fetchNmrResidue(sequenceCode=self.current.nmrResidue.sequenceCode + '+1')
+          r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode + '+1')
       else:
-        r = self.current.nmrResidue
+        r = assignResidue
 
       # check whether the nmrAtom already exists
       newNmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
@@ -507,7 +520,7 @@ class AtomSelectorModule(CcpnModule):
                     currentList.remove(newNmrAtom)
                     peak.assignDimension(axisCode, currentList)
                   else:
-                    getLogger().warning('Error deleting nmrAtom from %s' % self.current.nmrResidue)
+                    getLogger().warning('Error deleting nmrAtom from %s' % assignResidue)
           # and delete the nmrAtom from the project
           newNmrAtom.delete()
 
@@ -530,7 +543,7 @@ class AtomSelectorModule(CcpnModule):
 
                   # TODO:ED add undo event here
                 else:
-                  getLogger().warning('Error adding new nmrAtom to %s' % self.current.nmrResidue)
+                  getLogger().warning('Error adding new nmrAtom to %s' % assignResidue)
 
       # self.current.peaks = []
       # flag a change on this peak
@@ -628,7 +641,7 @@ class AtomSelectorModule(CcpnModule):
 
         # new routine to colour any existing atoms
         foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ATOM_TYPES
-                                             , foundPredictList)
+                                             , foundPredictList, 'backbone')
 
       # sidechain is checked
       elif self.radioButton2.isChecked():
@@ -682,7 +695,7 @@ class AtomSelectorModule(CcpnModule):
         atomButtonList = self._getAtomButtonList()
         atomButtonList = [x for i in atomButtonList for x in i]
         foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, atomButtonList
-                                             , foundPredictList)
+                                             , foundPredictList, 'sideChain')
 
   def _changeMoleculeType(self, data):
     """

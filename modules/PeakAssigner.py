@@ -71,6 +71,10 @@ class PeakAssigner(CcpnModule):
   settingsPosition = 'top'
   className = 'PeakAssigner'
 
+  class emptyObject():
+    def __init__(self):
+      pass
+
   def __init__(self, mainWindow,  name="Peak Assigner"):
 
     CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
@@ -143,10 +147,12 @@ class PeakAssigner(CcpnModule):
 
     # respond to peaks
     # TODO:ED check which of these are still needed
-    self.current.registerNotify(self._updateInterface, 'peaks')
-    # self.current.registerNotify(self._updateInterface, 'nmrAtoms')
+    self._registerNotifiers()
+
+    # self.current.registerNotify(self._updateInterface, 'peaks')
+    # # self.current.registerNotify(self._updateInterface, 'nmrAtoms')
     # self.project.registerNotifier('NmrAtom', 'change', self._update)   # just refresh the table
-    # self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
+    # # self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
 
     self._settingsScrollArea.setFixedHeight(40)
     self._settingsScrollArea.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Fixed)
@@ -154,12 +160,23 @@ class PeakAssigner(CcpnModule):
 
     self._updateInterface()
 
-  def _unregisterNotifiers(self):
-    self.current.unRegisterNotify(self._updateInterface, 'peaks')
-    # self.current.unRegisterNotify(self._updateInterface, 'nmrAtoms')
-    # self.project.unRegisterNotifier('NmrAtom', 'change', self._update)
-    # self.project.unRegisterNotifier('NmrResidue', 'change', self._update)
-    pass
+  def _registerNotifiers(self):
+    # without a tableSelection specified in the table callback, this nmrAtom callback is needed
+    # tio update the table
+    self._peakNotifier = Notifier(self.current
+                                  , [Notifier.CURRENT]
+                                  , targetName=Peak._pluralLinkName
+                                  , callback=self._updateInterface)
+    self._nmrAtomNotifier = Notifier(self.project
+                                  , [Notifier.CHANGE, Notifier.RENAME]
+                                  , targetName=NmrAtom.__name__
+                                  , callback=self._update)
+
+  def _unRegisterNotifiers(self):
+    if self._peakNotifier:
+      self._peakNotifier.unRegister()
+    if self._nmrAtomNotifier:
+      self._nmrAtomNotifier.unRegister()
 
   def _update(self, *args):
     self._updateInterface()
@@ -218,6 +235,9 @@ class PeakAssigner(CcpnModule):
 
     Ndimensions = len(nmrAtomsForTables)
     self.currentList = []
+
+    self._tables = [self.emptyObject()] * Ndimensions
+
     for dim, nmrAtoms in zip(range(Ndimensions),
                                           nmrAtomsForTables):
       ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
