@@ -222,7 +222,7 @@ class AssignmentInspectorModule(CcpnModule):
   #                                 , targetName='Peak'
   #                                 , callback=self._refreshTable)
   #
-  # def _unregisterNotifiers(self):
+  # def _unRegisterNotifiers(self):
   #   # self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
   #   # self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
   #   # self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
@@ -241,7 +241,7 @@ class AssignmentInspectorModule(CcpnModule):
     """
     CCPN-INTERNAL: used to close the module
     """
-    # self._unregisterNotifiers()
+    # self._unRegisterNotifiers()
     self.assignedPeaksTable.clearTableNotifiers()
     super(AssignmentInspectorModule, self)._closeModule()
 

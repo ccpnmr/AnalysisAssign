@@ -182,7 +182,7 @@ class PeakAssigner(CcpnModule):
     self._updateInterface()
 
   def __del__(self):
-    self._unregisterNotifiers()
+    self._unRegisterNotifiers()
 
   def _updateInterface(self, peaks:typing.List[Peak]=None):
     """Updates the whole module, including recalculation

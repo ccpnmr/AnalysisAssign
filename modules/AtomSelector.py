@@ -51,6 +51,7 @@ from PyQt4 import QtCore, QtGui
 
 from ccpn.core.Peak import Peak
 from ccpn.core.NmrResidue import NmrResidue
+from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.lib import Pid
 from ccpn.core.lib.AssignmentLib import isInterOnlyExpt, getNmrAtomPrediction, CCP_CODES
 from ccpn.core.lib.AssignmentLib import peaksAreOnLine
@@ -62,10 +63,12 @@ from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.RadioButton import RadioButton
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.widgets.Spacer import Spacer
+from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.MessageDialog import showYesNo
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
+from ccpn.core.lib.Notifiers import Notifier
 
 logger = getLogger()
 
@@ -94,9 +97,10 @@ class AtomSelectorModule(CcpnModule):
       self.application = mainWindow.application
       self.project = mainWindow.application.project
       self.current = mainWindow.application.current
+      self._registerNotifiers()
 
-      self.current.registerNotify(self._predictAssignments, 'peaks')
-      self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
+      # self.current.registerNotify(self._predictAssignments, 'peaks')
+      # self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
 
     # Settings Widget
     self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
@@ -137,28 +141,60 @@ class AtomSelectorModule(CcpnModule):
     #                             self.otherCheckBox, self.otherLabel]
     self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
-    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
+    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding)
+    self.settingsWidget.setFixedHeight(45)
+
     for w in self._sidechainModifiers:  w.hide()
 
     # Main widget
-    gridLine = -1
-    # gridline 0
-    gridLine += 1
-    nmrResidueLabel = Label(self.mainWidget, 'Current NmrResidue:', grid=(gridLine, 0))
-    self.currentNmrResidueLabel = Label(self.mainWidget, grid=(gridLine, 1))
+    gridLine = 0
+    self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1))
+    self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0)
+                                  , hPolicy='minimum')
+    self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1), gridSpan=(1, 3)
+                                        , hPolicy='minimumexpanding', hAlign='l')
+    self._residueFrame.setFixedHeight(25)
+    self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Expanding)
 
     # gridLine 1
     gridLine += 1
-    self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(11,10), vAlign='top')
+    self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1), vAlign='top')
+    Spacer(self.mainWidget, 5, 5
+           , QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
+           , grid=(gridLine, 0), gridSpan=(1,1))
 
     self.buttons = {}
 
     self._updateWidget()
     # self._predictAssignments(self.current.peaks)
 
+  def _registerNotifiers(self):
+    self._nmrAtomNotifier = Notifier(self.project
+                                    , [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE]
+                                    , NmrAtom.__name__
+                                    , self._nmrResidueCallBack)
+    self._peakNotifier = Notifier(self.current
+                                 , [Notifier.CURRENT]
+                                 , Peak._pluralLinkName
+                                 , self._predictAssignmentsCallBack)
+    self._nmrResidueNotifier = Notifier(self.current
+                                 , [Notifier.CURRENT]
+                                 , NmrResidue._pluralLinkName
+                                 , self._nmrResidueCallBack)
+
+  def _unRegisterNotifiers(self):
+    """
+    clean up the notifiers
+    """
+    if self._peakNotifier is not None:
+      self._peakNotifier.unRegister()
+    if self._nmrResidueNotifier is not None:
+      self._nmrResidueNotifier.unRegister()
+    if self._nmrAtomNotifier is not None:
+      self._nmrAtomNotifier.unRegister()
+
   def _closeModule(self):
-    self.current.unRegisterNotify(self._predictAssignments, 'peaks')
-    self.current.unRegisterNotify(self._nmrResidueCallBack, 'nmrResidues')
+    self._unRegisterNotifiers()
     super(AtomSelectorModule, self)._closeModule()
 
   def _nmrResidueCallBack(self, nmrResidues=None):
@@ -266,7 +302,7 @@ class AtomSelectorModule(CcpnModule):
     elif self.radioButton2.isChecked():
       for w in self._sidechainModifiers: w.show()
     self._updateWidget()
-    self._predictAssignments(self.current.peaks)
+    # self._predictAssignments(self.current.peaks)
 
   def _getAtomsForButtons(self, atomList, atomName):
     [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
@@ -456,7 +492,11 @@ class AtomSelectorModule(CcpnModule):
   def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
     r = self._getCorrectResidue(nmrResidue=nmrResidue, offset=offset, atomType=atomType)
     if r:
-      return r.getNmrAtom(atomType.translate(Pid.remapSeparators))
+      atom = r.getNmrAtom(atomType.translate(Pid.remapSeparators))
+      if atom and not atom.isDeleted:
+        return r
+      else:
+        return None
     else:
       return None
 
@@ -573,6 +613,11 @@ class AtomSelectorModule(CcpnModule):
           """Dock QPushButton { background-color: %s }
              Dock QPushButton::hover { background-color: %s}""" % (backgroundColour1, backgroundColour2)
         )
+
+  def _predictAssignmentsCallBack(self, data):
+    peaks = data[Notifier.VALUE]
+
+    self._predictAssignments(peaks)
 
   def _predictAssignments(self, peaks:typing.List[Peak]):
     """
