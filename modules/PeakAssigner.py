@@ -558,6 +558,7 @@ class AxisAssignmentObject(Frame):
     # set column definitions and hidden columns for each table
     self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None),
                                    ('Pid', lambda nmrAtom: str(nmrAtom.pid), 'Pid of the nmrAtom', None),
+                                   ('_object', lambda nmrAtom:nmrAtom, 'Object', None),
                                    ('Shift', lambda nmrAtom: parentModule._getShift(nmrAtom), 'Chemical shift', None),
                                    ('Delta', lambda nmrAtom: parentModule.getDeltaShift(nmrAtom, index), 'Delta shift', None)])
     self._hiddenColumns = [['Pid', 'Shift'], ['Pid', 'Shift']]
@@ -716,11 +717,15 @@ class AxisAssignmentObject(Frame):
             allAtoms = list(peak.dimensionNmrAtoms)
             allAtoms[dim] = dimNmrAtoms
             peak.dimensionNmrAtoms = allAtoms
+
           except Exception as es:
             showWarning(str(self.windowTitle()), str(es))
 
           finally:
             self.project._endCommandEchoBlock()
+
+            # notifier to update other tables
+            peak._finaliseAction('change')
 
         # self._updateInterface()
         self.parent._updateInterface()
@@ -758,11 +763,15 @@ class AxisAssignmentObject(Frame):
             allAtoms = list(peak.dimensionNmrAtoms)
             allAtoms[dim] = dimNmrAtoms
             peak.dimensionNmrAtoms = allAtoms
+
           except Exception as es:
             showWarning(str(self.windowTitle()), str(es))
 
           finally:
             self.project._endCommandEchoBlock()
+
+            # notifier to update other tables
+            peak._finaliseAction('change')
 
           # self._updateInterface()
           self.parent._updateInterface()

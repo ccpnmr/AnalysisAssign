@@ -345,10 +345,11 @@ class AssignmentInspectorModule(CcpnModule):
         self.peaksLabel.setText('Assigned peaks of NmrAtom: %s' % nmrAtom.id)
 
   def getColumns(self):
-    "get columns for intialisation of table"
+    "get columns for initialisation of table"
     columns = ColumnClass([('Peak', lambda pk: pk.serial, '', None)
                             , ('Pid', lambda pk: pk.pid, 'Pid of peak', None)
-                            , ('id', lambda pk: pk.serial, '', None)])
+                           , ('_object', lambda pk: pk, 'Object', None)
+                          , ('id', lambda pk: pk.serial, '', None)])
     tipTexts = []
     # get the maxmimum number of dimensions from all spectra in the project
     numDim = max([sp.dimensionCount for sp in self.application.project.spectra] + [1])
