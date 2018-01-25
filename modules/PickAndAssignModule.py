@@ -302,7 +302,9 @@ class PickAndAssignModule(NmrResidueTableModule):
                                                       axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
               peaks = peaks + pks
       self.application.current.peaks = peaks
-      self.assignSelected()
+
+      if peaks:
+        self.assignSelected()
       # update the NmrResidue table
       # self.nmrResidueTable._update(nmrResidue.nmrChain)
 
