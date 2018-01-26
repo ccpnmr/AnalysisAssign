@@ -761,16 +761,6 @@ class AtomSelectorModule(CcpnModule):
     else:
       return None
 
-if __name__ == '__main__':
-  from ccpn.ui.gui.widgets.Application import TestApplication
-
-  app = TestApplication()
-
-  popup = AtomSelectorModule()
-
-  popup.show()
-  popup.raise_()
-  app.start()
 
 DNA_ATOMS = """
 Res    Name     Atom     Count        Min.        Max.       Avg.     Std Dev
@@ -991,3 +981,69 @@ U          N3       N        553          0.00       167.30     158.99      16.6
 U          O4       O        5            0.00         0.00       0.00       0.00       
 U          P        P        149         -5.30         1.58      -2.99       1.78       
 """
+
+DNA_ATOM_NAMES = {
+  'DT': ['H3', 'H6', 'H7', 'H71', 'H72', 'H73', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+         'C2', 'C4', 'C5', 'C6', 'C7', "C1'", "C2'", "C3'", "C4'", "C5'",
+         'N1', 'N3',
+         'P'],
+  'DC': ['H41', 'H42', 'H5', 'H6', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+         'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
+         'N1', 'N3', 'N4',
+         'P'],
+  'DA': ['H2', 'H61', 'H62', 'H8', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+         'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+         'N1', 'N3', 'N6', 'N7', 'N9', 'P'],
+  'DG': ['H1', 'H21', 'H22', 'H8', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+         'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+         'N1', 'N2', 'N7', 'N9',
+         'P']
+}
+RNA_ATOM_NAMES = {
+  'G': ['H1', 'H21', 'H22', 'H8', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+        'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+        'N1', 'N2', 'N3', 'N7', 'N9',
+        'P'],
+  'U': ['H3', 'H5', 'H6', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+        'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
+        'N1', 'N3', 'O4',
+        'P'],
+  'A': ['H2', 'H61', 'H62', 'H8', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+        'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+        'N1', 'N3', 'N6', 'N7', 'N9',
+        'P'],
+  'C': ['H41', 'H42', 'H5', 'H6', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+        'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
+        'N1', 'N3', 'N4',
+        'P']
+}
+
+if __name__ == '__main__':
+  from ccpn.ui.gui.widgets.Application import TestApplication
+  from ccpn.ui.gui.widgets.TextEditor import TextEditor
+  app = TestApplication()
+
+  popup = AtomSelectorModule()
+
+  textBox = TextEditor(popup.mainWidget, grid=(3,0), gridSpan=(1,1))
+
+  atomList = [DNA_ATOMS, RNA_ATOMS]
+  startAtoms = ['DA', 'DC', 'DG', 'DT', 'A', 'G', 'C', 'U']
+
+  for atomText in atomList:
+    atoms = {}
+    atomText = atomText.split('\n')
+    for line in atomText:
+      ll = line.split()
+      if ll:
+        if ll[0] in startAtoms:
+          if ll[0] in atoms.keys():
+            atoms[ll[0]].append(ll[1])
+          else:
+            atoms[ll[0]] = [ll[1]]
+    print (atoms)
+
+  popup.show()
+  popup.raise_()
+  app.start()
+

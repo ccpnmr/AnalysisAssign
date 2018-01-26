@@ -725,7 +725,7 @@ class AxisAssignmentObject(Frame):
             self.project._endCommandEchoBlock()
 
             # notifier to update other tables
-            # peak._finaliseAction('change')
+            # nmrResidue._finaliseAction('change')
 
         # self._updateInterface()
         self.parent._updateInterface()
@@ -771,7 +771,7 @@ class AxisAssignmentObject(Frame):
             self.project._endCommandEchoBlock()
 
             # notifier to update other tables
-            # peak._finaliseAction('change')
+            # nmrResidue._finaliseAction('change')
 
           # self._updateInterface()
           self.parent._updateInterface()

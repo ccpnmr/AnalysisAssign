@@ -62,17 +62,18 @@ class BackboneAssignmentModule(NmrResidueTableModule):
   settingsPosition = 'left'
   settingsMinimumSizes = (500, 200)
 
-  def __init__(self, mainWindow, name='Backbone Assignment'):
+  def __init__(self, mainWindow=None, name='Backbone Assignment'):
 
     super(BackboneAssignmentModule, self).__init__(mainWindow=mainWindow, name=name)
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
+    if mainWindow:
+      self.application = mainWindow.application
+      self.project = mainWindow.application.project
+      self.current = mainWindow.application.current
+      self.nmrChains = self.application.project.nmrChains
 
-    self.nmrChains = self.application.project.nmrChains
     self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable._widget,
                                         grid=(1,2), checked=True, text='Find matches')
 
@@ -129,6 +130,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self._stripNotifiers = []  # list to store GuiNotifiers for strips
 
     self.nmrResidueTable._setWidgetHeight(48)
+
+    # TODO:ED check override of window size
+    self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
 
   def _getDisplays(self):
     "return list of displays to navigate"
@@ -189,8 +193,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         if len(display.strips) > 0:
 
           # if contains hsqc then keep zoom
-          newWidths = _getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
-          # newWidths = ['full']*len(display.strips[0].axisCodes)
+          if display.spectrumViews[0].spectrum.dimensionCount <= 2:
+            newWidths = _getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
+          else:
+            newWidths = ['full']*len(display.strips[0].axisCodes)
 
           strips = navigateToNmrResidueInDisplay(nr, display, stripIndex=0,
                                       widths=newWidths,
@@ -517,3 +523,16 @@ def getPids(fromObject, attributeName):
   if not hasattr(fromObject, attributeName): return None
   return [obj.pid for obj in getattr(fromObject, attributeName)]
 #===== end code save =====
+
+
+if __name__ == '__main__':
+  from ccpn.ui.gui.widgets.Application import TestApplication
+
+  app = TestApplication()
+
+  popup = BackboneAssignmentModule()
+
+  popup.show()
+  popup.raise_()
+  app.start()
+

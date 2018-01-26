@@ -305,6 +305,10 @@ class PickAndAssignModule(NmrResidueTableModule):
 
       if peaks:
         self.assignSelected()
+
+        # notifier for other modules
+        nmrResidue._finaliseAction('change')
+
       # update the NmrResidue table
       # self.nmrResidueTable._update(nmrResidue.nmrChain)
 
