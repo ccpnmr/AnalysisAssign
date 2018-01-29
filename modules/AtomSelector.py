@@ -45,8 +45,9 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 
 # import os
 import typing
+import copy
 from functools import partial
-
+from collections import OrderedDict
 from PyQt4 import QtCore, QtGui
 
 from ccpn.core.Peak import Peak
@@ -74,7 +75,7 @@ logger = getLogger()
 
 # TODO:ED Add DNA, RNA structures to the list
 # MOLECULE_TYPES = ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
-MOLECULE_TYPES = ['protein']
+MOLECULE_TYPES = ['protein', 'DNA', 'RNA']
 ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
 
 
@@ -150,9 +151,10 @@ class AtomSelectorModule(CcpnModule):
     gridLine = 0
     self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1))
     self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0)
-                                  , hPolicy='minimum')
+                                  , hPolicy='minimal')
+    # self._nmrResidueLabel.setFixedSize(self._nmrResidueLabel.sizeHint())
     self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1), gridSpan=(1, 3)
-                                        , hPolicy='minimumexpanding', hAlign='l')
+                                        , hPolicy='minimalexpanding', hAlign='l')
     self._residueFrame.setFixedHeight(25)
     self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Expanding)
 
@@ -293,7 +295,7 @@ class AtomSelectorModule(CcpnModule):
     ###_label= Label(self.pickAndAssignWidget, '',  hAlign='l')
     ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
 
-    self._updateLayout()
+    self._updateChainLayout()
     self._predictAssignments(self.current.peaks)
 
   def _toggleBox(self):
@@ -343,10 +345,27 @@ class AtomSelectorModule(CcpnModule):
 
     return atomButtonList
 
-  def _updateLayout(self):
+  def _getDnaRnaButtonList(self, atomList=None, residueType=None):
+    residueAtomButtonList = copy.deepcopy(ALL_DNARNA_ATOMS_SORTED)
+
+    if residueType and atomList:
+      residueAtoms = atomList[residueType]
+
+      for atomType in ALL_DNARNA_ATOMS_SORTED.keys():
+        atomTypeList = ALL_DNARNA_ATOMS_SORTED[atomType]
+        for atom in atomTypeList:
+          if atom not in residueAtoms:
+            residueAtomButtonList[atomType].remove(atom)
+
+    return [residueAtomButtonList[atom] for atom in residueAtomButtonList.keys()]
+
+  def _updateChainLayout(self):
 
     # group atoms in useful categories based on usage
     atomButtonList = self._getAtomButtonList()
+
+    # testing DNA/RND buttonlist
+    # atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
 
     # Activate button for Carbons
     if not self.cCheckBox.isChecked():
@@ -357,6 +376,12 @@ class AtomSelectorModule(CcpnModule):
 
     if not self.nCheckBox.isChecked():
       [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+
+    if not self.otherCheckBox.isChecked():
+      for atomList in atomButtonList:
+        [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
+        and not atom.startswith('H') \
+        and not atom.startswith('N')]
 
     rowCount = self.pickAndAssignWidget.layout().rowCount()
     colCount = self.pickAndAssignWidget.layout().columnCount()
@@ -1018,6 +1043,20 @@ RNA_ATOM_NAMES = {
         'P']
 }
 
+ALL_DNARNA_ATOMS_SORTED = OrderedDict([
+  ('O', ["HO2'"]),
+  ('1', ["C1'", 'H1', "H1'", 'N1']),
+  ('2', ['C2', "C2'", 'H2', "H2'", "H2''", 'H21', 'H22', 'N2']),
+  ('3', ["C3'", 'H3', "H3'", 'N3']),
+  ('4', ['C4', "C4'", "H4'", 'H41', 'H42', 'N4', 'O4']),
+  ('5', ['C5', "C5'", 'H5', "H5'", "H5''"]),
+  ('6', ['C6', 'H6', 'H61', 'H62', 'N6']),
+  ('7', ['C7', 'H7', 'H71', 'H72', 'H73', 'N7']),
+  ('8', ['C8', 'H8']),
+  ('9', ['N9']),
+  ('P', ['P'])
+])
+
 if __name__ == '__main__':
   from ccpn.ui.gui.widgets.Application import TestApplication
   from ccpn.ui.gui.widgets.TextEditor import TextEditor
@@ -1026,6 +1065,10 @@ if __name__ == '__main__':
   popup = AtomSelectorModule()
 
   textBox = TextEditor(popup.mainWidget, grid=(3,0), gridSpan=(1,1))
+
+  all_atoms = dict()
+  for atom in ['O', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'P']:
+    all_atoms[atom] = []
 
   atomList = [DNA_ATOMS, RNA_ATOMS]
   startAtoms = ['DA', 'DC', 'DG', 'DT', 'A', 'G', 'C', 'U']
@@ -1041,7 +1084,26 @@ if __name__ == '__main__':
             atoms[ll[0]].append(ll[1])
           else:
             atoms[ll[0]] = [ll[1]]
-    print (atoms)
+
+          if ll[1] != 'P' and ll[1] not in all_atoms[ll[1][1]]:
+            all_atoms[ll[1][1]].append(ll[1])
+            all_atoms[ll[1][1]].sort()
+
+    textBox.append(str(atoms))
+  all_atoms['P'] = ['P']
+  textBox.append(str(all_atoms))
+
+  popup.currentNmrResidueLabel.setText('NmrResidue here')
+
+  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT'))
+  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DC'))
+  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DA'))
+  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DG'))
+
+  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G'))
+  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'U'))
+  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'A'))
+  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'C'))
 
   popup.show()
   popup.raise_()
