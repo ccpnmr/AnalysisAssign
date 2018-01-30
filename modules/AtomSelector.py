@@ -75,7 +75,7 @@ logger = getLogger()
 
 # TODO:ED Add DNA, RNA structures to the list
 # MOLECULE_TYPES = ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
-MOLECULE_TYPES = ['protein', 'DNA', 'RNA']
+MOLECULE_TYPES = ['protein']
 ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
 
 
@@ -366,8 +366,8 @@ class AtomSelectorModule(CcpnModule):
     # group atoms in useful categories based on usage
     atomButtonList = self._getAtomButtonList()
 
-    # testing DNA/RND buttonlist
-    # atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
+    # testing DNA/RNA buttonlist
+    # atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
 
     # Activate button for Carbons
     if not self.cCheckBox.isChecked():
