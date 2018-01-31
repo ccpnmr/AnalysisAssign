@@ -455,7 +455,7 @@ class SequenceGraphModule(CcpnModule):
 
     # # connect to SequenceModule
     from ccpn.ui.gui.modules.SequenceModule import SequenceModule
-    seqMods = [sm for sm in SequenceModule.getinstances()]
+    seqMods = [sm for sm in SequenceModule.getInstances()]
 
     # # populate if the sequenceModule has an nmrChain attached
     # if seqMods:
