@@ -36,6 +36,6 @@ if __name__ == '__main__':
   # add any additional commandline argument here
   commandLineArguments = parser.parse_args()
 
-  application = Application('AnalysisAssign', applicationVersion, commandLineArguments)
+  application = Application(Framework.AnalysisAssign, applicationVersion, commandLineArguments)
   Framework._getApplication = lambda: application
   application.start()

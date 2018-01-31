@@ -34,7 +34,7 @@ from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 
-from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
+from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms, _getCurrentZoomRatio
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTableModule
@@ -62,19 +62,20 @@ class BackboneAssignmentModule(NmrResidueTableModule):
   settingsPosition = 'left'
   settingsMinimumSizes = (500, 200)
 
-  def __init__(self, mainWindow, name='Backbone Assignment'):
+  def __init__(self, mainWindow=None, name='Backbone Assignment'):
 
     super(BackboneAssignmentModule, self).__init__(mainWindow=mainWindow, name=name)
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
+    if mainWindow:
+      self.application = mainWindow.application
+      self.project = mainWindow.application.project
+      self.current = mainWindow.application.current
+      self.nmrChains = self.application.project.nmrChains
 
-    self.nmrChains = self.application.project.nmrChains
     self.matchCheckBoxWidget = CheckBox(self.nmrResidueTable._widget,
-                                        grid=(0,2), checked=True, text='Find matches')
+                                        grid=(1,2), checked=True, text='Find matches')
 
     ### Settings ###
 
@@ -82,6 +83,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self.sequentialStripsWidget.checkBox.setChecked(True)
     self.displaysWidget.addPulldownItem(0)
 
+    colWidth0 = 140
     colWidth = 200  # for labels of the compound widgets
     colWidth2 = 120  # for the numberOfMatchesWidget
 
@@ -90,9 +92,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Number of matches to show
     row += 1
-    self.numberOfMatchesWidget = PulldownListCompoundWidget(self.settingsWidget,
+    self.numberOfMatchesWidget = PulldownListCompoundWidget(self._NTSwidget,
                                           grid=(row,col), vAlign='top', hAlign='left',
-                                          fixedWidths=(colWidth2, colWidth2, colWidth2),
+                                          fixedWidths=(colWidth0, colWidth0, None),
                                           orientation='left',
                                           labelText="Matches to show:",
                                           texts=[str(tt) for tt in range(3,7)]
@@ -101,9 +103,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     # Match module selection
     row += 1
     # cannot set a notifier for displays, as these are not (yet?) implemented
-    self.matchWidget = ListCompoundWidget(self.settingsWidget,
+    self.matchWidget = ListCompoundWidget(self._NTSwidget,
                                           grid=(row,col), vAlign='top', hAlign='left',
-                                          fixedWidths=(colWidth, colWidth, colWidth),
+                                          fixedWidths=(colWidth0, colWidth0, colWidth0),
                                           orientation='left',
                                           labelText="Match module(s):",
                                           texts=[display.pid for display in self.mainWindow.spectrumDisplays]
@@ -112,9 +114,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Chemical shift list selection
     row += 1
-    self.shiftListWidget = ChemicalShiftListPulldown(self.settingsWidget, self.application.project,
+    self.shiftListWidget = ChemicalShiftListPulldown(self._NTSwidget, self.application.project,
                                                      grid=(row,col), vAlign='top', hAlign='left',
-                                                     fixedWidths=(colWidth, colWidth),
+                                                     fixedWidths=(colWidth0, colWidth0, None),
                                                      callback=self._setupShiftDicts, default=0
                                                      )
     self._setupShiftDicts()
@@ -129,6 +131,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     self.nmrResidueTable._setWidgetHeight(48)
 
+    # TODO:ED check override of window size
+    self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+
   def _getDisplays(self):
     "return list of displays to navigate"
     displays = []
@@ -140,6 +145,17 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     else:
         displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
     return displays
+
+  def navigateToNmrResidueCallBack(self, data):
+    """
+    Navigate in selected displays to nmrResidue; skip if none defined
+    """
+    from ccpn.core.lib.CallBack import CallBack
+
+    nmrResidue = data[CallBack.OBJECT]
+    row = data[CallBack.ROW]
+    col = data[CallBack.COL]
+    self.navigateToNmrResidue(nmrResidue, row=row, col=col)
 
   def navigateToNmrResidue(self, nmrResidue, row=None, col=None):
     """
@@ -175,8 +191,15 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       # navigate the displays
       for display in displays:
         if len(display.strips) > 0:
+
+          # if contains hsqc then keep zoom
+          if display.spectrumViews[0].spectrum.dimensionCount <= 2:
+            newWidths = _getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
+          else:
+            newWidths = ['full']*len(display.strips[0].axisCodes)
+
           strips = navigateToNmrResidueInDisplay(nr, display, stripIndex=0,
-                                      widths=['full']*len(display.strips[0].axisCodes),
+                                      widths=newWidths,
                                       showSequentialResidues=(len(display.axisCodes) > 2) and
                                                              self.sequentialStripsWidget.checkBox.isChecked(),
                                       markPositions=False    #self.markPositionsWidget.checkBox.isChecked()
@@ -500,3 +523,16 @@ def getPids(fromObject, attributeName):
   if not hasattr(fromObject, attributeName): return None
   return [obj.pid for obj in getattr(fromObject, attributeName)]
 #===== end code save =====
+
+
+if __name__ == '__main__':
+  from ccpn.ui.gui.widgets.Application import TestApplication
+
+  app = TestApplication()
+
+  popup = BackboneAssignmentModule()
+
+  popup.show()
+  popup.raise_()
+  app.start()
+

@@ -463,6 +463,14 @@ class SequenceGraphModule(CcpnModule):
     if nmrChain is not None:
       self.selectSequence(nmrChain)
 
+    # # connect to SequenceModule
+    from ccpn.ui.gui.modules.SequenceModule import SequenceModule
+    seqMods = [sm for sm in SequenceModule.getInstances()]
+
+    # # populate if the sequenceModule has an nmrChain attached
+    # if seqMods:
+    #   self.selectSequence(seqMods[0].nmrChain)
+
   def selectSequence(self, nmrChain=None):
     """
     Manually select a Sequence from the pullDown
@@ -505,11 +513,12 @@ class SequenceGraphModule(CcpnModule):
                                       , Spectrum.__name__
                                       , self._updateShownAssignments)
 
-    # self._nmrChainNotifier = Notifier(self.project
-    #                                     , [Notifier.CREATE, Notifier.DELETE]
-    #                                     , NmrChain.__name__
-    #                                     , self._updateShownAssignments()
-    #                                     , onceOnly=True)
+    # notifier for changing the selected chain
+    self._nmrChainNotifier = Notifier(self.project
+                                        , [Notifier.CHANGE, Notifier.DELETE]
+                                        , NmrChain.__name__
+                                        , self._updateShownAssignments
+                                        , onceOnly=True)
 
   def _unRegisterNotifiers(self):
     # self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
@@ -523,8 +532,8 @@ class SequenceGraphModule(CcpnModule):
       self._peakNotifier.unRegister()
     if self._spectrumNotifier:
       self._spectrumNotifier.unRegister()
-    # if self._nmrChainNotifier:
-    #   self._nmrChainNotifier.unRegister()
+    if self._nmrChainNotifier:
+      self._nmrChainNotifier.unRegister()
 
   def _repopulateModule(self):
     """
@@ -635,10 +644,13 @@ class SequenceGraphModule(CcpnModule):
       if self.assignmentsCheckBox.isChecked():
         self._getAssignmentsFromSpectra()
 
+    except Exception as es:
+      getLogger().warning('Error: %s' % str(es))
     finally:
       self.application._endCommandBlock()      # should match the start block
 
     self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
+    self.nmrChain = nmrChain
 
   def resetSequenceGraph(self):
 
@@ -943,10 +955,11 @@ class SequenceGraphModule(CcpnModule):
       possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
                         self.project.chains[0], self.project.chemicalShiftLists[0])
 
-      for possibleMatch in possibleMatches:
-        if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
-          if hasattr(self.project._appBase, 'sequenceModule'):
-            self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+      if possibleMatches:
+        for possibleMatch in possibleMatches:
+          if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
+            if hasattr(self.project._appBase, 'sequenceModule'):
+              self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
   def _updateShowTreeAssignments(self, peak=None):
     nmrChainPid = self.nmrChainPulldown.getText()
