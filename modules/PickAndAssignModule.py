@@ -341,7 +341,6 @@ class PickAndAssignModule(NmrResidueTableModule):
     finally:
       self.application._endCommandBlock()
 
-
 class _SpectrumRow(Frame):
   "Class to make a spectrum row"
 
