@@ -110,6 +110,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                           labelText="Match module(s):",
                                           texts=[display.pid for display in self.mainWindow.spectrumDisplays]
                                           )
+    self.matchWidget.setPreSelect(self._fillDisplayWidget)
+
     self.matchWidget.setFixedHeigths((None, None, 40))
 
     # Chemical shift list selection
@@ -133,6 +135,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # TODO:ED check override of window size
     self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+
+  def _fillDisplayWidget(self):
+    list = [display.pid for display in self.mainWindow.spectrumDisplays]
+    self.matchWidget.setItems(list)
 
   def _getDisplays(self):
     "return list of displays to navigate"
