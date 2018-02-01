@@ -83,7 +83,7 @@ class Assign(Framework):
       MessageDialog.showWarning('No peaklists in project.', 'Cannot assign peaklists.')
     else:
       from ccpn.ui.gui.popups.SetupNmrResiduesPopup import SetupNmrResiduesPopup
-      popup = SetupNmrResiduesPopup(self.ui.mainWindow, self.project)
+      popup = SetupNmrResiduesPopup(parent=self.ui.mainWindow, mainWindow=self.ui.mainWindow)
       popup.exec_()
 
   def showPickAndAssignModule(self, position:str='bottom', relativeTo:CcpnModule=None):
