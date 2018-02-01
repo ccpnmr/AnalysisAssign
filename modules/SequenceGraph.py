@@ -320,15 +320,30 @@ class SequenceGraphModule(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   settingsPosition = 'left'
 
-  def __init__(self, mainWindow, name='Sequence Graph', nmrChain=None):
+  def __init__(self, mainWindow=None, name='Sequence Graph', nmrChain=None):
 
     CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
+    if self.mainWindow:
+      self.application = mainWindow.application
+      self.project = mainWindow.application.project
+      self.current = mainWindow.application.current
+
+      #TODO:GEERTEN: StyleSheet
+      if self.application.colourScheme == 'dark':
+        self._lineColour = '#f7ffff'
+      elif self.application.colourScheme == 'light':
+        self._lineColour = ''  # TODO: check if correct
+
+      ###self.setMode('fragment')  # cannot be moved up!
+      self._registerNotifiers()
+
+    else:
+      self.application = None
+      self.project = None
+      self.current = None
 
     ###frame = Frame(parent=self.mainWidget)
     self._sequenceGraphScrollArea = QtWidgets.QScrollArea()
@@ -352,12 +367,6 @@ class SequenceGraphModule(CcpnModule):
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
     self.residueCount = 0
-
-    #TODO:GEERTEN: StyleSheet
-    if self.application.colourScheme == 'dark':
-      self._lineColour = '#f7ffff'
-    elif self.application.colourScheme == 'light':
-      self._lineColour = ''  # TODO: check if correct
 
     """
     self.modeLabel = Label(self, 'Mode: ', grid=(0, 3))
@@ -409,7 +418,16 @@ class SequenceGraphModule(CcpnModule):
                                               callback = self._updateShownAssignments,
                                               grid = (2, 0), gridSpan = (1, 1))
 
+    # self.nmrResiduesCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+    # self.assignmentsTreeCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+    # self.sequentialStripsWidget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+    # self.markPositionsWidget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
+
     colwidth = 140
+    if self.mainWindow:
+      textAll = [ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
+    else:
+      textAll = [ALL]
     self.displaysWidget = ListCompoundWidget(self.settingsWidget,
                                              grid=(3,0), gridSpan=(1,2),
                                              vAlign='top', stretch=(0,0), hAlign='left',
@@ -419,7 +437,7 @@ class SequenceGraphModule(CcpnModule):
                                              orientation = 'left',
                                              labelText='Display(s):',
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
-                                             texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
+                                             texts=textAll
                                              )
     self.displaysWidget.setFixedHeigths((None, None, 40))
     self.displaysWidget.pulldownList.set(ALL)
@@ -429,7 +447,7 @@ class SequenceGraphModule(CcpnModule):
     # self._settingsScrollArea.setFixedHeight(30)
     # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
     # self.settingsWidget.setFixedHeight(30)
-    self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
+    self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
 
     # self.assignmentsTreeCheckBox.setFixedHeight(30)
     # self.assignmentsTreeCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -457,9 +475,6 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrAtomDict = {}
     self.ghostList = []
 
-    ###self.setMode('fragment')  # cannot be moved up!
-    self._registerNotifiers()
-
     if nmrChain is not None:
       self.selectSequence(nmrChain)
 
@@ -470,6 +485,7 @@ class SequenceGraphModule(CcpnModule):
     # # populate if the sequenceModule has an nmrChain attached
     # if seqMods:
     #   self.selectSequence(seqMods[0].nmrChain)
+    self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
 
   def selectSequence(self, nmrChain=None):
     """
@@ -1483,3 +1499,15 @@ ATOM_POSITION_DICT = {
 #       self._addConnectingLine(cg, hg2, 'white', 1.0, 0.0)
 #       self._addConnectingLine(cg, hg3, 'white', 1.0, 0.0)
 #       self._addConnectingLine(cg, cd, 'white', 1.0, 0.0)
+
+if __name__ == '__main__':
+  from ccpn.ui.gui.widgets.Application import TestApplication
+  from ccpn.ui.gui.widgets.TextEditor import TextEditor
+  app = TestApplication()
+
+  popup = SequenceGraphModule()
+
+  popup.show()
+  popup.raise_()
+  app.start()
+
