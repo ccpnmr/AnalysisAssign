@@ -32,7 +32,7 @@ import numpy as np
 from functools import partial
 from collections import OrderedDict
 
-from PyQt5 import QtGui, QtWidgets
+from PyQt5 import QtGui, QtWidgets, QtCore
 
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.Peak import Peak
