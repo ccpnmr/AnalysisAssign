@@ -111,8 +111,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                           texts=[display.pid for display in self.mainWindow.spectrumDisplays]
                                           )
     self.matchWidget.setPreSelect(self._fillDisplayWidget)
-
-    self.matchWidget.setFixedHeigths((None, None, 40))
+    self.matchWidget.setFixedHeights((None, None, 40))
 
     # Chemical shift list selection
     row += 1
@@ -137,7 +136,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
 
   def _fillDisplayWidget(self):
-    list = [display.pid for display in self.mainWindow.spectrumDisplays]
+    list = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
     self.matchWidget.setItems(list)
 
   def _getDisplays(self):
@@ -210,6 +209,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                              self.sequentialStripsWidget.checkBox.isChecked(),
                                       markPositions=False    #self.markPositionsWidget.checkBox.isChecked()
                                       )
+
           # activate a callback notifiers; allow dropping onto the NmrResidueLabel
           for st, strip in enumerate(strips):
             if strip is not None:
