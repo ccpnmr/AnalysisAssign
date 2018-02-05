@@ -439,7 +439,7 @@ class SequenceGraphModule(CcpnModule):
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
                                              texts=textAll
                                              )
-    self.displaysWidget.setFixedHeigths((None, None, 40))
+    self.displaysWidget.setFixedHeights((None, None, 40))
     self.displaysWidget.pulldownList.set(ALL)
     self._spacer = Spacer(self.settingsWidget, 5, 5
                          , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding

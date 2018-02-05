@@ -617,7 +617,8 @@ class AxisAssignmentObject(Frame):
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
     pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
-    pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
+    pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
+    pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
     return pulldownList
 
   def _addItemToPulldown(self, pulldown:object):
@@ -919,7 +920,7 @@ class AxisAssignmentObject(Frame):
         self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])
 
   #TODO:ED add pulldownselections
-  def _pulldownEdited(self, dim:int):
+  def _pulldownEdited(self, pulldown:object):
     """
     Enable the assignment button if the text has changed in the pulldown
     """
@@ -931,4 +932,10 @@ class AxisAssignmentObject(Frame):
                                                                           , currentNmrAtomSelected))
 
   def _atomCompare(self, atom1:tuple, atom2:tuple):
-    return [True if a == b else False for a, b in zip(atom1, atom2)]
+    """
+    check whether the selection has changed from being clicked
+    """
+    if atom1 and atom2:
+      return [True if a == b else False for a, b in zip(atom1, atom2)]
+    else:
+      return []

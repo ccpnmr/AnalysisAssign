@@ -99,7 +99,7 @@ class AssignmentInspectorModule(CcpnModule):
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
                                              texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
                                              )
-    self.displaysWidget.setFixedHeigths((None, None, 40))
+    self.displaysWidget.setFixedHeights((None, None, 40))
 
     self.sequentialStripsWidget = CheckBoxCompoundWidget(
                                              self._AIwidget,
