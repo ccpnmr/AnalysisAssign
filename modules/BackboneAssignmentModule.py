@@ -384,6 +384,45 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       strip.orderedAxes[1].position = yPosition
       strip.orderedAxes[1].width = yWidth
 
+      try:
+        axisCode = strip.axisCodes[1]
+        strip._testCcpnOpenGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
+        strip._testCcpnOpenGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
+        strip._testCcpnOpenGLWidget._rescaleAllAxes()
+      except Exception as es:
+        getLogger().warning('Error: OpenGL widget not instantiated')
+
+  def _centreCcpnStripsForNmrResidue(self, nmrResidue, strips):
+    """
+    Centre y-axis of strip based on chemical shifts of from NmrResidue.nmrAtoms
+    """
+    if not nmrResidue:
+      getLogger().warning('No NmrResidue specified')
+      return
+
+    if not strips:
+      getLogger().warning('No Strip specified')
+      return
+
+    yShifts = matchAxesAndNmrAtoms(strips[0], nmrResidue.nmrAtoms)[strips[0].axisOrder[1]]
+    yShiftValues = [x.value for x in yShifts]
+    if yShiftValues:
+      yPosition = (max(yShiftValues) + min(yShiftValues))/2
+      yWidth = max(yShiftValues)-min(yShiftValues)+10
+
+      # original strips match axes
+      strips[0].orderedAxes[1].position = yPosition
+      strips[0].orderedAxes[1].width = yWidth
+
+      try:
+        axisCode = strips[0].axisCodes[1]
+        for strip in strips:
+          strip._testCcpnOpenGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
+          strip._testCcpnOpenGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
+          strip._testCcpnOpenGLWidget._rescaleAllAxes()
+      except Exception as es:
+        getLogger().warning('Error: OpenGL widget not instantiated')
+
   def _setupShiftDicts(self):
     """
     Creates two ordered dictionaries for the inter residue and intra residue CA and CB shifts for
@@ -432,7 +471,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         strip.setStripLabelText(nmrResiduePid)
         strip.showStripLabel()
 
-      self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
+      # self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
+      self._centreCcpnStripsForNmrResidue(assignMatrix[assignmentScores[0]], module.strips)
 
   def _closeModule(self):
     """
