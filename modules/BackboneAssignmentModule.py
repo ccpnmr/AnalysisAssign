@@ -137,7 +137,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
   def _fillDisplayWidget(self):
     list = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
-    self.matchWidget.setItems(list)
+    self.matchWidget.pulldownList.setData(texts=list)
 
   def _getDisplays(self):
     "return list of displays to navigate"
@@ -199,7 +199,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
           # if contains hsqc then keep zoom
           if display.spectrumViews[0].spectrum.dimensionCount <= 2:
-            newWidths = _getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
+            newWidths = []    #_getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
           else:
             newWidths = ['full']*len(display.strips[0].axisCodes)
 
