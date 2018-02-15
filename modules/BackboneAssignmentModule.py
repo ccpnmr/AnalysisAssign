@@ -419,7 +419,13 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         for strip in strips:
           strip._testCcpnOpenGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
           strip._testCcpnOpenGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
+          # strip._testCcpnOpenGLWidget._rebuildMarks()
           strip._testCcpnOpenGLWidget._rescaleAllAxes()
+
+          from ccpn.util.CcpnOpenGL import GLNotifier
+          GLSignals = GLNotifier(parent=self)
+          GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+
       except Exception as es:
         getLogger().debug('Error: OpenGL widget not instantiated')
 
