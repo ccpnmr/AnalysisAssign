@@ -155,7 +155,7 @@ class PeakAssigner(CcpnModule):
     # # self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
 
     self._settingsScrollArea.setMaximumHeight(35)
-    self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+    self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
     self.closeModule = self._closeModule
 
     self._updateInterface()
