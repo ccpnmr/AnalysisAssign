@@ -1,8 +1,5 @@
 """
 AnalysisAssign Program
-
-Please cite:  Skinner et al, J Biomol NMR (2016) 66:111–124; DOI 10.1007/s10858-016-0060-y 
-
 """
 #=========================================================================================
 # Licence, Reference and Credits

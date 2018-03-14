@@ -1,7 +1,6 @@
 """This file contains AssignmentInspectorModule class
 
-derived from ModifyAssignmentModule by Simon;
-extensively modified by Geerten 1-9/12/2016:
+modified by Geerten 1-9/12/2016:
 - intialisation with 'empty' settings possible,
 - now responsive to current.nmrResidues
 """
