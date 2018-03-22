@@ -201,7 +201,7 @@ class Assign(Framework):
       relativeTo = mainWindow.moduleArea  # ejb
     self.sequenceGraphModule = SequenceGraphModule(mainWindow=mainWindow, nmrChain=nmrChain)
     mainWindow.moduleArea.addModule(self.sequenceGraphModule, position=position, relativeTo=relativeTo)
-    mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()\n")
+    mainWindow.pythonConsole.writeConsoleCommand("application.showSequenceGraph()")
     getLogger().info("application.showSequenceGraph()")
     return self.sequenceGraphModule
 
@@ -216,7 +216,7 @@ class Assign(Framework):
       relativeTo = mainWindow.moduleArea  # ejb
     self.atomSelectorModule = AtomSelectorModule(mainWindow=mainWindow, nmrAtom=nmrAtom)
     mainWindow.moduleArea.addModule(self.atomSelectorModule, position=position, relativeTo=relativeTo)
-    mainWindow.pythonConsole.writeConsoleCommand("application.showAtomSelector()\n")
+    mainWindow.pythonConsole.writeConsoleCommand("application.showAtomSelector()")
     getLogger().info("application.showAtomSelector()")
     return self.atomSelectorModule
 
