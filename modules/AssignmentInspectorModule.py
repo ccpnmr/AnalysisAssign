@@ -29,6 +29,7 @@ __date__ = "$Date: 2016-07-09 14:17:30 +0100 (Sat, 09 Jul 2016) $"
 # Start of code
 #=========================================================================================
 
+from PyQt5 import QtCore
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Label import Label
@@ -44,6 +45,12 @@ from ccpn.core.lib.peakUtils import getPeakPosition, getPeakAnnotation
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.core.NmrAtom import NmrAtom, NmrResidue
 from ccpn.core.Peak import Peak
+from ccpn.ui.gui.modules.ChemicalShiftTable import ChemicalShiftTable
+from ccpn.ui.gui.widgets.Splitter import Splitter
+from ccpn.ui.gui.widgets.MessageDialog import showWarning
+from ccpn.core.lib.CallBack import CallBack
+from ccpn.ui.gui.lib.Strip import navigateToPositionInStrip, _getCurrentZoomRatio
+from ccpn.core.PeakList import PeakList
 
 logger = getLogger()
 ALL = '<all>'
@@ -65,7 +72,7 @@ class AssignmentInspectorModule(CcpnModule):
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
   Position = 'top'
 
-  def __init__(self, mainWindow, name='Assignment Inspector'):
+  def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
     # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
     CcpnModule.__init__(self, mainWindow=mainWindow, name=name)    # ejb
 
@@ -81,6 +88,11 @@ class AssignmentInspectorModule(CcpnModule):
     policies = dict(vAlign='top')
 
     # settings window
+
+    self.splitter = Splitter(QtCore.Qt.Vertical)
+    self._chemicalShiftFrame = Frame(self.splitter, grid=(0, 1), gridSpan=(1, 5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True)  # ejb    # self.splitter.addWidget(self.nmrResidueTable)
+    self._assignmentFrame = Frame(self.splitter, grid=(0, 1), gridSpan=(1, 5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True)  # ejb    # self.splitter.addWidget(self.nmrResidueTable)
+    self.mainWidget.getLayout().addWidget(self.splitter)
 
     self._AIwidget = Widget(self.settingsWidget, setLayout=True,
                              grid=(0,0), vAlign='top', hAlign='left')
@@ -98,6 +110,7 @@ class AssignmentInspectorModule(CcpnModule):
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
                                              texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
                                              )
+    self.displaysWidget.setPreSelect(self._fillDisplayWidget)
     self.displaysWidget.setFixedHeights((None, None, 40))
 
     self.sequentialStripsWidget = CheckBoxCompoundWidget(
@@ -132,7 +145,7 @@ class AssignmentInspectorModule(CcpnModule):
     # main window
     # Frame-1: NmrAtoms
     width = 130
-    self.frame1 = Frame(self.mainWidget, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
+    self.frame1 = Frame(self._assignmentFrame, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
     self.frame1.setFixedWidth(width)
     self.nmrAtomLabel = Label(self.frame1, 'NmrAtom(s):', bold=True,
                               grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
@@ -143,9 +156,10 @@ class AssignmentInspectorModule(CcpnModule):
                                            )
     self.attachedNmrAtomsList.setFixedWidth(width-2)
 
+    self.frame1.hide()
 
     # Frame-2: peaks
-    self.frame2 = Frame(self.mainWidget, grid=(0,1), gridSpan=(1,5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
+    self.frame2 = Frame(self._assignmentFrame, grid=(0,1), gridSpan=(1,5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
     self.peaksLabel = Label(self.frame2, 'Peaks assigned to NmrAtom(s):', bold=True,
                             grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
 
@@ -182,20 +196,35 @@ class AssignmentInspectorModule(CcpnModule):
       self._updateModuleCallback([self.application.current.nmrResidue])
 
     # set the required table notifiers
-    self.assignedPeaksTable.setTableNotifiers(tableClass=None
-                           , rowClass=Peak
-                           , cellClassNames=None
-                           , tableName='peakList', rowName='peak'
-                           , changeFunc=self._refreshTable
-                           , className=self.attributeName
-                           , updateFunc=self._refreshTable
-                           , tableSelection='_peakList'
-                           , pullDownWidget=None     #self.ncWidget
-                           , callBackClass=NmrResidue
-                           , selectCurrentCallBack=self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
+    self.assignedPeaksTable.setTableNotifiers(tableClass=None,
+                           rowClass=Peak,
+                           cellClassNames=None,
+                           tableName='peakList', rowName='peak',
+                           changeFunc=self._refreshTable,
+                           className=self.attributeName,
+                           updateFunc=self._refreshTable,
+                           tableSelection='_peakList',
+                           pullDownWidget=None,     #self.ncWidget
+                           callBackClass=NmrResidue,
+                           selectCurrentCallBack=self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
+
+    # main window
+    self.chemicalShiftTable = ChemicalShiftTable(parent=self._chemicalShiftFrame,
+                                                 mainWindow=self.mainWindow,
+                                                 moduleParent=self,
+                                                 setLayout=True,
+                                                 grid=(0,0))
+    # settingsWidget
+
+    if chemicalShiftList is not None:
+      self.selectChemicalShiftList(chemicalShiftList)
 
     # install the event filter to handle maximising from floated dock
     self.installMaximiseEventHandler(self._maximise)
+
+  def _fillDisplayWidget(self):
+    list = ['> select-to-add <'] + [ALL] + [display.pid for display in self.mainWindow.spectrumDisplays]
+    self.displaysWidget.pulldownList.setData(texts=list)
 
   def _maximise(self):
     """
@@ -391,7 +420,9 @@ class AssignmentInspectorModule(CcpnModule):
     """
     PeakTable select callback
     """
-    peak = data[Notifier.OBJECT]
+    from ccpn.core.lib.CallBack import CallBack
+
+    peak = data[CallBack.OBJECT]
     # multiselection not allowed, sot only return the first object in list
     if peak:
       self.application.current.peak = peak[0]
@@ -401,13 +432,46 @@ class AssignmentInspectorModule(CcpnModule):
     """
     PeakTable double-click callback; navigate in to peak in current.strip
     """
-    peak = data[Notifier.OBJECT]
+    displays = self._getDisplays()
+    if len(displays) == 0:
+      logger.warning('Undefined display module(s); select in settings first')
+      showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
+      return
 
-    from ccpn.ui.gui.lib.Strip import navigateToPositionInStrip
-    #print('>peakTableDoubleClick>', peak)
-    if peak is not None and self.application.current.strip is not None:
-      self.application.current.peak = peak
-      navigateToPositionInStrip(strip=self.application.current.strip, positions=peak.position)
+    peak = data[CallBack.OBJECT]
+    if peak:
+      self.current.peak = peak
+
+      self.application._startCommandBlock('%s.navigateToPositionInStrip(project.getByPid(%r))' %
+          (self.className, peak.position))
+      try:
+        # optionally clear the marks
+        if self.autoClearMarksWidget.checkBox.isChecked():
+            self.application.ui.mainWindow.clearMarks()
+
+        # navigate the displays
+        for display in displays:
+          for strip in display.strips:
+
+            validPeakListViews = [pp.peakList for pp in strip.peakListViews if isinstance(pp.peakList, PeakList)]
+
+            if peak.peakList in validPeakListViews:
+              widths = None
+              if peak.peakList.spectrum.dimensionCount <= 2:
+                widths = _getCurrentZoomRatio(strip.viewRange())
+
+              navigateToPositionInStrip(strip=strip, positions=peak.position, widths=widths)
+
+      finally:
+          self.application._endCommandBlock()
+
+    # peak = data[CallBack.OBJECT]
+    #
+    # from ccpn.ui.gui.lib.Strip import navigateToPositionInStrip
+    # #print('>peakTableDoubleClick>', peak)
+    # if peak is not None and self.application.current.strip is not None:
+    #   self.application.current.peak = peak
+    #   navigateToPositionInStrip(strip=self.application.current.strip, positions=peak.position)
 
   def _getPeakHeight(self, peak):
     """
@@ -423,3 +487,17 @@ class AssignmentInspectorModule(CcpnModule):
   #   CCPN-INTERNAL: used to get searchWidget
   #   """
   #   return self.searchWidget
+
+  def _getDisplays(self):
+    """
+    Return list of displays to navigate - if needed
+    """
+    displays = []
+    # check for valid displays
+    gids = self.displaysWidget.getTexts()
+    if len(gids) == 0: return displays
+    if ALL in gids:
+        displays = self.mainWindow.spectrumDisplays
+    else:
+        displays = [self.application.getByGid(gid) for gid in gids if gid != ALL]
+    return displays
