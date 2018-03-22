@@ -53,7 +53,7 @@ class Assign(Framework):
                            ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc'), ('enabled', False)]),
                            (),
                            ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
-                           ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
+                           # ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
                            ("Residue Information", self.showResidueInformation, [('shortcut', 'ri')]),
                           ])
     self.addApplicationMenuSpec(menuSpec)
