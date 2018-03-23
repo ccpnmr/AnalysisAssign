@@ -40,7 +40,7 @@ from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
-
+from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
 from ccpn.ui.gui.guiSettings import getColours
 from ccpn.ui.gui.guiSettings import GUINMRATOM_NOTSELECTED, GUINMRATOM_SELECTED, \
@@ -356,6 +356,8 @@ class SequenceGraphModule(CcpnModule):
 
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
+    self._SGwidget = Widget(self.settingsWidget, setLayout=True,
+                             grid=(0, 0), vAlign='top', hAlign='left')
     self.residueCount = 0
 
     """
@@ -387,21 +389,21 @@ class SequenceGraphModule(CcpnModule):
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 3), gridSpan=(1,1))
 
-    self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self.settingsWidget,
+    self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self._SGwidget,
                                                       labelText='Show peak assignments as tree:',
                                                       checked=False,
                                                       tipText='Show peak assignments as a tree below the main backbone',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 0), gridSpan=(1,1))
 
-    self.sequentialStripsWidget = CheckBoxCompoundWidget(self.settingsWidget,
+    self.sequentialStripsWidget = CheckBoxCompoundWidget(self._SGwidget,
                                               labelText = 'Show sequential strips:',
                                               checked = False,
                                               tipText='Show nmrResidue in all strips',
                                               callback=self._updateShownAssignments,
                                               grid=(1, 0), gridSpan=(1, 1))
 
-    self.markPositionsWidget = CheckBoxCompoundWidget(self.settingsWidget,
+    self.markPositionsWidget = CheckBoxCompoundWidget(self._SGwidget,
                                               labelText = 'Mark positions:',
                                               checked = True,
                                               tipText='Mark positions in strips',
@@ -418,7 +420,7 @@ class SequenceGraphModule(CcpnModule):
       textAll = [ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
     else:
       textAll = [ALL]
-    self.displaysWidget = ListCompoundWidget(self.settingsWidget,
+    self.displaysWidget = ListCompoundWidget(self._SGwidget,
                                              grid=(3,0), gridSpan=(1,2),
                                              vAlign='top', stretch=(0,0), hAlign='left',
                                              vPolicy='minimal',
@@ -431,12 +433,15 @@ class SequenceGraphModule(CcpnModule):
                                              )
     self.displaysWidget.setFixedHeights((None, None, 40))
     self.displaysWidget.pulldownList.set(ALL)
+    self.displaysWidget.setPreSelect(self._fillDisplayWidget)
+
     self._spacer = Spacer(self.settingsWidget, 5, 5
                          , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
                          , grid=(4,2), gridSpan=(1,1))
     # self._settingsScrollArea.setFixedHeight(30)
     # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
     # self.settingsWidget.setFixedHeight(30)
+    self._SGwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
     self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
 
     # self.assignmentsTreeCheckBox.setFixedHeight(30)
@@ -475,7 +480,7 @@ class SequenceGraphModule(CcpnModule):
     # # populate if the sequenceModule has an nmrChain attached
     # if seqMods:
     #   self.selectSequence(seqMods[0].nmrChain)
-    self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+    self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
   def selectSequence(self, nmrChain=None):
     """
