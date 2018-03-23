@@ -84,7 +84,6 @@ class PeakAssigner(CcpnModule):
     self.application = mainWindow.application
     self.project = mainWindow.application.project
     self.current = mainWindow.application.current
-    self.colourScheme = self.application.colourScheme
 
     # settings
     doubleToleranceCheckboxLabel = Label(self.settingsWidget, text="Double Tolerances ", grid=(0,0))
@@ -255,7 +254,7 @@ class PeakAssigner(CcpnModule):
       positions = [peak.position[dim] for peak in self.current.peaks]
       avgPos = round(sum(positions)/len(positions), 3)
       axisCode = self.current.peak.peakList.spectrum.axisCodes[dim]
-      text = 'Axis "%s": %.3f' % (axisCode, avgPos)
+      text = '%s: %.3f' % (axisCode, avgPos)
       self.axisTables[dim].axisLabel.setText(text)
 
   def getDeltaShift(self, nmrAtom:NmrAtom, dim:int) -> float:

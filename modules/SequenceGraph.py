@@ -42,6 +42,10 @@ from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
 from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
+from ccpn.ui.gui.guiSettings import getColours
+from ccpn.ui.gui.guiSettings import GUINMRATOM_NOTSELECTED, GUINMRATOM_SELECTED, \
+                                    GUINMRRESIDUE, SEQUENCEGRAPHMODULE_LINE, SEQUENCEGRAPHMODULE_TEXT
+
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
@@ -83,18 +87,11 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     ###self.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable | self.flags())
     #self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
 
-    if project._appBase.colourScheme == 'dark':
-      colour1 = '#F7FFFF'
-      colour2 = '#BEC4F3'
-    elif project._appBase.colourScheme == 'light':
-      colour1 = '#FDFDFC'
-      colour2 = '#555D85'
-
-    #self.setDefaultTextColor(QtGui.QColor(colour1))
+    self.colours = getColours()
     if self.isSelected:
-      self.setDefaultTextColor(QtGui.QColor(colour2))
+      self.setDefaultTextColor(QtGui.QColor(self.colours[GUINMRATOM_SELECTED]))
     else:
-      self.setDefaultTextColor(QtGui.QColor(colour1))
+      self.setDefaultTextColor(QtGui.QColor(self.colours[GUINMRATOM_NOTSELECTED]))
 
   def mouseDoubleClickEvent(self, event):
     """
@@ -136,6 +133,7 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     else:
       return 0
 
+
 class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   """
   Object linking residues displayed in Assigner and Nmr Residues. Contains functionality for drag and
@@ -153,10 +151,9 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     self.current = self.mainWindow.application.current
 
     self.setFont(textFontSmall)
-    if self.project._appBase.colourScheme == 'dark':
-      self.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
-    elif self.project._appBase.colourScheme == 'light':
-      self.setDefaultTextColor(QtGui.QColor('#555D85'))
+    self.colours = getColours()
+    self.setDefaultTextColor(QtGui.QColor(self.colours[GUINMRRESIDUE]))
+
     self.setPos(caAtom.x()-caAtom.boundingRect().width()/2, caAtom.y()+30)
     ###self.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable | self.flags())
     self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
@@ -194,14 +191,10 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
           mimeData.setText(itemData)
           drag.setMimeData(mimeData)
 
-          #TODO:ED get rid of _appBase
           dragLabel = QtWidgets.QLabel()
           dragLabel.setText(self.toPlainText())
           dragLabel.setFont(textFont)
-          if nmrItem.nmrResidue.project._appBase.colourScheme == 'dark':
-            dragLabel.setStyleSheet('color : #F7FFFF')
-          elif nmrItem.nmrResidue.project._appBase.colourScheme == 'light':
-            dragLabel.setStyleSheet('color : #555D85')
+          dragLabel.setStyleSheet('color : %s' % (self.colours[GUINMRRESIDUE]))
 
           # pixmap = QtGui.QPixmap.grabWidget(dragLabel)    # ejb -    this gets the whole window   event.widget())
           pixmap = dragLabel.grab()     # ejb -    this gets the whole window   event.widget())
@@ -330,13 +323,6 @@ class SequenceGraphModule(CcpnModule):
       self.application = mainWindow.application
       self.project = mainWindow.application.project
       self.current = mainWindow.application.current
-
-      #TODO:GEERTEN: StyleSheet
-      if self.application.colourScheme == 'dark':
-        self._lineColour = '#f7ffff'
-      elif self.application.colourScheme == 'light':
-        self._lineColour = ''  # TODO: check if correct
-
       ###self.setMode('fragment')  # cannot be moved up!
       self._registerNotifiers()
 
@@ -344,6 +330,10 @@ class SequenceGraphModule(CcpnModule):
       self.application = None
       self.project = None
       self.current = None
+
+    self.colours = getColours()
+    self._lineColour = self.colours[SEQUENCEGRAPHMODULE_LINE]
+    self._textColour = self.colours[SEQUENCEGRAPHMODULE_TEXT]
 
     ###frame = Frame(parent=self.mainWidget)
     self._sequenceGraphScrollArea = QtWidgets.QScrollArea()
@@ -951,10 +941,7 @@ class SequenceGraphModule(CcpnModule):
     for prediction in predictions:
       predictionLabel = QtWidgets.QGraphicsTextItem()
       predictionLabel.setPlainText(prediction[0]+' '+prediction[1])
-      if self.project._appBase.colourScheme == 'dark':
-        predictionLabel.setDefaultTextColor(QtGui.QColor('#F7FFFF'))
-      elif self.project._appBase.colourScheme == 'light':
-        predictionLabel.setDefaultTextColor(QtGui.QColor('#555D85'))
+      predictionLabel.setDefaultTextColor(QtGui.QColor(self._textColour))
       predictionLabel.setFont(textFontSmallBold)
       predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
                              caAtom.y()+(30*(predictions.index(prediction)+2)))
