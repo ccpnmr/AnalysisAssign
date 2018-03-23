@@ -220,7 +220,7 @@ class AssignmentInspectorModule(CcpnModule):
       self.selectChemicalShiftList(chemicalShiftList)
 
     # install the event filter to handle maximising from floated dock
-    self.installMaximiseEventHandler(self._maximise)
+    self.installMaximiseEventHandler(self._maximise, self._closeModule)
 
   def _fillDisplayWidget(self):
     list = ['> select-to-add <'] + [ALL] + [display.pid for display in self.mainWindow.spectrumDisplays]

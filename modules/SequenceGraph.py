@@ -365,24 +365,27 @@ class SequenceGraphModule(CcpnModule):
     self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])
     """
-    self.nmrChainPulldown = NmrChainPulldown(self.mainWidget, self.project, grid=(0, 0), gridSpan=(1, 1),
+    self._MWwidget = Widget(self.mainWidget, setLayout=True,
+                             grid=(0, 0), vAlign='top', hAlign='left')
+
+    self.nmrChainPulldown = NmrChainPulldown(self._MWwidget, self.project, grid=(0, 0), gridSpan=(1, 1),
                                              showSelectName=True,
                                              callback=self.setNmrChainDisplay)
 
-    self.refreshCheckBox = CheckBoxCompoundWidget(self.mainWidget,
+    self.refreshCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                   labelText='Auto refresh NmrChain:',
                                                   checked=True,
                                                   tipText='Update display when current.nmrChain changes',
                                                   grid=(0, 1), gridSpan=(1,1))
 
-    self.assignmentsCheckBox = CheckBoxCompoundWidget(self.mainWidget,
+    self.assignmentsCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                       labelText='Show peak assignments:',
                                                       checked=True,
                                                       tipText='Show peak assignments on display coloured by positiveContourColour',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 2), gridSpan=(1,1))
 
-    self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self.mainWidget,
+    self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                       labelText='Show all NmrResidues:',
                                                       checked=True,
                                                       tipText='Show all the NmrResidues in the NmrChain',
@@ -442,6 +445,8 @@ class SequenceGraphModule(CcpnModule):
     # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
     # self.settingsWidget.setFixedHeight(30)
     self._SGwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
+    self._MWwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
+    self._MWwidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
     self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
 
     # self.assignmentsTreeCheckBox.setFixedHeight(30)
@@ -482,6 +487,15 @@ class SequenceGraphModule(CcpnModule):
     #   self.selectSequence(seqMods[0].nmrChain)
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
+    # install the event filter to handle maximising from floated dock
+    self.installMaximiseEventHandler(self._maximise, self._closeModule)
+
+  def _maximise(self):
+    """
+    Maximise the attached table
+    """
+    pass
+
   def selectSequence(self, nmrChain=None):
     """
     Manually select a Sequence from the pullDown
@@ -513,6 +527,7 @@ class SequenceGraphModule(CcpnModule):
                                         , self._resetNmrResiduePidForAssigner
                                         , onceOnly=True)
 
+    # self._peakNotifier = None
     self._peakNotifier = Notifier(self.project
                                   , [Notifier.CHANGE]
                                   , Peak.__name__
@@ -668,8 +683,10 @@ class SequenceGraphModule(CcpnModule):
     self.nmrChainPulldown.pulldownList.select('NC:@-')
 
   def _closeModule(self):
+    """
+    CCPN-INTERNAL: used to close the module
+    """
     self._unRegisterNotifiers()
-    #delattr(self.parent, 'sequenceGraph')
     super(SequenceGraphModule, self)._closeModule()
 
   def unlinkNearestNmrResidue(self, selectedNmrResidue=None):
