@@ -145,7 +145,7 @@ class PickAndAssignModule(NmrResidueTableModule):
            , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
            , grid=(rows,cols), gridSpan=(1,1))
 
-    self.nmrResidueTable._setWidgetHeight(40)
+    self.nmrResidueTable._setWidgetHeight(45)
 
     # need to feedback to current.nmrResidueTable
     self._selectOnTableCurrentNmrResiduesNotifier = None

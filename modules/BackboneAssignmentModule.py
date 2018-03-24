@@ -130,7 +130,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     self._stripNotifiers = []  # list to store GuiNotifiers for strips
 
-    self.nmrResidueTable._setWidgetHeight(48)
+    #self.nmrResidueTable._setWidgetHeight(48)
 
     # TODO:ED check override of window size
     self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
