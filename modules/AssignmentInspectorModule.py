@@ -70,7 +70,7 @@ class AssignmentInspectorModule(CcpnModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  Position = 'top'
+  Position = 'left'
 
   def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
     # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
@@ -108,7 +108,8 @@ class AssignmentInspectorModule(CcpnModule):
                                              orientation = 'left',
                                              labelText='Display(s):',
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
-                                             texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
+                                             texts=[ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays],
+                                             defaults=[ALL]
                                              )
     self.displaysWidget.setPreSelect(self._fillDisplayWidget)
     self.displaysWidget.setFixedHeights((None, None, 40))
