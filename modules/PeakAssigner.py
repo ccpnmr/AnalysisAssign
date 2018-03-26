@@ -52,6 +52,7 @@ from ccpn.ui.gui.widgets.Table import ObjectTable, Column
 from ccpn.ui.gui.widgets.QuickTable import QuickTable
 from ccpn.ui.gui.widgets.Column import ColumnClass
 from ccpn.ui.gui.widgets.MessageDialog import showYesNoWarning
+from ccpn.ui.gui.guiSettings import COLOUR_SCHEMES, getColours, DIVIDER
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpnmodel.ccpncore.lib.Constants import  defaultNmrChainCode
@@ -411,7 +412,7 @@ class AxisAssignmentObject(Frame):
 
     # TODO:ED change divider at the top
     row = 0
-    self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=QtCore.Qt.lightGray, height=15)
+    self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=getColours()[DIVIDER], height=15)
 
     # add the labelling to the top of the frame
     # row += 1

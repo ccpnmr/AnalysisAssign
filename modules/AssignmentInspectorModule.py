@@ -90,8 +90,8 @@ class AssignmentInspectorModule(CcpnModule):
     # settings window
 
     self.splitter = Splitter(QtCore.Qt.Vertical)
-    self._chemicalShiftFrame = Frame(self.splitter, grid=(0, 1), gridSpan=(1, 5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True)  # ejb    # self.splitter.addWidget(self.nmrResidueTable)
-    self._assignmentFrame = Frame(self.splitter, grid=(0, 1), gridSpan=(1, 5), **policies, fShape='styledPanel', fShadow='plain', setLayout=True)  # ejb    # self.splitter.addWidget(self.nmrResidueTable)
+    self._chemicalShiftFrame = Frame(self.splitter, setLayout=True)
+    self._assignmentFrame = Frame(self.splitter, setLayout=True)
     self.mainWidget.getLayout().addWidget(self.splitter)
 
     self._AIwidget = Widget(self.settingsWidget, setLayout=True,
@@ -175,16 +175,16 @@ class AssignmentInspectorModule(CcpnModule):
     #                                       grid=(1, 0), gridSpan=(1, 5), **policies
     #                                       )
 
-    self.assignedPeaksTable = QuickTable(parent=self.frame2
-                                         , mainWindow=self.mainWindow
-                                         , dataFrameObject=None
-                                         , setLayout=True
-                                         , autoResize=True, multiSelect=True
-                                         , selectionCallback=self._setCurrentPeak
-                                         , actionCallback=self._navigateToPeak
-                                         , grid=(1, 0), gridSpan=(1, 5)
-                                         , enableDelete=False, enableSearch=False
-                                         , **policies)
+    self.assignedPeaksTable = QuickTable(parent=self.frame2,
+                                         mainWindow=self.mainWindow,
+                                         dataFrameObject=None,
+                                         setLayout=True,
+                                         autoResize=True, multiSelect=True,
+                                         selectionCallback=self._setCurrentPeak,
+                                         actionCallback=self._navigateToPeak,
+                                         grid=(1, 0), gridSpan=(1, 5),
+                                         enableDelete=False, enableSearch=False,
+                                         **policies)
 
     #self.attachedNmrAtomsList.setFixedHeight(200)
     #self.assignedPeaksTable.setFixedHeight(200)
@@ -214,7 +214,8 @@ class AssignmentInspectorModule(CcpnModule):
                                                  mainWindow=self.mainWindow,
                                                  moduleParent=self,
                                                  setLayout=True,
-                                                 grid=(0,0))
+                                                 grid=(0,0),
+                                                 hiddenColumns=['Pid', 'Shift list peaks', 'All peaks'])
     # settingsWidget
 
     if chemicalShiftList is not None:
@@ -272,6 +273,7 @@ class AssignmentInspectorModule(CcpnModule):
     """
     # self._unRegisterNotifiers()
     self.assignedPeaksTable.clearTableNotifiers()
+    self.chemicalShiftTable._close()
     super(AssignmentInspectorModule, self)._closeModule()
 
   def close(self):
@@ -426,7 +428,7 @@ class AssignmentInspectorModule(CcpnModule):
     peak = data[CallBack.OBJECT]
     # multiselection not allowed, sot only return the first object in list
     if peak:
-      self.application.current.peak = peak[0]
+      self.application.current.peaks = peak
 
   # def _navigateToPeak(self, peak, row, col):
   def _navigateToPeak(self, data):
