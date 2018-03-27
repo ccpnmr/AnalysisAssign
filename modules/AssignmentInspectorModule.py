@@ -217,6 +217,8 @@ class AssignmentInspectorModule(CcpnModule):
                                                  mainWindow=self.mainWindow,
                                                  moduleParent=self,
                                                  setLayout=True,
+                                                 actionCallback=self._actionCallback,
+                                                 selectionCallback=self._selectionCallback,
                                                  grid=(0,0),
                                                  hiddenColumns=['Pid', 'Shift list peaks', 'All peaks'])
 
@@ -228,10 +230,13 @@ class AssignmentInspectorModule(CcpnModule):
                                                  actionCallback=self._navigateToPeak,
                                                  grid=(0,0),
                                                  hiddenColumns=['Pid'])
-    # settingsWidget
 
+    self._selectCurrentNmrAtomsNotifier = Notifier(self.current, [Notifier.CURRENT], targetName=NmrAtom._pluralLinkName,
+                                                    callback=self._highlightNmrAtoms)
+
+    # settingsWidget
     if chemicalShiftList is not None:
-      self.selectChemicalShiftList(chemicalShiftList)
+      self.chemicalShiftTable.selectChemicalShiftList(chemicalShiftList)
 
     # install the event filter to handle maximising from floated dock
     self.installMaximiseEventHandler(self._maximise, self._closeModule)
@@ -294,7 +299,8 @@ class AssignmentInspectorModule(CcpnModule):
     """
     CCPN-INTERNAL: used to close the module
     """
-    # self._unRegisterNotifiers()
+    if self._selectCurrentNmrAtomsNotifier:
+      self._selectCurrentNmrAtomsNotifier.unRegister()
     self.assignedPeaksTable._close()
     self.chemicalShiftTable._close()
     super(AssignmentInspectorModule, self)._closeModule()
@@ -315,6 +321,32 @@ class AssignmentInspectorModule(CcpnModule):
     # multiselection not allowed, sot only return the first object in list
     if peak:
       self.application.current.peaks = peak
+
+  def _actionCallback(self, data):
+    """
+    Notifier DoubleClick action on item in table
+    """
+    obj = data[CallBack.OBJECT]
+
+    getLogger().debug('AssignmentInspector_ChemicalShift>>> action', obj)
+
+  def _selectionCallback(self, data):
+    """
+    Notifier Callback for selecting a row in the table
+    """
+    # TODO:ED select the nmrResidue and populate the assignment table
+    objList = data[CallBack.OBJECT]
+
+    if objList:
+      residues = [cs.nmrAtom.nmrResidue for cs in objList]
+
+      if residues:
+        self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
+        self.current.nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
+
+        self.assignedPeaksTable._updateModuleCallback({ 'value': residues })
+
+    getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
 
   def _navigateToPeak(self, data):
     """
@@ -356,6 +388,34 @@ class AssignmentInspectorModule(CcpnModule):
                                         setNmrResidueLabel=False)
       finally:
           self.application._endCommandBlock()
+
+  def _highlightNmrAtoms(self, data):
+    """
+    Notifier Callback for highlighting all NmrAtoms in the table
+    """
+    objList = data[CallBack.OBJECT]
+
+    chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
+    # peaks = self.assignedPeaksTable._dataFrameObject._objects
+
+    residues = set([atom.nmrResidue for atom in self.current.nmrAtoms])
+    highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+    # print ('>>>', highlightList)
+
+    self.chemicalShiftTable._highLightObjs(highlightList)
+
+    return
+
+    if objList:
+      residues = [cs.nmrAtom.nmrResidue for cs in objList]
+
+      if residues:
+        self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
+        self.current.nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
+
+        self.assignedPeaksTable._updateModuleCallback({'value': residues})
+
+    getLogger().debug('AssignmentInspector>>> highlight nmrAtoms', objList)
 
 
 class AssignmentInspectorTable(QuickTable):
@@ -441,7 +501,7 @@ class AssignmentInspectorTable(QuickTable):
     self._peakList = None
     # update if current.nmrResidue is defined
     if self.application.current.nmrResidue is not None:
-      self._updateModuleCallback([self.application.current.nmrResidue])
+      self._updateModuleCallback({ 'value': [self.application.current.nmrResidue] })
 
     # set the required table notifiers
     self.setTableNotifiers(tableClass=None,
@@ -454,7 +514,7 @@ class AssignmentInspectorTable(QuickTable):
                            tableSelection='_peakList',
                            pullDownWidget=None,     #self.ncWidget
                            callBackClass=NmrResidue,
-                           selectCurrentCallBack=self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
+                           selectCurrentCallBack=None)    #self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
 
   def _updateModuleCallback(self, data:dict):
     """
