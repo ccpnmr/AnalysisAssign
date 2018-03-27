@@ -50,7 +50,7 @@ from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpn.core.lib.CallBack import CallBack
 from ccpn.ui.gui.lib.Strip import navigateToPositionInStrip, navigateToNmrAtomsInStrip, _getCurrentZoomRatio
 from ccpn.core.PeakList import PeakList
-from collections import Iterable
+from ccpn.util.Common import makeIterableList
 
 logger = getLogger()
 ALL = '<all>'
@@ -316,21 +316,6 @@ class AssignmentInspectorModule(CcpnModule):
     if peak:
       self.application.current.peaks = peak
 
-  def _makeIterableList(self, inList):
-    """
-    Take a list of lists and concatenate into a single list.
-    Remove any None's from the list
-    :param inList:
-    :return single list:
-    """
-    if isinstance(inList, Iterable):
-      return [y for x in inList for y in self._makeIterableList(x) if inList]
-    else:
-      if inList:
-        return [inList]
-      else:
-        return []
-
   def _navigateToPeak(self, data):
     """
     PeakTable double-click callback; navigate in to peak in current.strip
@@ -366,7 +351,7 @@ class AssignmentInspectorModule(CcpnModule):
                 widths = _getCurrentZoomRatio(strip.viewRange())
 
               # navigateToPositionInStrip(strip=strip, positions=peak.position, widths=widths)
-              navigateToNmrAtomsInStrip(strip, self._makeIterableList(peak.assignedNmrAtoms),
+              navigateToNmrAtomsInStrip(strip, makeIterableList(peak.assignedNmrAtoms),
                                         widths=widths, markPositions=markPositions,
                                         setNmrResidueLabel=False)
       finally:
