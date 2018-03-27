@@ -71,7 +71,7 @@ class AssignmentInspectorModule(CcpnModule):
 
   includeSettingsWidget = True
   maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  Position = 'left'
+  settingsPosition = 'left'
 
   def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
     # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
@@ -464,7 +464,10 @@ class AssignmentInspectorTable(QuickTable):
     if data and 'value' in data:
       nmrResidues = data['value']
       self.attachedNmrAtomsList.clear()
-      if nmrResidues is not None and len(nmrResidues) > 0 and len(nmrResidues[-1].nmrAtoms) > 0:
+
+      if nmrResidues is not None and len(nmrResidues) > 0 \
+              and nmrResidues[-1] and len(nmrResidues[-1].nmrAtoms) > 0:
+
         # get the pids and append <all>
         self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [ALL]
         self.attachedNmrAtomsList.addItems(self.ids)
