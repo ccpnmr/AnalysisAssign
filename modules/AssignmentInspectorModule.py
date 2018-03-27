@@ -395,14 +395,15 @@ class AssignmentInspectorModule(CcpnModule):
     """
     objList = data[CallBack.OBJECT]
 
-    chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
-    # peaks = self.assignedPeaksTable._dataFrameObject._objects
+    if self.chemicalShiftTable._dataFrameObject:
+      chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
+      # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
-    residues = set([atom.nmrResidue for atom in self.current.nmrAtoms])
-    highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
-    # print ('>>>', highlightList)
+      residues = set([atom.nmrResidue for atom in self.current.nmrAtoms])
+      highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+      # print ('>>>', highlightList)
 
-    self.chemicalShiftTable._highLightObjs(highlightList)
+      self.chemicalShiftTable._highLightObjs(highlightList)
 
     return
 

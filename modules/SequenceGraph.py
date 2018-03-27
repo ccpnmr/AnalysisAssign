@@ -39,7 +39,7 @@ from ccpn.core.NmrChain import NmrChain
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 from ccpn.core.lib.Notifiers import Notifier
-from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
+from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay, _getCurrentZoomRatio
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
 from ccpn.ui.gui.guiSettings import getColours
@@ -365,22 +365,26 @@ class SequenceGraphModule(CcpnModule):
     self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
     self.modePulldown.setData(['fragment', 'Assigned - backbone'])
     """
+    colwidth = 140
     self._MWwidget = Widget(self.mainWidget, setLayout=True,
                              grid=(0, 0), vAlign='top', hAlign='left')
 
     self.nmrChainPulldown = NmrChainPulldown(self._MWwidget, self.project, grid=(0, 0), gridSpan=(1, 1),
                                              showSelectName=True,
+                                             fixedWidths=(colwidth, colwidth, colwidth),
                                              callback=self.setNmrChainDisplay)
 
     self.refreshCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                   labelText='Auto refresh NmrChain:',
                                                   checked=True,
+                                                  fixedWidths=(colwidth, 30),
                                                   tipText='Update display when current.nmrChain changes',
                                                   grid=(0, 1), gridSpan=(1,1))
 
     self.assignmentsCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                       labelText='Show peak assignments:',
                                                       checked=True,
+                                                      fixedWidths=(colwidth, 30),
                                                       tipText='Show peak assignments on display coloured by positiveContourColour',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 2), gridSpan=(1,1))
@@ -388,6 +392,7 @@ class SequenceGraphModule(CcpnModule):
     self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                       labelText='Show all NmrResidues:',
                                                       checked=True,
+                                                      fixedWidths=(colwidth, 30),
                                                       tipText='Show all the NmrResidues in the NmrChain',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 3), gridSpan=(1,1))
@@ -395,6 +400,7 @@ class SequenceGraphModule(CcpnModule):
     self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self._SGwidget,
                                                       labelText='Show peak assignments as tree:',
                                                       checked=False,
+                                                      fixedWidths=(colwidth, 30),
                                                       tipText='Show peak assignments as a tree below the main backbone',
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 0), gridSpan=(1,1))
@@ -402,6 +408,7 @@ class SequenceGraphModule(CcpnModule):
     self.sequentialStripsWidget = CheckBoxCompoundWidget(self._SGwidget,
                                               labelText = 'Show sequential strips:',
                                               checked = False,
+                                              fixedWidths=(colwidth, 30),
                                               tipText='Show nmrResidue in all strips',
                                               callback=self._updateShownAssignments,
                                               grid=(1, 0), gridSpan=(1, 1))
@@ -409,9 +416,20 @@ class SequenceGraphModule(CcpnModule):
     self.markPositionsWidget = CheckBoxCompoundWidget(self._SGwidget,
                                               labelText = 'Mark positions:',
                                               checked = True,
+                                              fixedWidths=(colwidth, 30),
                                               tipText='Mark positions in strips',
                                               callback = self._updateShownAssignments,
                                               grid = (2, 0), gridSpan = (1, 1))
+
+    self.autoClearMarksWidget = CheckBoxCompoundWidget(
+                                             self._SGwidget,
+                                             grid=(3,0), vAlign='top', stretch=(0,0), hAlign='left',
+                                             #minimumWidths=(colwidth, 0),
+                                             fixedWidths=(colwidth, 30),
+                                             orientation = 'left',
+                                             labelText = 'Auto clear marks:',
+                                             checked = True
+                                            )
 
     # self.nmrResiduesCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
     # self.assignmentsTreeCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
@@ -424,11 +442,11 @@ class SequenceGraphModule(CcpnModule):
     else:
       textAll = [ALL]
     self.displaysWidget = ListCompoundWidget(self._SGwidget,
-                                             grid=(3,0), gridSpan=(1,2),
+                                             grid=(4,0), gridSpan=(1,2),
                                              vAlign='top', stretch=(0,0), hAlign='left',
                                              vPolicy='minimal',
                                              #minimumWidths=(colwidth, 0, 0),
-                                             fixedWidths=(colwidth, 2*colwidth, None),
+                                             fixedWidths=(colwidth, colwidth, colwidth),
                                              orientation = 'left',
                                              labelText='Display(s):',
                                              tipText = 'SpectrumDisplay modules to respond to double-click',
@@ -1310,14 +1328,18 @@ class SequenceGraphModule(CcpnModule):
         (self.className, nmrResidue.pid))
     try:
         # optionally clear the marks
-        # if self.autoClearMarksWidget.checkBox.isChecked():
-        self.application.ui.mainWindow.clearMarks()
+        if self.autoClearMarksWidget.checkBox.isChecked():
+          self.mainWindow.clearMarks()
 
         # navigate the displays
         for display in displays:
-            if len(display.strips) > 0:
+            if len(display.strips) > 0 and display.strips[0].spectrumViews:
+                newWidths = None      #_getCurrentZoomRatio(display.strips[0].viewRange())
+                if display.strips[0].spectrumViews[0].spectrum.dimensionCount <= 2:
+                  widths = _getCurrentZoomRatio(display.strips[0].viewRange())
+
                 navigateToNmrResidueInDisplay(nmrResidue, display, stripIndex=0,
-                                              widths=['full'] * len(display.strips[0].axisCodes),
+                                              widths=newWidths,     #['full'] * len(display.strips[0].axisCodes),
                                               showSequentialResidues = (len(display.axisCodes) > 2) and
                                               self.sequentialStripsWidget.checkBox.isChecked(),
                                               markPositions = self.markPositionsWidget.checkBox.isChecked()
