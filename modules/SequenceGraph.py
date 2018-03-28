@@ -1166,7 +1166,9 @@ class SequenceGraphModule(CcpnModule):
       connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
                      for x in y]
 
-      print ('  >>>connections', connections)
+      print ('  >>>connections')
+      for ii in connections:
+        print ('        >>>', ii)
       # find the minus links and update the links to the previousNmrResidue
       minusResList = []
       for inCon in connections:
@@ -1197,8 +1199,8 @@ class SequenceGraphModule(CcpnModule):
         # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
         #                self.project._data2Obj.get(connection[1]).nmrAtom]
         # sorting makes sure drawing is done properly
-        guiNmrAtomPair = [self.guiNmrAtomDict.get(a) for a in sorted(connection, reverse=True)]
-        guiNmrResiduePair = [a for a in sorted(connection, reverse=True)]
+        guiNmrAtomPair = [self.guiNmrAtomDict.get(a) for a in sorted(connection[0:2], reverse=True)]
+        guiNmrResiduePair = [a for a in sorted(connection[0:2], reverse=True)]
         if None not in guiNmrAtomPair:
           # displacement = 3 * min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
 
@@ -1206,6 +1208,8 @@ class SequenceGraphModule(CcpnModule):
           peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
           peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
 
+          peak0 = connection[2]
+          peak1 = connection[2]
           print ('    >>>', guiNmrAtomPair[0].nmrAtom, guiNmrAtomPair[0].nmrAtom.nmrResidue, peak0, peak1)
           # TODO:ED check the distance here and add a mirror of the attachment underneath?
           if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6*self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
