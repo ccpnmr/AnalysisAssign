@@ -405,6 +405,9 @@ class AssignmentInspectorModule(CcpnModule):
 
       self.chemicalShiftTable._highLightObjs(highlightList)
 
+      # will respond to selection of nmrAtom in sequenceGraph
+      self.assignedPeaksTable._updateModuleCallback({'value': list(residues) })
+
     return
 
     if objList:
