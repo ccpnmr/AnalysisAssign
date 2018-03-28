@@ -469,11 +469,13 @@ class AssignmentInspectorTable(QuickTable):
     self.frame1.hide()
 
     # Frame-2: peaks
-    # self.frame2 = Frame(self._assignmentFrame, grid=(0,0), gridSpan=(1,1), setLayout=True) # ejb
-    self.peaksLabel = Label(parent, 'Peaks assigned to NmrAtom(s):', bold=True,
+    self.frame2 = Frame(parent, grid=(0,0), gridSpan=(1,1), setLayout=True) # ejb
+    self.peaksLabel = Label(self.frame2, 'Peaks assigned to NmrAtom(s):', bold=True,
                             grid=(0, 0), gridSpan=(1, 1), margins=[2,5,2,5])
 
-    self.peaksLabel.setFixedHeight(24)
+    self.frame2.setFixedHeight(24)
+    self.peaksLabel.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+    self.frame2.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
     # initialise the currently attached dataFrame
     self._hiddenColumns = ['Pid']
     self.dataFrameObject = None
@@ -614,7 +616,8 @@ class AssignmentInspectorTable(QuickTable):
         # highlight current.nmrAtom in the list widget
 
         self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
-        self.peaksLabel.setText('Peaks assigned to NmrAtom(s): %s' % nmrAtom.id)
+        atomList = ', '.join([str(id) for id in self.ids if id != ALL])
+        self.peaksLabel.setText('Peaks assigned to NmrAtom(s): %s' % atomList)    # nmrAtom.id)
 
   def getColumns(self):
     "get columns for initialisation of table"

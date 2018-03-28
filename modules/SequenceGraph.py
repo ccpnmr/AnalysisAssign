@@ -170,7 +170,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   def _mouseMoveEvent(self, event):
 
     nmrItem = None
-    if (event.buttons() == QtCore.Qt.LeftButton) and (event.modifiers() & QtCore.Qt.ShiftModifier):
+    if (event.buttons() == QtCore.Qt.LeftButton):   # and (event.modifiers() & QtCore.Qt.ShiftModifier):
         for item in self.parent.scene.items():
           if isinstance(item, GuiNmrResidue) and item.isSelected():
             nmrChain = item.nmrResidue.nmrChain
