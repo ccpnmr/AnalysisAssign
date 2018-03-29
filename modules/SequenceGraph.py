@@ -672,25 +672,21 @@ class SequenceGraphModule(CcpnModule):
       self.scene.setSceneRect(self.scene.itemsBoundingRect())
       return
 
-    ###self.project._appBase._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChainPid))
     self.application._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
     try:
-      #self.current.nmrChain = self.project.getByPid(nmrChainPid)
-      #if not self.current.nmrChain:
-      #  logger.warning('No NmrChain selected.')
-      #  return
+
       self.clearAllItems()
 
       ###nmrChain = self.project.getByPid(nmrChainPid)
       ###if self.modePulldown.currentText() == 'fragment':
       if True:
-        """
-        if nmrChain.isConnected:
-          for nmrResidue in nmrChain.mainNmrResidues:
-            self.addResidue(nmrResidue, '+1')
-        elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
-          self.addResidue(self.current.nmrResidue, '+1')
-"""
+
+        # if nmrChain.isConnected:
+        #   for nmrResidue in nmrChain.mainNmrResidues:
+        #     self.addResidue(nmrResidue, '+1')
+        # elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
+        #   self.addResidue(self.current.nmrResidue, '+1')
+
         connectingLinesNeeded = set()
         if self.nmrResiduesCheckBox.isChecked():
           for nmrResidue in nmrChain.nmrResidues:
@@ -970,7 +966,9 @@ class SequenceGraphModule(CcpnModule):
                     "CO": np.array([2*self.atomSpacing, -1*self.atomSpacing])
                     }
     if nmrResidue.residueType == 'GLY':
+      # GLY doesn't have CB
       del residueAtoms['CB']
+
     if self.residueCount == 0:
       for k, v in residueAtoms.items():
         if k in nmrAtoms:
@@ -989,6 +987,8 @@ class SequenceGraphModule(CcpnModule):
           nmrAtom = None
 
         if direction == '-1':
+
+          # use the 'H' as the reference
           pos = np.array([self.guiResiduesShown[0]['H'].x()-3*self.atomSpacing, self.guiResiduesShown[0]['H'].y()])
           atoms[k] = self._createGuiNmrAtom(k, v+pos, nmrAtom)
 
