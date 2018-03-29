@@ -77,6 +77,8 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     self.project = project
     self.current = project._appBase.current
     self.nmrAtom = nmrAtom
+    self.nmrResidue = nmrAtom.nmrResidue
+
     ###if nmrAtom:
     ###  self.name = nmrAtom.name
     self.connectedAtoms = 0
@@ -610,23 +612,22 @@ class SequenceGraphModule(CcpnModule):
     ###self.setNmrChainDisplay(nmrChain.pid)
     self.setNmrChainDisplay(nmrChain)
 
-  """
-  def setMode(self, mode):
-    if self.project.nmrChains:
-      self.editingToolbar.hide()
-      if mode == 'fragment':
-        self.editingToolbar.show()
-        #self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
-        #self.nmrChainLabel.setText('NmrChain: ')
-      elif mode == 'Assigned - backbone':
-        pass
-        #self.nmrChainLabel.setText('Chain: ')
-        #self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains if self.project.getByPid('NC:%s' % chain.shortName)])
-      self.modePulldown.select(mode)
-      self.setNmrChainDisplay(self.nmrChainPulldown.getText())
-    else:
-      logger.warning('No valid NmrChain is selected.')
-"""
+  # def setMode(self, mode):
+  #   if self.project.nmrChains:
+  #     self.editingToolbar.hide()
+  #     if mode == 'fragment':
+  #       self.editingToolbar.show()
+  #       #self.nmrChainPulldown.setData([c.pid for c in self.project.nmrChains])
+  #       #self.nmrChainLabel.setText('NmrChain: ')
+  #     elif mode == 'Assigned - backbone':
+  #       pass
+  #       #self.nmrChainLabel.setText('Chain: ')
+  #       #self.nmrChainPulldown.setData([self.project.getByPid('NC:%s' % chain.shortName).pid for chain in self.project.chains if self.project.getByPid('NC:%s' % chain.shortName)])
+  #     self.modePulldown.select(mode)
+  #     self.setNmrChainDisplay(self.nmrChainPulldown.getText())
+  #   else:
+  #     logger.warning('No valid NmrChain is selected.')
+
 
   def _updatePeaks(self, data):
     """
@@ -988,11 +989,13 @@ class SequenceGraphModule(CcpnModule):
 
         if direction == '-1':
 
-          # use the 'H' as the reference
+          # use the 'H' as the reference from the adjacent guiResiduesShown; [0] left end
           pos = np.array([self.guiResiduesShown[0]['H'].x()-3*self.atomSpacing, self.guiResiduesShown[0]['H'].y()])
           atoms[k] = self._createGuiNmrAtom(k, v+pos, nmrAtom)
 
         else:
+
+          # use the 'H' as the reference from the adjacent guiResiduesShown; [-1] right end
           pos = np.array([self.guiResiduesShown[-1]['H'].x()+3*self.atomSpacing, self.guiResiduesShown[-1]['H'].y()])
           atoms[k] = self._createGuiNmrAtom(k, v+pos, nmrAtom)
 
