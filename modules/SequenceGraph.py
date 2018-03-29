@@ -30,7 +30,7 @@ import typing
 
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
-
+from collections import OrderedDict
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.Peak import Peak
@@ -77,7 +77,6 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     self.project = project
     self.current = project._appBase.current
     self.nmrAtom = nmrAtom
-    self.nmrResidue = nmrAtom.nmrResidue
 
     ###if nmrAtom:
     ###  self.name = nmrAtom.name
@@ -135,6 +134,25 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     else:
       return 0
 
+
+class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
+  """
+  Group item to group all nmrAtoms/connecting lines of nmrResidue
+
+  """
+  def __init__(self, parent, nmrResidue, caAtom, pos):
+    super(GuiNmrResidueGroup, self).__init__()
+
+    self.mainWindow = parent.mainWindow
+    self.application = self.mainWindow.application
+    self.project = self.mainWindow.project
+    self.current = self.mainWindow.application.current
+    self.nmrResidue = nmrResidue
+
+    self.setPos(QtCore.QPointF(*pos))
+
+    self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, caAtom)
+    self.addToGroup(self.nmrResidueLabel)
 
 class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   """
@@ -362,11 +380,6 @@ class SequenceGraphModule(CcpnModule):
                              grid=(0, 0), vAlign='top', hAlign='left')
     self.residueCount = 0
 
-    """
-    self.modeLabel = Label(self, 'Mode: ', grid=(0, 3))
-    self.modePulldown = PulldownList(self, grid=(0, 4), gridSpan=(1, 1), callback=self.setMode)
-    self.modePulldown.setData(['fragment', 'Assigned - backbone'])
-    """
     colwidth = 140
     self._MWwidget = Widget(self.mainWidget, setLayout=True,
                              grid=(0, 0), vAlign='top', hAlign='left')
@@ -433,11 +446,6 @@ class SequenceGraphModule(CcpnModule):
                                              checked = True
                                             )
 
-    # self.nmrResiduesCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
-    # self.assignmentsTreeCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
-    # self.sequentialStripsWidget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
-    # self.markPositionsWidget.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum)
-
     colwidth = 140
     if self.mainWindow:
       textAll = [ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
@@ -447,7 +455,6 @@ class SequenceGraphModule(CcpnModule):
                                              grid=(4,0), gridSpan=(1,2),
                                              vAlign='top', stretch=(0,0), hAlign='left',
                                              vPolicy='minimal',
-                                             #minimumWidths=(colwidth, 0, 0),
                                              fixedWidths=(colwidth, colwidth, colwidth),
                                              orientation = 'left',
                                              labelText='Display(s):',
@@ -461,16 +468,11 @@ class SequenceGraphModule(CcpnModule):
     self._spacer = Spacer(self.settingsWidget, 5, 5
                          , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
                          , grid=(4,2), gridSpan=(1,1))
-    # self._settingsScrollArea.setFixedHeight(30)
-    # self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding)
-    # self.settingsWidget.setFixedHeight(30)
+
     self._SGwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
     self._MWwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
     self._MWwidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
     self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
-
-    # self.assignmentsTreeCheckBox.setFixedHeight(30)
-    # self.assignmentsTreeCheckBox.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
 
     self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
@@ -483,7 +485,6 @@ class SequenceGraphModule(CcpnModule):
     self.disconnectNextAction = self.editingToolbar.addAction("disconnectNext", self.disconnectNextNmrResidue)
     self.disconnectNextIcon = Icon('icons/next2')
     self.disconnectNextAction.setIcon(self.disconnectNextIcon)
-    #self.editingToolbar.hide()
 
     self.atomSpacing = 66
     self.guiResiduesShown = []
@@ -498,13 +499,15 @@ class SequenceGraphModule(CcpnModule):
     if nmrChain is not None:
       self.selectSequence(nmrChain)
 
-    # # connect to SequenceModule
+    # connect to SequenceModule
     from ccpn.ui.gui.modules.SequenceModule import SequenceModule
     seqMods = [sm for sm in SequenceModule.getInstances()]
 
     # # populate if the sequenceModule has an nmrChain attached
     # if seqMods:
     #   self.selectSequence(seqMods[0].nmrChain)
+
+    # stop the mainWidget from squishing during a resize
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
     # install the event filter to handle maximising from floated dock
@@ -541,36 +544,43 @@ class SequenceGraphModule(CcpnModule):
     # self.project.registerNotifier('Spectrum', 'change', self._updateShownAssignments)
 
     # use the new notifier class
-    self._nmrResidueNotifier = Notifier(self.project
-                                        , [Notifier.RENAME, Notifier.CHANGE]
-                                        , NmrResidue.__name__
-                                        , self._resetNmrResiduePidForAssigner
-                                        , onceOnly=True)
+    self._nmrResidueNotifier = Notifier(self.project,
+                                        [Notifier.RENAME, Notifier.CHANGE],
+                                        NmrResidue.__name__,
+                                        self._resetNmrResiduePidForAssigner,
+                                        onceOnly=True)
+
+    # # delete residue group from the scene
+    self._nmrResidueDeleteNotifier = Notifier(self.project,
+                                        [Notifier.DELETE],
+                                        NmrResidue.__name__,
+                                        self._deleteNmrResidue,
+                                        onceOnly=True)
 
     # self._peakNotifier = None
-    self._peakNotifier = Notifier(self.project
-                                  , [Notifier.CHANGE]
-                                  , Peak.__name__
-                                  , self._updateShownAssignments
-                                  , onceOnly=True)
+    self._peakNotifier = Notifier(self.project,
+                                  [Notifier.CHANGE],
+                                  Peak.__name__,
+                                  self._updateShownAssignments,
+                                  onceOnly=True)
 
-    # self._peakNotifier = Notifier(self.project
-    #                               , [Notifier.CHANGE, Notifier.DELETE]
-    #                               , Peak.__name__
-    #                               , self._updatePeaks
-    #                               , onceOnly=True)
+    # self._peakNotifier = Notifier(self.project,
+    #                               [Notifier.CHANGE, Notifier.DELETE],
+    #                               Peak.__name__,
+    #                               self._updatePeaks,
+    #                               onceOnly=True)
 
-    self._spectrumNotifier = Notifier(self.project
-                                      , [Notifier.CHANGE]
-                                      , Spectrum.__name__
-                                      , self._updateShownAssignments)
+    self._spectrumNotifier = Notifier(self.project,
+                                      [Notifier.CHANGE],
+                                      Spectrum.__name__,
+                                      self._updateShownAssignments)
 
-    # notifier for changing the selected chain
-    self._nmrChainNotifier = Notifier(self.project
-                                        , [Notifier.CHANGE, Notifier.DELETE]
-                                        , NmrChain.__name__
-                                        , self._updateShownAssignments
-                                        , onceOnly=True)
+    # notifier for changing the selected chain - draw new display
+    self._nmrChainNotifier = Notifier(self.project,
+                                        [Notifier.CHANGE, Notifier.DELETE],
+                                        NmrChain.__name__,
+                                        self._updateShownAssignments,
+                                        onceOnly=True)
 
   def _unRegisterNotifiers(self):
     # self.project.unRegisterNotifier('NmrResidue', 'rename', self._resetNmrResiduePidForAssigner)
@@ -606,10 +616,7 @@ class SequenceGraphModule(CcpnModule):
     if not self.refreshCheckBox.isChecked():
       return
 
-    #self.sequenceGraph.clearAllItems()
-    ###self.nmrChainPulldown.pulldownList.select(self.current.nmrChain.pid)
     self.nmrChainPulldown.select(nmrChain.pid)
-    ###self.setNmrChainDisplay(nmrChain.pid)
     self.setNmrChainDisplay(nmrChain)
 
   # def setMode(self, mode):
@@ -628,6 +635,31 @@ class SequenceGraphModule(CcpnModule):
   #   else:
   #     logger.warning('No valid NmrChain is selected.')
 
+  def _deleteNmrResidue(self, data):
+    """
+    delete the nmrResidue form the scene
+    """
+    nmrResidue = data[Notifier.OBJECT]
+    print('>>>delete nmrResidue')
+
+    if nmrResidue in self.predictedStretch:
+      print('  >>>delete items')
+
+      sceneItems = self.scene.items()
+      for item in sceneItems:
+        if isinstance(item, GuiNmrResidueGroup):
+          if item.nmrResidue == nmrResidue:
+            print('    >>>delete groupItem:', item)
+            self.scene.removeItem(item)
+        elif isinstance(item, GuiNmrAtom):
+          if item.nmrAtom and item.nmrAtom.nmrResidue == nmrResidue:
+            print('    >>>delete atomItem:', item)
+            self.scene.removeItem(item)
+
+      # TODO:ED remove peaks; move remaining residues to the left
+
+      self.predictedStretch.remove(nmrResidue)
+    print('>>>end')
 
   def _updatePeaks(self, data):
     """
@@ -838,7 +870,7 @@ class SequenceGraphModule(CcpnModule):
     if self.project.getByPid(nmrChainPid):
 
       for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
-        for guiNmrResidue in self.guiNmrResidues:
+        for guiNmrResidue in self.guiNmrResidues.items():
           if guiNmrResidue.nmrResidue is nr:
             guiNmrResidue._update()
 
@@ -853,7 +885,7 @@ class SequenceGraphModule(CcpnModule):
     self.residueCount = 0
     self.predictedStretch = []
     self.guiResiduesShown = []
-    self.guiNmrResidues = []
+    self.guiNmrResidues = OrderedDict()
     self.guiNmrAtomDict = {}
     self.ghostList = []
     self.scene.clear()
@@ -871,34 +903,34 @@ class SequenceGraphModule(CcpnModule):
     self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     self._sequenceGraphScrollArea.setWidget(self.scrollContents)
 
-  def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
+  def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom], pos):
     """
     Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
     creates a graphical representation of a residue in the assigner
     """
+    guiResidueGroup = GuiNmrResidueGroup(self, nmrResidue, atoms['CA'], pos)
+    self.guiNmrResidues[nmrResidue] = guiResidueGroup
+    self.scene.addItem(guiResidueGroup)
 
+    # add the atoms to the group
     for item in atoms.values():
-      self.scene.addItem(item)
+      guiResidueGroup.addToGroup(item)
 
+    # modify the group
     nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
     if "CB" in list(atoms.keys()):
-      self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
+      self._addConnectingLineToGroup(guiResidueGroup, atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
     if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
-      self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+      self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
     if nmrResidue.residueType != 'PRO':
-        self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+        self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
     else:
-      self.scene.removeItem(atoms['H'])
-    # if not 'CB' in nmrAtoms:
-    #   self.scene.removeItem(atoms['CB'])
-    #   self.scene.removeItem(cbLine)
+      guiResidueGroup.removeFromGroup(atoms['H'])
 
-    self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
-    self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
-    self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
-    self.guiNmrResidues.append(self.nmrResidueLabel)
-    self.scene.addItem(self.nmrResidueLabel)
-    self._addResiduePredictions(nmrResidue, atoms['CA'])
+    self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
+    self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
+
+    self._addResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
 
   def _assembleGhostResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -970,6 +1002,9 @@ class SequenceGraphModule(CcpnModule):
       # GLY doesn't have CB
       del residueAtoms['CB']
 
+    self.leftPos = self.rightPos = np.array([0, 0])
+    pos = self.leftPos
+
     if self.residueCount == 0:
       for k, v in residueAtoms.items():
         if k in nmrAtoms:
@@ -990,13 +1025,15 @@ class SequenceGraphModule(CcpnModule):
         if direction == '-1':
 
           # use the 'H' as the reference from the adjacent guiResiduesShown; [0] left end
-          pos = np.array([self.guiResiduesShown[0]['H'].x()-3*self.atomSpacing, self.guiResiduesShown[0]['H'].y()])
+          self.leftPos[0] -= 3*self.atomSpacing
+          pos = self.leftPos
           atoms[k] = self._createGuiNmrAtom(k, v+pos, nmrAtom)
 
         else:
 
           # use the 'H' as the reference from the adjacent guiResiduesShown; [-1] right end
-          pos = np.array([self.guiResiduesShown[-1]['H'].x()+3*self.atomSpacing, self.guiResiduesShown[-1]['H'].y()])
+          self.rightPos[0] += 3*self.atomSpacing
+          pos = self.rightPos
           atoms[k] = self._createGuiNmrAtom(k, v+pos, nmrAtom)
 
       if direction == '-1':
@@ -1006,16 +1043,15 @@ class SequenceGraphModule(CcpnModule):
         self.guiResiduesShown.append(atoms)
         self.predictedStretch.append(nmrResidue)
 
-    self._assembleResidue(nmrResidue, atoms)
+    self._assembleResidue(nmrResidue, atoms, pos)
 
     self.residueCount += 1
 
-  def _addResiduePredictions(self, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
+  def _addResiduePredictions(self, group:GuiNmrResidueGroup, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
     """
     Gets predictions for residue type based on BMRB statistics and determines label positions
     based on caAtom position.
     """
-
     predictions = list(set(map(tuple, (getNmrResiduePrediction(nmrResidue, self.project.chemicalShiftLists[0])))))
     predictions.sort(key=lambda a: float(a[1][:-1]), reverse=True)
     for prediction in predictions:
@@ -1025,7 +1061,7 @@ class SequenceGraphModule(CcpnModule):
       predictionLabel.setFont(textFontSmallBold)
       predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
                              caAtom.y()+(30*(predictions.index(prediction)+2)))
-      self.scene.addItem(predictionLabel)
+      group.addToGroup(predictionLabel)
 
   def predictSequencePosition(self, nmrResidues:list):
     """
@@ -1149,6 +1185,47 @@ class SequenceGraphModule(CcpnModule):
 
     newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width, style, peak)
     self.scene.addItem(newLine)
+    return newLine
+
+  def _addConnectingLineToGroup(self, group:GuiNmrResidueGroup, atom1:GuiNmrAtom, atom2:GuiNmrAtom,
+                               colour:str, width:float, displacement:float, style:str=None,
+                               peak:Peak=None):
+    """
+    Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
+    """
+    if atom2.x() < atom1.x():
+      x1 = atom1.x()
+      y1 = atom1.y()
+      x2 = atom2.x()
+      y2 = atom2.y()
+    else:
+      x1 = atom2.x()
+      y1 = atom2.y()
+      x2 = atom1.x()
+      y2 = atom1.y()
+
+    dx = x2-x1
+    dy = y2-y1
+    length = pow(dx*dx+dy*dy, 0.5)
+    offsetX = -dy*displacement/length
+    offsetY = dx*displacement/length
+    kx1 = (atom1.boundingRect().width()*dx)/(2.0*length)  # shorten the lines along length
+    ky1 = (atom1.boundingRect().height()*dy)/(2.0*length)
+    kx2 = (atom2.boundingRect().width()*dx)/(2.0*length)
+    ky2 = (atom2.boundingRect().height()*dy)/(2.0*length)
+
+    xOff1 = atom1.boundingRect().width()/2.0    # offset to centre of bounding box
+    yOff1 = atom1.boundingRect().height()/2.0
+    xOff2 = atom2.boundingRect().width()/2.0
+    yOff2 = atom2.boundingRect().height()/2.0
+
+    x1 += xOff1 + kx1
+    y1 += yOff2 + ky1
+    x2 += xOff1 - kx2
+    y2 += yOff2 - ky2
+
+    newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width, style, peak)
+    group.addToGroup(newLine)
     return newLine
 
   def _createGuiNmrAtom(self, atomType:str, position:tuple, nmrAtom:NmrAtom=None) -> GuiNmrAtom:
