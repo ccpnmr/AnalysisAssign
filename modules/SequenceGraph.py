@@ -147,11 +147,23 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
     self.project = self.mainWindow.project
     self.current = self.mainWindow.application.current
     self.nmrResidue = nmrResidue
-
+    self.parent = parent
     self.setPos(QtCore.QPointF(pos, 0.0))
 
-    self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, caAtom)
+    self.nmrResidueLabel = GuiNmrResidue(parent, nmrResidue, caAtom)
     self.addToGroup(self.nmrResidueLabel)
+
+  # def mousePressEvent(self, event):
+  #   self.nmrResidueLabel._mousePressEvent(event)
+  #
+  # def mouseMoveEvent(self, event):
+  #   self.nmrResidueLabel._mouseMoveEvent(event)
+  #
+  # def mouseReleaseEvent(self, event):
+  #   self.nmrResidueLabel._mouseReleaseEvent(event)
+  #
+  # def mouseDoubleClickEvent(self, event):
+  #   self.nmrResidueLabel._mouseDoubleClickEvent(event)
 
 class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   """
@@ -705,8 +717,8 @@ class SequenceGraphModule(CcpnModule):
       return
 
     self.application._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
-    try:
 
+    try:
       self.clearAllItems()
 
       ###nmrChain = self.project.getByPid(nmrChainPid)
@@ -884,7 +896,7 @@ class SequenceGraphModule(CcpnModule):
     self.residueCount = 0
     self.predictedStretch = []
     self.guiResiduesShown = []
-    self.guiNmrResidues = OrderedDict()
+    self.guiNmrResidues = []
     self.guiNmrAtomDict = {}
     self.ghostList = []
     self.scene.clear()
@@ -902,7 +914,36 @@ class SequenceGraphModule(CcpnModule):
     self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     self._sequenceGraphScrollArea.setWidget(self.scrollContents)
 
-  def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom], pos=None):
+  def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
+    """
+    Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
+    creates a graphical representation of a residue in the assigner
+    """
+
+    for item in atoms.values():
+      self.scene.addItem(item)
+
+    nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
+    if "CB" in list(atoms.keys()):
+      self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
+    if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
+      self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+    if nmrResidue.residueType != 'PRO':
+        self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+    else:
+      self.scene.removeItem(atoms['H'])
+    # if not 'CB' in nmrAtoms:
+    #   self.scene.removeItem(atoms['CB'])
+    #   self.scene.removeItem(cbLine)
+
+    self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
+    self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
+    self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
+    self.guiNmrResidues.append(self.nmrResidueLabel)
+    self.scene.addItem(self.nmrResidueLabel)
+    self._addResiduePredictions(nmrResidue, atoms['CA'])
+
+  def _assembleGroupResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom], pos=None):
     """
     Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
     creates a graphical representation of a residue in the assigner
@@ -1037,7 +1078,8 @@ class SequenceGraphModule(CcpnModule):
 
     self.residueCount += 1
 
-  def _addResiduePredictions(self, group:GuiNmrResidueGroup, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
+  # def _addResiduePredictions(self, group:GuiNmrResidueGroup, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
+  def _addResiduePredictions(self, nmrResidue: NmrResidue, caAtom: GuiNmrAtom):
     """
     Gets predictions for residue type based on BMRB statistics and determines label positions
     based on caAtom position.
@@ -1051,7 +1093,8 @@ class SequenceGraphModule(CcpnModule):
       predictionLabel.setFont(textFontSmallBold)
       predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
                              caAtom.y()+(30*(predictions.index(prediction)+2)))
-      group.addToGroup(predictionLabel)
+      self.scene.addItem(predictionLabel)
+      # group.addToGroup(predictionLabel)
 
   def predictSequencePosition(self, nmrResidues:list):
     """
@@ -1282,22 +1325,27 @@ class SequenceGraphModule(CcpnModule):
           # displacement = 3 * min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
 
           displacement = 3 * guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])    # spread out a little
-          peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
-          peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+          # peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+          # peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
 
-          # peak0 = connection[2]
-          # peak1 = connection[2]
+          peak0 = connection[2]
+          peak1 = connection[2]
 
           # TODO:ED check the distance here and add a mirror of the attachment underneath?
           if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6*self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
 
-            group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
-            self._addConnectingLineToGroup(group,
-                                    guiNmrAtomPair[0],
+            self._addConnectingLine(guiNmrAtomPair[0],
                                     guiNmrAtomPair[1],
                                     spectrum.positiveContourColour,
                                     2.0, displacement,
                                     peak=peak0)
+            # group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+            # self._addConnectingLineToGroup(group,
+            #                         guiNmrAtomPair[0],
+            #                         guiNmrAtomPair[1],
+            #                         spectrum.positiveContourColour,
+            #                         2.0, displacement,
+            #                         peak=peak0)
 
             guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
             guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
@@ -1336,12 +1384,17 @@ class SequenceGraphModule(CcpnModule):
 
             displacement = 3 * guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])  # spread out a little
 
-            self._addConnectingLineToGroup(guiNmrAtomPair[0].nmrAtom.nmrResidue,
-                                    guiNmrAtomPair[1],
+            self._addConnectingLine(guiNmrAtomPair[1],
                                     tempAtoms[guiNmrResiduePair[0].name],
                                     spectrum.positiveContourColour,
                                     2.0, displacement,
                                     peak=peak1)
+            # self._addConnectingLineToGroup(guiNmrAtomPair[0].nmrAtom.nmrResidue,
+            #                         guiNmrAtomPair[1],
+            #                         tempAtoms[guiNmrResiduePair[0].name],
+            #                         spectrum.positiveContourColour,
+            #                         2.0, displacement,
+            #                         peak=peak1)
 
             # already done above
             # guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
