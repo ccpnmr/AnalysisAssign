@@ -1002,7 +1002,7 @@ class SequenceGraphModule(CcpnModule):
       # GLY doesn't have CB
       del residueAtoms['CB']
 
-    self.leftPos = self.rightPos = np.array([0, 0])
+    self.leftPos = self.rightPos = np.array([0.0, 0.0])
     pos = self.leftPos
 
     if self.residueCount == 0:
@@ -1093,32 +1093,30 @@ class SequenceGraphModule(CcpnModule):
     if nmrChainPid:
       self.setNmrChainDisplay(nmrChainPid)
 
-  """
-  def _showBackboneAssignments(self, nmrChain):
-    self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
-    try:
-
-      for residue in nmrChain.chain.residues:
-        if not residue.nmrResidue:
-          newNmrResidue = nmrChain.fetchNmrResidue(sequenceCode=residue.sequenceCode, residueType=residue.residueType)
-          for atom in residue.atoms:
-            newNmrResidue.fetchNmrAtom(name=atom.name)
-        self.addResidue(residue.nmrResidue, direction='+1')
-      for ii, res in enumerate(self.guiResiduesShown):
-        if ii % 10 == 0:
-          if self.project._appBase.ui.mainWindow is not None:
-            mainWindow = self.project._appBase.ui.mainWindow
-          else:
-            mainWindow = self.project._appBase._mainWindow
-          mainWindow.pythonConsole.writeConsoleCommand('%s residues added' % str(ii))
-        ###if ii+1 < len(self.guiResiduesShown)-1:
-        if ii + 1 < len(self.guiResiduesShown):
-            self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], self._lineColour, 1.0, 0)
-
-      self._getAssignmentsFromSpectra()
-    finally:
-      self.project._endCommandEchoBlock()
-"""
+  # def _showBackboneAssignments(self, nmrChain):
+  #   self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
+  #   try:
+  #
+  #     for residue in nmrChain.chain.residues:
+  #       if not residue.nmrResidue:
+  #         newNmrResidue = nmrChain.fetchNmrResidue(sequenceCode=residue.sequenceCode, residueType=residue.residueType)
+  #         for atom in residue.atoms:
+  #           newNmrResidue.fetchNmrAtom(name=atom.name)
+  #       self.addResidue(residue.nmrResidue, direction='+1')
+  #     for ii, res in enumerate(self.guiResiduesShown):
+  #       if ii % 10 == 0:
+  #         if self.project._appBase.ui.mainWindow is not None:
+  #           mainWindow = self.project._appBase.ui.mainWindow
+  #         else:
+  #           mainWindow = self.project._appBase._mainWindow
+  #         mainWindow.pythonConsole.writeConsoleCommand('%s residues added' % str(ii))
+  #       ###if ii+1 < len(self.guiResiduesShown)-1:
+  #       if ii + 1 < len(self.guiResiduesShown):
+  #           self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], self._lineColour, 1.0, 0)
+  #
+  #     self._getAssignmentsFromSpectra()
+  #   finally:
+  #     self.project._endCommandEchoBlock()
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom,
                          colour:str, width:float, displacement:float, style:str=None,
