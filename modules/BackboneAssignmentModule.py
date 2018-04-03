@@ -34,7 +34,7 @@ from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 
-from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms, _getCurrentZoomRatio
+from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay
 
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTableModule
@@ -386,9 +386,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
       try:
         axisCode = strip.axisCodes[1]
-        strip._testCcpnOpenGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
-        strip._testCcpnOpenGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
-        strip._testCcpnOpenGLWidget._rescaleAllAxes()
+        strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
+        strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
+        strip._CcpnGLWidget._rescaleAllAxes()
       except Exception as es:
         getLogger().debug('Error: OpenGL widget not instantiated')
 
@@ -417,12 +417,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       try:
         axisCode = strips[0].axisCodes[1]
         for strip in strips:
-          strip._testCcpnOpenGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
-          strip._testCcpnOpenGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
-          # strip._testCcpnOpenGLWidget._rebuildMarks()
-          strip._testCcpnOpenGLWidget._rescaleAllAxes()
+          strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition,update=False)
+          strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
+          # strip._CcpnGLWidget._rebuildMarks()
+          strip._CcpnGLWidget._rescaleAllAxes()
 
-          from ccpn.util.CcpnOpenGL import GLNotifier
+          from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
           GLSignals = GLNotifier(parent=self)
           GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
 
