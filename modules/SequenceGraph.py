@@ -784,6 +784,12 @@ class SequenceGraphModule(CcpnModule):
     self._unRegisterNotifiers()
     super(SequenceGraphModule, self)._closeModule()
 
+  def close(self):
+    """
+    Close the table from the commandline
+    """
+    self._closeModule()
+
   def unlinkNearestNmrResidue(self, selectedNmrResidue=None):
     if self.current.nmrResidue:
       selected = str(self.current.nmrResidue.pid)
