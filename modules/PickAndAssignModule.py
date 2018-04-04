@@ -362,4 +362,5 @@ class _SpectrumRow(Frame):
                                    labelText = axisCode,
                                    value = spectrum.assignmentTolerances[ii],
                                    decimals=decimals, step=step, range=(0, None))
+      ds.setObjectName(str(spectrum.pid+axisCode))
       self.spinBoxes.append(ds)
