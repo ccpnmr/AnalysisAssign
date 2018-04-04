@@ -38,4 +38,5 @@ if __name__ == '__main__':
 
   application = Application(Framework.AnalysisAssign, applicationVersion, commandLineArguments)
   Framework._getApplication = lambda: application
+
   application.start()
