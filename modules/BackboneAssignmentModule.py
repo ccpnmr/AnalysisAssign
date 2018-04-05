@@ -429,7 +429,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       except Exception as es:
         getLogger().debug('Error: OpenGL widget not instantiated')
 
-  def _setupShiftDicts(self):
+  def _setupShiftDicts(self, *args):
     """
     Creates two ordered dictionaries for the inter residue and intra residue CA and CB shifts for
     all NmrResidues in the project.
