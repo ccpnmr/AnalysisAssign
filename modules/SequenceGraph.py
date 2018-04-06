@@ -153,17 +153,17 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
     self.nmrResidueLabel = GuiNmrResidue(parent, nmrResidue, caAtom)
     self.addToGroup(self.nmrResidueLabel)
 
-  # def mousePressEvent(self, event):
-  #   self.nmrResidueLabel._mousePressEvent(event)
-  #
-  # def mouseMoveEvent(self, event):
-  #   self.nmrResidueLabel._mouseMoveEvent(event)
-  #
-  # def mouseReleaseEvent(self, event):
-  #   self.nmrResidueLabel._mouseReleaseEvent(event)
-  #
-  # def mouseDoubleClickEvent(self, event):
-  #   self.nmrResidueLabel._mouseDoubleClickEvent(event)
+  def mousePressEvent(self, event):
+    self.nmrResidueLabel._mousePressEvent(event)
+
+  def mouseMoveEvent(self, event):
+    self.nmrResidueLabel._mouseMoveEvent(event)
+
+  def mouseReleaseEvent(self, event):
+    self.nmrResidueLabel._mouseReleaseEvent(event)
+
+  def mouseDoubleClickEvent(self, event):
+    self.nmrResidueLabel._mouseDoubleClickEvent(event)
 
 class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   """
@@ -194,6 +194,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     self.mouseMoveEvent = self._mouseMoveEvent
     self.mouseReleaseEvent = self._mouseReleaseEvent      # ejb - new for popup menu
     self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
+    self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
   def _update(self):
     self.setPlainText(self.nmrResidue.id)
@@ -202,49 +203,54 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
 
     nmrItem = None
     if (event.buttons() == QtCore.Qt.LeftButton):   # and (event.modifiers() & QtCore.Qt.ShiftModifier):
-        for item in self.parent.scene.items():
-          if isinstance(item, GuiNmrResidue) and item.isSelected():
-            nmrChain = item.nmrResidue.nmrChain
-            nmrItem = item    #.parentWidget()
 
-        if nmrItem:
-          drag = QtGui.QDrag(event.widget())
-          mimeData = QtCore.QMimeData()
-          itemData = json.dumps({'pids': [nmrChain.pid, nmrItem.nmrResidue.pid]})
+      # for item in self.parent.scene.items():
+      #   if isinstance(item, GuiNmrResidue):       # and item.isSelected():
+      #     print (item, item.isSelected())
+      #     nmrChain = item.nmrResidue.nmrChain
+      #     nmrItem = item    #.parentWidget()
 
-          # ejb - added so that itemData works with PyQt5
-          tempData = QtCore.QByteArray()
-          stream = QtCore.QDataStream(tempData, QtCore.QIODevice.WriteOnly)
-          stream.writeQString(itemData)
-          mimeData.setData(ccpnmrJsonData, tempData)
+      nmrItem = self
+      nmrChain = self.nmrResidue.nmrChain
 
-          # mimeData.setData(ccpnmrJsonData, itemData)
-          mimeData.setText(itemData)
-          drag.setMimeData(mimeData)
+      if nmrItem:
+        drag = QtGui.QDrag(event.widget())
+        mimeData = QtCore.QMimeData()
+        itemData = json.dumps({'pids': [nmrChain.pid, nmrItem.nmrResidue.pid]})
 
-          dragLabel = QtWidgets.QLabel()
-          dragLabel.setText(self.toPlainText())
-          dragLabel.setFont(textFont)
-          dragLabel.setStyleSheet('color : %s' % (self.colours[GUINMRRESIDUE]))
+        # ejb - added so that itemData works with PyQt5
+        tempData = QtCore.QByteArray()
+        stream = QtCore.QDataStream(tempData, QtCore.QIODevice.WriteOnly)
+        stream.writeQString(itemData)
+        mimeData.setData(ccpnmrJsonData, tempData)
 
-          # pixmap = QtGui.QPixmap.grabWidget(dragLabel)    # ejb -    this gets the whole window   event.widget())
-          pixmap = dragLabel.grab()     # ejb -    this gets the whole window   event.widget())
+        # mimeData.setData(ccpnmrJsonData, itemData)
+        mimeData.setText(itemData)
+        drag.setMimeData(mimeData)
 
-          painter = QtGui.QPainter(pixmap)
-          painter.setCompositionMode(painter.CompositionMode_DestinationIn)
-          painter.fillRect(pixmap.rect(), QtGui.QColor(0, 0, 0, 240))
-          painter.end()
-          drag.setPixmap(pixmap)
-          drag.setHotSpot(QtCore.QPoint(dragLabel.width() / 2, dragLabel.height() / 2))
+        dragLabel = QtWidgets.QLabel()
+        dragLabel.setText(self.toPlainText())
+        dragLabel.setFont(textFont)
+        dragLabel.setStyleSheet('color : %s' % (self.colours[GUINMRRESIDUE]))
 
-          # drag.start(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
-          drag.exec_(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
+        # pixmap = QtGui.QPixmap.grabWidget(dragLabel)    # ejb -    this gets the whole window   event.widget())
+        pixmap = dragLabel.grab()     # ejb -    this gets the whole window   event.widget())
 
-          # if drag.exec_(QtCore.Qt.MoveAction | QtCore.Qt.CopyAction, QtCore.Qt.CopyAction) == QtCore.Qt.MoveAction:
-          #   pass
-          #   # self.close()
-          # else:
-          #   self.show()
+        painter = QtGui.QPainter(pixmap)
+        painter.setCompositionMode(painter.CompositionMode_DestinationIn)
+        painter.fillRect(pixmap.rect(), QtGui.QColor(0, 0, 0, 240))
+        painter.end()
+        drag.setPixmap(pixmap)
+        drag.setHotSpot(QtCore.QPoint(dragLabel.width() / 2, dragLabel.height() / 2))
+
+        # drag.start(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
+        drag.exec_(QtCore.Qt.MoveAction)      # ejb - same as BackboneAssignment
+
+        # if drag.exec_(QtCore.Qt.MoveAction | QtCore.Qt.CopyAction, QtCore.Qt.CopyAction) == QtCore.Qt.MoveAction:
+        #   pass
+        #   # self.close()
+        # else:
+        #   self.show()
 
   def _mousePressEvent(self, event):
     self.nmrResidue.project._appBase.current.nmrResidue = self.nmrResidue
@@ -503,7 +509,8 @@ class SequenceGraphModule(CcpnModule):
     self.direction = None
     self.selectedStretch = []
     self.scene.dragEnterEvent = self.dragEnterEvent
-    self.guiNmrResidues = []
+    self.guiNmrResidues = OrderedDict()
+    self.guiNmrResidueLabels = []
     self.guiNmrAtomDict = {}
     self.ghostList = []
 
@@ -718,57 +725,57 @@ class SequenceGraphModule(CcpnModule):
 
     self.application._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
 
-    try:
-      self.clearAllItems()
+    # try:
+    self.clearAllItems()
 
-      ###nmrChain = self.project.getByPid(nmrChainPid)
-      ###if self.modePulldown.currentText() == 'fragment':
-      if True:
+    ###nmrChain = self.project.getByPid(nmrChainPid)
+    ###if self.modePulldown.currentText() == 'fragment':
+    if True:
 
-        # if nmrChain.isConnected:
-        #   for nmrResidue in nmrChain.mainNmrResidues:
-        #     self.addResidue(nmrResidue, '+1')
-        # elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
-        #   self.addResidue(self.current.nmrResidue, '+1')
+      # if nmrChain.isConnected:
+      #   for nmrResidue in nmrChain.mainNmrResidues:
+      #     self.addResidue(nmrResidue, '+1')
+      # elif self.current.nmrResidue is not None and self.current.nmrResidue in nmrChain.nmrResidues:
+      #   self.addResidue(self.current.nmrResidue, '+1')
 
-        connectingLinesNeeded = set()
-        if self.nmrResiduesCheckBox.isChecked():
-          for nmrResidue in nmrChain.nmrResidues:
-            if nmrResidue is nmrResidue.mainNmrResidue:
-              self.addResidue(nmrResidue, '+1')
-              if nmrResidue.nextNmrResidue:
-                connectingLinesNeeded.add(len(self.guiResiduesShown)-1)
-        else:
-          nmrResidue = self.current.nmrResidue
-          if nmrResidue in nmrChain.nmrResidues:
-            while nmrResidue.previousNmrResidue: # go to start of connected stretch
-              nmrResidue = nmrResidue.previousNmrResidue
-          elif nmrChain.isConnected or nmrChain.chain: # either NC:# or NC:A type nmrChains but not NC:@
-            nmrResidue = nmrChain.mainNmrResidues[0]
-
-          while nmrResidue:  # add all of connected stretch
+      connectingLinesNeeded = set()
+      if self.nmrResiduesCheckBox.isChecked():
+        for nmrResidue in nmrChain.nmrResidues:
+          if nmrResidue is nmrResidue.mainNmrResidue:
             self.addResidue(nmrResidue, '+1')
-            nmrResidue = nmrResidue.nextNmrResidue
+            if nmrResidue.nextNmrResidue:
+              connectingLinesNeeded.add(len(self.guiResiduesShown)-1)
+      else:
+        nmrResidue = self.current.nmrResidue
+        if nmrResidue in nmrChain.nmrResidues:
+          while nmrResidue.previousNmrResidue: # go to start of connected stretch
+            nmrResidue = nmrResidue.previousNmrResidue
+        elif nmrChain.isConnected or nmrChain.chain: # either NC:# or NC:A type nmrChains but not NC:@
+          nmrResidue = nmrChain.mainNmrResidues[0]
 
-        if len(self.predictedStretch) > 2:
+        while nmrResidue:  # add all of connected stretch
+          self.addResidue(nmrResidue, '+1')
+          nmrResidue = nmrResidue.nextNmrResidue
 
-          # TODO:ED causes a crash from here GuiNmrResidue has been deleted
-          self.predictSequencePosition(self.predictedStretch)
+      if len(self.predictedStretch) > 2:
 
-      ###elif self.modePulldown.currentText() == 'Assigned - backbone':
-      ###  self._showBackboneAssignments(nmrChain)
+        # TODO:ED causes a crash from here GuiNmrResidue has been deleted
+        self.predictSequencePosition(self.predictedStretch)
 
-      for ii, res in enumerate(self.guiResiduesShown[:-1]):
-        if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
-          self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
+    ###elif self.modePulldown.currentText() == 'Assigned - backbone':
+    ###  self._showBackboneAssignments(nmrChain)
 
-      if self.assignmentsCheckBox.isChecked():
-        self._getAssignmentsFromSpectra()
+    for ii, res in enumerate(self.guiResiduesShown[:-1]):
+      if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
+        self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
 
-    except Exception as es:
-      getLogger().warning('Error: %s' % str(es))
-    finally:
-      self.application._endCommandBlock()      # should match the start block
+    if self.assignmentsCheckBox.isChecked():
+      self._getAssignmentsFromSpectra()
+
+    # except Exception as es:
+    #   getLogger().warning('Error: %s' % str(es))
+    # finally:
+    self.application._endCommandBlock()      # should match the start block
 
     self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
     self.nmrChain = nmrChain
@@ -887,9 +894,9 @@ class SequenceGraphModule(CcpnModule):
     if self.project.getByPid(nmrChainPid):
 
       for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
-        for guiNmrResidue in self.guiNmrResidues:
-          if guiNmrResidue.nmrResidue is nr:
-            guiNmrResidue._update()
+        for guiNmrResidueGroup in self.guiNmrResidues.values():
+          if guiNmrResidueGroup.nmrResidue is nr:
+            guiNmrResidueGroup.nmrResidueLabel._update()
 
   def clearAllItems(self):
     """
@@ -902,7 +909,8 @@ class SequenceGraphModule(CcpnModule):
     self.residueCount = 0
     self.predictedStretch = []
     self.guiResiduesShown = []
-    self.guiNmrResidues = []
+    self.guiNmrResidues = OrderedDict()
+    self.guiNmrResidueLabels = []
     self.guiNmrAtomDict = {}
     self.ghostList = []
     self.scene.clear()
@@ -958,6 +966,11 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrResidues[nmrResidue] = guiResidueGroup
     self.scene.addItem(guiResidueGroup)
 
+    # self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
+    # self.guiNmrResidueLabels.append(self.nmrResidueLabel)
+    # guiResidueGroup.addToGroup(self.nmrResidueLabel)
+
+
     # add the atoms to the group
     for item in atoms.values():
       guiResidueGroup.addToGroup(item)
@@ -976,7 +989,7 @@ class SequenceGraphModule(CcpnModule):
     self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
     self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
 
-    self._addResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
+    self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
 
   def _assembleGhostResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -1032,6 +1045,7 @@ class SequenceGraphModule(CcpnModule):
     beneath Nmr Residue name
     """
     atoms = {}
+    pos = np.array([0.0, 0.0])
     if atomSpacing:
       self.atomSpacing = atomSpacing
     nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
@@ -1080,11 +1094,26 @@ class SequenceGraphModule(CcpnModule):
         self.guiResiduesShown.append(atoms)
         self.predictedStretch.append(nmrResidue)
 
-    self._assembleResidue(nmrResidue, atoms)
+    self._assembleGroupResidue(nmrResidue, atoms, pos[0])
 
     self.residueCount += 1
 
-  # def _addResiduePredictions(self, group:GuiNmrResidueGroup, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
+  def _addGroupResiduePredictions(self, group:GuiNmrResidueGroup, nmrResidue:NmrResidue, caAtom:GuiNmrAtom):
+    """
+    Gets predictions for residue type based on BMRB statistics and determines label positions
+    based on caAtom position.
+    """
+    predictions = list(set(map(tuple, (getNmrResiduePrediction(nmrResidue, self.project.chemicalShiftLists[0])))))
+    predictions.sort(key=lambda a: float(a[1][:-1]), reverse=True)
+    for prediction in predictions:
+      predictionLabel = QtWidgets.QGraphicsTextItem()
+      predictionLabel.setPlainText(prediction[0]+' '+prediction[1])
+      predictionLabel.setDefaultTextColor(QtGui.QColor(self._textColour))
+      predictionLabel.setFont(textFontSmallBold)
+      predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
+                             caAtom.y()+(30*(predictions.index(prediction)+2)))
+      group.addToGroup(predictionLabel)
+
   def _addResiduePredictions(self, nmrResidue: NmrResidue, caAtom: GuiNmrAtom):
     """
     Gets predictions for residue type based on BMRB statistics and determines label positions
@@ -1100,7 +1129,6 @@ class SequenceGraphModule(CcpnModule):
       predictionLabel.setPos(caAtom.x()-caAtom.boundingRect().width()/2,
                              caAtom.y()+(30*(predictions.index(prediction)+2)))
       self.scene.addItem(predictionLabel)
-      # group.addToGroup(predictionLabel)
 
   def predictSequencePosition(self, nmrResidues:list):
     """
