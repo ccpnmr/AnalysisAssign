@@ -144,7 +144,7 @@ class AtomSelectorModule(CcpnModule):
     #                             self.otherCheckBox, self.otherLabel]
     self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
-    self.settingsWidget.setSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding)
+    self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
     self.settingsWidget.setFixedHeight(45)
 
     for w in self._sidechainModifiers:  w.hide()
@@ -158,13 +158,13 @@ class AtomSelectorModule(CcpnModule):
     self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1), gridSpan=(1, 3)
                                         , hPolicy='minimalexpanding', hAlign='l')
     self._residueFrame.setFixedHeight(25)
-    self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Expanding)
+    self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
 
     # gridLine 1
     gridLine += 1
     self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1), vAlign='top')
     Spacer(self.mainWidget, 5, 5
-           , QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
+           , QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding
            , grid=(gridLine, 0), gridSpan=(1,1))
 
     self.buttons = {}

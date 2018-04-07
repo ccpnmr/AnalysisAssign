@@ -91,58 +91,58 @@ class PeakAssigner(CcpnModule):
     self.doubleToleranceCheckbox = CheckBox(self.settingsWidget, checked=False,
                                             callback=self._updateInterface,
                                             grid=(0,1))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-                         , grid=(0,2), gridSpan=(1,1))
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+                         grid=(0,2), gridSpan=(1,1))
 
     intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0,3))
     self.intraCheckbox = CheckBox(self.settingsWidget, checked=False,
                                    callback=self._updateInterface,
                                    grid=(0,4))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-                         , grid=(0,5), gridSpan=(1,1))
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+                         grid=(0,5), gridSpan=(1,1))
 
     multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0,6))
     self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
                                    callback=self._updateInterface,
                                    grid=(0,7))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-                         , grid=(0,8), gridSpan=(1,1))
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+                         grid=(0,8), gridSpan=(1,1))
 
     expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0,9))
     self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
                                 callback=self._updateInterface,
                                 grid=(0,10))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-                         , grid=(0,11), gridSpan=(1,1))
+    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+                         grid=(0,11), gridSpan=(1,1))
 
     allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0,12))
     self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=False,
                                 callback=self._updateInterface,
                                 grid=(0,13))
 
-    self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-                         , grid=(1,14), gridSpan=(1,1))
+    self._spacer = Spacer(self.settingsWidget, 5, 5,
+                         QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+                         grid=(1,14), gridSpan=(1,1))
 
     # Main content widgets
     # TODO:ED check the overlapping of these widgets
-    self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0,0)
-                            , text='Peak:', bold=True
-                            , grid=(0,0), margins=(2,2,2,2), hAlign='left', vAlign='t'
-                            , hPolicy = 'fixed', vPolicy = 'fixed')
+    self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0,0),
+                            text='Peak:', bold=True,
+                            grid=(0,0), margins=(2,2,2,2), hAlign='left', vAlign='t',
+                            hPolicy = 'fixed', vPolicy = 'fixed')
     self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
     self.peakLabel.setFixedHeight(20)
 
-    self.axisFrame = Frame(parent=self.mainWidget, setLayout=True, spacing=(0,0)
-                                , showBorder=False, fShape='noFrame'
-                                , grid=(1,0)
-                                , hPolicy='expanding', vPolicy='expanding')
+    self.axisFrame = Frame(parent=self.mainWidget, setLayout=True, spacing=(0,0),
+                                showBorder=False, fShape='noFrame',
+                                grid=(1,0),
+                                hPolicy='expanding', vPolicy='expanding')
     self.axisTables = []
     self.NDims = 0
     self.currentAtoms = None
 
-    Spacer(self.axisFrame, 5, 5, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
-                         , grid=(6,0), gridSpan=(1,1))
+    Spacer(self.axisFrame, 5, 5, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+                         grid=(6,0), gridSpan=(1,1))
 
 
     # respond to peaks
@@ -158,19 +158,21 @@ class PeakAssigner(CcpnModule):
     self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
     self.closeModule = self._closeModule
 
+    # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+    # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
     self._updateInterface()
 
   def _registerNotifiers(self):
     # without a tableSelection specified in the table callback, this nmrAtom callback is needed
     # tio update the table
-    self._peakNotifier = Notifier(self.current
-                                  , [Notifier.CURRENT]
-                                  , targetName=Peak._pluralLinkName
-                                  , callback=self._updateInterface)
-    self._nmrAtomNotifier = Notifier(self.project
-                                  , [Notifier.CHANGE, Notifier.RENAME]
-                                  , targetName=NmrAtom.__name__
-                                  , callback=self._update)
+    self._peakNotifier = Notifier(self.current,
+                                  [Notifier.CURRENT],
+                                  targetName=Peak._pluralLinkName,
+                                  callback=self._updateInterface)
+    self._nmrAtomNotifier = Notifier(self.project,
+                                  [Notifier.CHANGE, Notifier.RENAME],
+                                  targetName=NmrAtom.__name__,
+                                  callback=self._update)
 
   def _unRegisterNotifiers(self):
     if self._peakNotifier:
@@ -199,10 +201,10 @@ class PeakAssigner(CcpnModule):
         for addNew in range(len(self.axisTables), Ndimensions):
 
           # add a new axis item to the end of the list
-          self.axisTables.append(AxisAssignmentObject(self, index=addNew
-                                                    , parent=self.axisFrame
-                                                    , mainWindow=self.mainWindow
-                                                    , grid=(addNew,0), gridSpan=(1,1)))
+          self.axisTables.append(AxisAssignmentObject(self, index=addNew,
+                                                    parent=self.axisFrame,
+                                                    mainWindow=self.mainWindow,
+                                                    grid=(addNew,0), gridSpan=(1,1)))
         for showNew in range(self.NDims, Ndimensions):
           self.axisTables[showNew].show()
 
@@ -397,11 +399,11 @@ class AxisAssignmentObject(Frame):
   Create a new frame for displaying information in 1 axis of peakassigner
   """
   def __init__(self, parentModule, index=None, parent=None, mainWindow=None, grid=None, gridSpan=None):
-    super(AxisAssignmentObject, self).__init__(parent=parent, setLayout=True, spacing=(0,0)
-          , showBorder=False, fShape='noFrame'
-          , vAlign='top'
-          , hPolicy='expanding', vPolicy='expanding'
-          , grid=grid, gridSpan=gridSpan)
+    super(AxisAssignmentObject, self).__init__(parent=parent, setLayout=True, spacing=(0,0),
+          showBorder=False, fShape='noFrame',
+          vAlign='top',
+          hPolicy='expanding', vPolicy='expanding',
+          grid=grid, gridSpan=gridSpan)
 
     # Derive application, project, and current from mainWindow
     self.mainWindow = mainWindow
@@ -424,88 +426,88 @@ class AxisAssignmentObject(Frame):
 
     # add two tables - left is current assignments, right is alternatives
     row += 1
-    self.tables = [QuickTable(parent=self
-                              , mainWindow=mainWindow
-                              , dataFrameObject=None
-                              , setLayout=True
-                              , autoResize=True, multiSelect=False
-                              , actionCallback=partial(self._assignDeassignNmrAtom, 0)
-                              , selectionCallback=partial(self._updatePulldownLists, 0)
-                              , grid=(row,0), gridSpan=(1,1)
-                              , stretchLastSection=True
-                              , enableSearch=False
-                              , acceptDrops=True)
+    self.tables = [QuickTable(parent=self,
+                              mainWindow=mainWindow,
+                              dataFrameObject=None,
+                              setLayout=True,
+                              autoResize=True, multiSelect=False,
+                              actionCallback=partial(self._assignDeassignNmrAtom, 0),
+                              selectionCallback=partial(self._updatePulldownLists, 0),
+                              grid=(row,0), gridSpan=(1,1),
+                              stretchLastSection=True,
+                              enableSearch=False,
+                              acceptDrops=True),
 
-                  , QuickTable(parent=self
-                              , mainWindow=mainWindow
-                              , dataFrameObject=None
-                              , setLayout=True
-                              , autoResize=True, multiSelect=False
-                              , actionCallback=partial(self._assignDeassignNmrAtom, 1)
-                              , selectionCallback=partial(self._updatePulldownLists, 1)
-                              , grid=(row,2), gridSpan=(7,1)
-                              , stretchLastSection=False
-                              , enableSearch=False
-                              , acceptDrops=True)
+                  QuickTable(parent=self,
+                              mainWindow=mainWindow,
+                              dataFrameObject=None,
+                              setLayout=True,
+                              autoResize=True, multiSelect=False,
+                              actionCallback=partial(self._assignDeassignNmrAtom, 1),
+                              selectionCallback=partial(self._updatePulldownLists, 1),
+                              grid=(row,2), gridSpan=(7,1),
+                              stretchLastSection=False,
+                              enableSearch=False,
+                              acceptDrops=True)
                   ]
 
     # need to make this a little cleaner
-    self.tables[0].setTableNotifiers(tableClass=Peak
-                           , rowClass=NmrAtom
-                           , cellClassNames=None
-                           , tableName='assignedPeaks', rowName='nmrAtom'
-                           , changeFunc=parentModule._updateInterface
-                           , className='peakLists'
-                           , updateFunc=parentModule._updateInterface
-                           , tableSelection=None
-                           , pullDownWidget=None
-                           , callBackClass=NmrAtom)
-    self.tables[1].setTableNotifiers(tableClass=Peak
-                           , rowClass=NmrAtom
-                           , cellClassNames=None
-                           , tableName='assignedPeaks', rowName='nmrAtom'
-                           , changeFunc=parentModule._updateInterface
-                           , className='peakLists'
-                           , updateFunc=parentModule._updateInterface
-                           , tableSelection=None
-                           , pullDownWidget=None
-                           , callBackClass=NmrAtom)
+    self.tables[0].setTableNotifiers(tableClass=Peak,
+                            rowClass=NmrAtom,
+                            cellClassNames=None,
+                            tableName='assignedPeaks', rowName='nmrAtom',
+                            changeFunc=parentModule._updateInterface,
+                            className='peakLists',
+                            updateFunc=parentModule._updateInterface,
+                            tableSelection=None,
+                            pullDownWidget=None,
+                            callBackClass=NmrAtom)
+    self.tables[1].setTableNotifiers(tableClass=Peak,
+                            rowClass=NmrAtom,
+                            cellClassNames=None,
+                            tableName='assignedPeaks', rowName='nmrAtom',
+                            changeFunc=parentModule._updateInterface,
+                            className='peakLists',
+                            updateFunc=parentModule._updateInterface,
+                            tableSelection=None,
+                            pullDownWidget=None,
+                            callBackClass=NmrAtom)
 
     # add a spacer to pad out the middle
-    Spacer(self, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Expanding
-          , grid=(row,1), gridSpan=(1,1))
+    Spacer(self, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding,
+          grid=(row,1), gridSpan=(1,1))
 
     # add pulldowns for editing new assignment
     row += 1
-    self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(5,0), margins=(0,0,0,0)
-                                , showBorder=False, fShape='noFrame'
-                                , vAlign='top'
-                                , grid=(row,0), gridSpan=(1,1))
+    self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(5,0), margins=(0,0,0,0),
+                                showBorder=False, fShape='noFrame',
+                                vAlign='top',
+                                grid=(row,0), gridSpan=(1,1))
 
     # chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
     # seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
     # resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
     # atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
-    Spacer(self.pulldownFrame, 10, 10, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
+    Spacer(self.pulldownFrame, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
           , grid=(0,0), gridSpan=(1,1))
-    self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,0), gridSpan=(1,1)
-                                                   , tipText='Chain code')
-    self.seqCodePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,2), gridSpan=(1,1)
-                                                   , tipText='Sequence code')
-    self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,4), gridSpan=(1,1)
-                                                   , tipText='Residue type')
-    self.atomTypePulldown = self._createPulldown(parent=self.pulldownFrame
-                                                   , grid=(1,6), gridSpan=(1,1)
-                                                   , tipText='Atom type')
-    Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
-          , grid=(1,1), gridSpan=(1,1))
-    Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
-          , grid=(1,3), gridSpan=(1,1))
-    Spacer(self.pulldownFrame, 5, 5, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
-          , grid=(1,5), gridSpan=(1,1))
+    self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame,
+                                                   grid=(1,0), gridSpan=(1,1),
+                                                   tipText='Chain code')
+    self.seqCodePulldown = self._createPulldown(parent=self.pulldownFrame,
+                                                   grid=(1,2), gridSpan=(1,1),
+                                                   tipText='Sequence code')
+    self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame,
+                                                   grid=(1,4), gridSpan=(1,1),
+                                                   tipText='Residue type')
+    self.atomTypePulldown = self._createPulldown(parent=self.pulldownFrame,
+                                                   grid=(1,6), gridSpan=(1,1),
+                                                   tipText='Atom type')
+    Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+          grid=(1,1), gridSpan=(1,1))
+    Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+          grid=(1,3), gridSpan=(1,1))
+    Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+          grid=(1,5), gridSpan=(1,1))
 
     self.chainPulldown.setMinimumWidth(70)
     self.seqCodePulldown.setMinimumWidth(70)
@@ -526,19 +528,19 @@ class AxisAssignmentObject(Frame):
 
     # another spacer
     row += 1
-    Spacer(self, 10, 10, QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed
-          , grid=(row,0), gridSpan=(1,1))
+    Spacer(self, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+          grid=(row,0), gridSpan=(1,1))
 
     # add a buttonlist
     row += 1
-    self.buttonList = ButtonList(parent=self, texts=['New', 'Delete', 'Deassign', 'Assign']
-                                 , callbacks=[partial(self._createNewNmrAtom, index)
-                                              , partial(self._deleteNmrAtom, index)
-                                              , partial(self._deassignNmrAtom, index)
-                                              , partial(self._assignNmrAtom, index)]
-                                 , grid=(row,0), gridSpan=(1,1)
-                                 , vPolicy='minimum', hPolicy='expanding'
-                                 , vAlign='b')
+    self.buttonList = ButtonList(parent=self, texts=['New', 'Delete', 'Deassign', 'Assign'],
+                                 callbacks=[partial(self._createNewNmrAtom, index),
+                                              partial(self._deleteNmrAtom, index),
+                                              partial(self._deassignNmrAtom, index),
+                                              partial(self._assignNmrAtom, index)],
+                                 grid=(row,0), gridSpan=(1,1),
+                                 vPolicy='minimum', hPolicy='expanding',
+                                 vAlign='b')
     self.buttonList.setButtonEnabled('Delete', False)
     self.buttonList.setButtonEnabled('Deassign', False)
     self.buttonList.setButtonEnabled('Assign', False)
@@ -565,6 +567,7 @@ class AxisAssignmentObject(Frame):
 
     # set the fixed height of the frame
     self.setFixedHeight(175)
+    # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
 
   def _assignDeassignNmrAtom(self, tableNum:int, data):
     """

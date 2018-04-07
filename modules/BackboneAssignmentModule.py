@@ -133,7 +133,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     #self.nmrResidueTable._setWidgetHeight(48)
 
     # TODO:ED check override of window size
-    self.mainWidget.setSizePolicy(QtGui.QSizePolicy.Ignored, QtGui.QSizePolicy.Ignored)
+    self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
   def _fillDisplayWidget(self):
     list = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
