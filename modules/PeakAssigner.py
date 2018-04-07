@@ -804,10 +804,10 @@ class AxisAssignmentObject(Frame):
     objs = self.tables[0].getSelectedObjects()
 
     # build a dataFrame object from the list" atomList - list of nmrAtoms
-    self.dataFrameAssigned = self.tables[0].getDataFrameFromList(table=self.tables[0]
-                                                , buildList=atomList
-                                                , colDefs=self.columnDefs
-                                                , hiddenColumns=self._hiddenColumns[0])
+    self.dataFrameAssigned = self.tables[0].getDataFrameFromList(table=self.tables[0],
+                                                buildList=atomList,
+                                                colDefs=self.columnDefs,
+                                                hiddenColumns=self._hiddenColumns[0])
 
     # populate from the Pandas dataFrame inside the dataFrameObject
     self.tables[0].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAssigned)
@@ -819,10 +819,10 @@ class AxisAssignmentObject(Frame):
     objs = self.tables[1].getSelectedObjects()
 
     # build a dataFrame object from the list" atomList - list of nmrAtoms
-    self.dataFrameAlternatives = self.tables[1].getDataFrameFromList(table=self.tables[1]
-                                                , buildList=atomList
-                                                , colDefs=self.columnDefs
-                                                , hiddenColumns=self._hiddenColumns[1])
+    self.dataFrameAlternatives = self.tables[1].getDataFrameFromList(table=self.tables[1],
+                                                buildList=atomList,
+                                                colDefs=self.columnDefs,
+                                                hiddenColumns=self._hiddenColumns[1])
 
     # populate from the Pandas dataFrame inside the dataFrameObject
     self.tables[1].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAlternatives)
