@@ -216,7 +216,12 @@ class PeakAssigner(CcpnModule):
       # and enable the frame
       self.axisFrame.show()
 
-      self.peakLabel.setText('Peak: %s' % self.current.peak.id)
+      peakList = ', '.join([str(pp.id) for pp in self.current.peaks])
+      if len(self.current.peaks) < 2:
+        self.peakLabel.setText('Peak: %s' % self.current.peak.id)
+      else:
+        self.peakLabel.setText('Peaks: %s' % peakList)
+
       self._updateNewTable()
 
   def _updateNewTable(self):
@@ -243,7 +248,7 @@ class PeakAssigner(CcpnModule):
     for dim, nmrAtoms in zip(range(Ndimensions),
                                           nmrAtomsForTables):
       ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
-      self.nmrAtoms = list(sorted(set.intersection(*ll)))
+      self.nmrAtoms = list(sorted(set.intersection(*ll)))    # was intersection
 
       self.currentList.append([str(a.pid) for a in self.nmrAtoms])  # ejb - keep another list
       self.axisTables[dim].setAssignedTable(self.nmrAtoms)
