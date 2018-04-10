@@ -390,7 +390,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth,update=False)
         strip._CcpnGLWidget._rescaleAllAxes()
       except Exception as es:
-        getLogger().debug('Error: OpenGL widget not instantiated')
+        getLogger().debugGL('OpenGL widget not instantiated')
 
   def _centreCcpnStripsForNmrResidue(self, nmrResidue, strips):
     """
@@ -427,7 +427,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
           GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
 
       except Exception as es:
-        getLogger().debug('Error: OpenGL widget not instantiated')
+        getLogger().debugGL('OpenGL widget not instantiated')
 
   def _setupShiftDicts(self, *args):
     """
