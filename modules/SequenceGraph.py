@@ -216,7 +216,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
       if nmrItem:
         drag = QtGui.QDrag(event.widget())
         mimeData = QtCore.QMimeData()
-        itemData = json.dumps({'pids': [nmrChain.pid, nmrItem.nmrResidue.pid]})
+        itemData = json.dumps({'pids': [nmrItem.nmrResidue.pid]})     # nmrChain.pid
 
         # ejb - added so that itemData works with PyQt5
         tempData = QtCore.QByteArray()
