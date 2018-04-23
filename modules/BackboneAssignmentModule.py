@@ -41,7 +41,7 @@ from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTableModule
 
 from ccpn.ui.gui.widgets.CheckBox import CheckBox
 from ccpn.ui.gui.widgets.CompoundWidgets import ListCompoundWidget, PulldownListCompoundWidget
-from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
+from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager, showYesNo
 from ccpn.ui.gui.widgets.PulldownListsForObjects import ChemicalShiftListPulldown
 from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
@@ -49,6 +49,7 @@ from ccpn.ui.gui.widgets.DropBase import DropBase
 
 from ccpn.util.Logging import getLogger
 from ccpn.core.NmrAtom import NmrAtom
+from ccpn.ui.gui.widgets.PlaneToolbar import STRIPLABEL_ISPLUS
 
 ALL = '<all>'
 
@@ -310,13 +311,31 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       return
 
     allNmrResidues = nmrResidue._getAllConnectedList()
+
+    isPlus = data[STRIPLABEL_ISPLUS] if STRIPLABEL_ISPLUS in data else True
+    data['shiftLeftMouse'] = not isPlus
+
+    # remove the use of the shift button when drag/dropping
+    # if len(allNmrResidues) == 1:
+    #   choice = showYesNo(str(self.windowTitle()), "Use shift to connect to the 'i-1' residue when " \
+    #                                     "there is only one residue in the existing chain. " \
+    #                                     "Do you want to continue with assignment?")
+    #   if not choice:
+    #     return
+    #
+    # else:
+    #   if allNmrResidues.index(nmrResidue) == 0:
+    #     data['shiftLeftMouse'] = True
+    #   elif allNmrResidues.index(nmrResidue) == (len(allNmrResidues)-1):
+    #     data['shiftLeftMouse'] = False
+
     if data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) != 0:
-      showWarning(str(self.windowTitle()),'Illegal connection, must be on the first nmrResidue of the nmrChain')
-      getLogger().warning('Illegal conection, must be on the first nmrResidue of the nmrChain')
+      showWarning(str(self.windowTitle()), "Illegal connection, 'i-1' residue must connect to the start of a chain")
+      getLogger().warning("Illegal connection, 'i-1' residue must connect to the start of a chain")
       return
     if not data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) != (len(allNmrResidues)-1):
-      showWarning(str(self.windowTitle()),'Illegal connection, must be on the last nmrResidue of the nmrChain')
-      getLogger().warning('Illegal conection, must be on the last nmrResidue of the nmrChain')
+      showWarning(str(self.windowTitle()), "Illegal connection, 'i+1' residue must connect to the end of a chain")
+      getLogger().warning("Illegal connection, 'i+1' residue must connect to the end of a chain")
       return
 
     # silence the update of the nmrResidueTable as we will to an explicit update later
@@ -479,8 +498,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
       for ii, strip in enumerate(module.strips):
         nmrResiduePid = nmrAtomPairs[ii][0].nmrResidue.pid
-        strip.setStripLabelText(nmrResiduePid+'             '+scoreLabelling[ii])
+        strip.setStripLabelText(nmrResiduePid)
         strip.showStripLabel()
+        strip.setStripLabelisPlus(True if scoreLabelling[ii].startswith('i+1') else False)
+
+        strip.setStripResidueIdText(scoreLabelling[ii])
+        strip.showStripResidueId()
 
       # self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
       self._centreCcpnStripsForNmrResidue(assignMatrix[assignmentScores[0]], module.strips)
