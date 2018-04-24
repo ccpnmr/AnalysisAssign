@@ -479,17 +479,18 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     numberOfMatches = int(self.numberOfMatchesWidget.getText())
     assignmentScores = sorted(list(assignMatrix.keys()))[:numberOfMatches]
     nmrAtomPairs = []
+    scoreAssignment = []
     scoreLabelling = []
 
-    print ('>>>', assignmentScores)
     for assignmentScore in assignmentScores:
       matchResidue = assignMatrix[assignmentScore]
       if matchResidue.sequenceCode.endswith('-1'):
         iNmrResidue = matchResidue.mainNmrResidue
-        scoreLabelling.append('i+1: ' + '%i' % int(100-min(1000*assignmentScore, 100)) + '%')
+        scoreLabelling.append('i+1')
       else:
         iNmrResidue = matchResidue
-        scoreLabelling.append('i-1: ' + '%i' % int(100-min(1000*assignmentScore, 100)) + '%')
+        scoreLabelling.append('i-1')
+      scoreAssignment.append('%i' % int(100-min(1000*assignmentScore, 100)) + '%')
 
       nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
@@ -505,6 +506,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
         strip.setStripResidueIdText(scoreLabelling[ii])
         strip.showStripResidueId()
+        strip.setStripResidueDirText(scoreAssignment[ii])
+        strip.showStripResidueDir()
 
       # self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
       self._centreCcpnStripsForNmrResidue(assignMatrix[assignmentScores[0]], module.strips)
