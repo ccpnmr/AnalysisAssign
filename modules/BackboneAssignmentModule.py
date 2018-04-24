@@ -481,14 +481,15 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     nmrAtomPairs = []
     scoreLabelling = []
 
+    print ('>>>', assignmentScores)
     for assignmentScore in assignmentScores:
       matchResidue = assignMatrix[assignmentScore]
       if matchResidue.sequenceCode.endswith('-1'):
         iNmrResidue = matchResidue.mainNmrResidue
-        scoreLabelling.append('i+1: ' + '%.2f' % (100.0-assignmentScore) + '%')
+        scoreLabelling.append('i+1: ' + '%i' % int(100-min(1000*assignmentScore, 100)) + '%')
       else:
         iNmrResidue = matchResidue
-        scoreLabelling.append('i-1: ' + '%.2f' % (100.0-assignmentScore) + '%')
+        scoreLabelling.append('i-1: ' + '%i' % int(100-min(1000*assignmentScore, 100)) + '%')
 
       nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
