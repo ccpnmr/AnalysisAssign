@@ -49,7 +49,8 @@ from ccpn.ui.gui.widgets.DropBase import DropBase
 
 from ccpn.util.Logging import getLogger
 from ccpn.core.NmrAtom import NmrAtom
-from ccpn.ui.gui.widgets.PlaneToolbar import STRIPLABEL_ISPLUS
+from ccpn.ui.gui.widgets.PlaneToolbar import STRIPLABEL_CONNECTDIR, STRIPLABEL_CONNECTNONE,\
+                                              STRIPCONNECT_LEFT, STRIPCONNECT_RIGHT
 
 ALL = '<all>'
 
@@ -217,10 +218,21 @@ class BackboneAssignmentModule(NmrResidueTableModule):
               # NB connections are made as connectPrevious / connectNext to passed-in NmrResidue
               # It follows that it IS the mainNMr Residue that should be passed in here
               # Note, though, that you get teh same connections WHICHEVER strip you drop on
-              notifier = GuiNotifier(strip.getStripLabel()
-                                     , [GuiNotifier.DROPEVENT], [DropBase.TEXT]
-                                     , self._processDroppedNmrResidue
-                                     , nmrResidue=self.project.getByPid(strip.getStripLabel().text()))
+              label = strip.header.getLabel(position='l')
+              notifier = GuiNotifier(label,             #getStripLabel(),
+                                     [GuiNotifier.DROPEVENT], [DropBase.TEXT],
+                                     self._processDroppedNmrResidueLabel,
+                                     # nmrResidue=self.project.getByPid(strip.header.getLabelText(position='c')),
+                                     toLabel=strip.header.getLabel(position='c'),
+                                     plusChain=False)      #strip.getStripLabel().text()))
+              self._stripNotifiers.append(notifier)
+              label = strip.header.getLabel(position='r')
+              notifier = GuiNotifier(label,             #getStripLabel(),
+                                     [GuiNotifier.DROPEVENT], [DropBase.TEXT],
+                                     self._processDroppedNmrResidueLabel,
+                                     # nmrResidue=self.project.getByPid(strip.header.getLabelText(position='c')),
+                                     toLabel=strip.header.getLabel(position='c'),
+                                     plusChain=True)      #strip.getStripLabel().text()))
               self._stripNotifiers.append(notifier)
 
             strip.spectrumDisplay.setColumnStretches(True)
@@ -296,7 +308,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     self._createMatchStrips(assignMatrix)
     return
 
-  def _processDroppedNmrResidue(self, data, nmrResidue):
+  def _processDroppedNmrResidueLabel(self, data, toLabel=None, plusChain=None):
+    if toLabel and toLabel.obj:
+      self._processDroppedNmrResidue(data, toLabel.obj, plusChain)
+
+  def _processDroppedNmrResidue(self, data, nmrResidue, plusChain=None):
     """Process the dropped NmrResidue id"""
 
     droppedNmrResidue = None
@@ -318,38 +334,45 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     allNmrResidues = nmrResidue._getAllConnectedList()
 
-    isPlus = data[STRIPLABEL_ISPLUS] if STRIPLABEL_ISPLUS in data else True
-    data['shiftLeftMouse'] = not isPlus
+    isPlus = data[STRIPLABEL_CONNECTDIR] if STRIPLABEL_CONNECTDIR in data else STRIPLABEL_CONNECTNONE
+    if isPlus == STRIPCONNECT_RIGHT:
+      data['shiftLeftMouse'] = False
+    elif isPlus == STRIPCONNECT_LEFT:
+      data['shiftLeftMouse'] = True
+    else:
+      data['shiftLeftMouse'] = None
 
-    # remove the use of the shift button when drag/dropping
-    # if len(allNmrResidues) == 1:
-    #   choice = showYesNo(str(self.windowTitle()), "Use shift to connect to the 'i-1' residue when " \
-    #                                     "there is only one residue in the existing chain. " \
-    #                                     "Do you want to continue with assignment?")
-    #   if not choice:
-    #     return
-    #
-    # else:
-    #   if allNmrResidues.index(nmrResidue) == 0:
-    #     data['shiftLeftMouse'] = True
-    #   elif allNmrResidues.index(nmrResidue) == (len(allNmrResidues)-1):
-    #     data['shiftLeftMouse'] = False
+    index = allNmrResidues.index(nmrResidue)
+    lenNmr = len(allNmrResidues) - 1
 
-    if data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) == (len(allNmrResidues)-1):
-      yesNo = showYesNo(str(self.windowTitle()), "Trying to connect 'i-1' nmrResidue to end terminal of chain.\n\n"
-                                                 "Do you want to continue?")
-      getLogger().warning("Trying to connect 'i-1' nmrResidue to end terminal of chain")
+    if data['shiftLeftMouse'] and not plusChain and index == 0:
+      # okay to connect to left
+      okay = True
+
+    elif not data['shiftLeftMouse'] and plusChain and index == lenNmr:
+      # okay to connect to right
+      okay = True
+
+    elif data['shiftLeftMouse'] and plusChain and index == lenNmr:
+      # check connecting i-1 nmrResidue to the right
+      yesNo = showYesNo(str(self.windowTitle()), "Trying to connect 'i-1' nmrResidue to end of chain.\n\n"
+                                                     "Do you want to continue?")
+      getLogger().warning("Trying to connect 'i-1' nmrResidue to end of chain")
       if not yesNo:
         return
+      okay = True
 
-    elif not data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) == 0:
-      yesNo = showYesNo(str(self.windowTitle()), "Trying to connect 'i+1' nmrResidue to start terminal of chain.\n\n"
-                                                 "Do you want to continue?")
-      getLogger().warning("Trying to connect 'i+1' nmrResidue to end terminal of chain")
+    elif not data['shiftLeftMouse'] and not plusChain and index == 0:
+      # check connecting i+1 nmrResidue to the left
+      yesNo = showYesNo(str(self.windowTitle()), "Trying to connect 'i+1' nmrResidue to start of chain.\n\n"
+                                                     "Do you want to continue?")
+      getLogger().warning("Trying to connect 'i+1' nmrResidue to start of chain")
       if not yesNo:
         return
+      okay = True
 
     else:
+      # connecting to the middle of a stretch - may do disconnect later
       showWarning(str(self.windowTitle()), "Illegal connection, cannot connect to the middle of a chain")
       getLogger().warning("Illegal connection, cannot connect to the middle of a chain")
       return
@@ -524,6 +547,16 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         strip.showStripResidueId()
         strip.setStripResidueDirText(scoreAssignment[ii])
         strip.showStripResidueDir()
+
+        strip.header.reset()
+        strip.header.setLabelText(position='l', text=scoreLabelling[ii])
+        strip.header.setLabelText(position='c', text=nmrResiduePid)
+        strip.header.setLabelConnectDir(position='c', connectDir=STRIPCONNECT_LEFT if scoreLabelling[ii].startswith('i-1') else STRIPCONNECT_RIGHT)
+        strip.header.setLabelText(position='r', text=scoreAssignment[ii])
+
+        strip.header.setLabelObject(position='l', obj=None)
+        strip.header.setLabelObject(position='c', obj=None)
+        strip.header.setLabelObject(position='r', obj=None)
 
       # self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
       self._centreCcpnStripsForNmrResidue(assignMatrix[assignmentScores[0]], module.strips)
