@@ -539,14 +539,14 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
       for ii, strip in enumerate(module.strips):
         nmrResiduePid = nmrAtomPairs[ii][0].nmrResidue.pid
-        strip.setStripLabelText(nmrResiduePid)
-        strip.showStripLabel()
-        strip.setStripLabelisPlus(True if scoreLabelling[ii].startswith('i+1') else False)
 
-        strip.setStripResidueIdText(scoreLabelling[ii])
-        strip.showStripResidueId()
-        strip.setStripResidueDirText(scoreAssignment[ii])
-        strip.showStripResidueDir()
+        # strip.setStripLabelText(nmrResiduePid)
+        # strip.showStripLabel()
+        # strip.setStripLabelisPlus(True if scoreLabelling[ii].startswith('i+1') else False)
+        # strip.setStripResidueIdText(scoreLabelling[ii])
+        # strip.showStripResidueId()
+        # strip.setStripResidueDirText(scoreAssignment[ii])
+        # strip.showStripResidueDir()
 
         strip.header.reset()
         strip.header.setLabelText(position='l', text=scoreLabelling[ii])
