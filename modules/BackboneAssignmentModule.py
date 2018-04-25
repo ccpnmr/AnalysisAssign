@@ -303,11 +303,17 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     if DropBase.TEXT in data and len(data[DropBase.TEXT]) > 0:
       droppedNmrResidue = self.application.project.getByPid(data[DropBase.TEXT])
     if droppedNmrResidue is None:
-      getLogger().info('Backbone assignment: invalid "pid" of dropped item')
+      showWarning(str(self.windowTitle()), 'Backbone assignment: invalid dropped item')
+      getLogger().warning('Backbone assignment: invalid "pid" of dropped item')
+      return
+
+    if not isinstance(droppedNmrResidue, NmrResidue):
+      showWarning(str(self.windowTitle()), 'Backbone assignment: item is not an nmrResidue')
+      getLogger().warning('Backbone assignment: item is not an nmrResidue')
+      return
 
     getLogger().debug('nmrResidue:%s, droppedNmrResidue:%s', nmrResidue, droppedNmrResidue)
     if droppedNmrResidue == nmrResidue:
-      getLogger().warning('Cannot connect residue to itself')
       return
 
     allNmrResidues = nmrResidue._getAllConnectedList()
@@ -329,13 +335,23 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     #   elif allNmrResidues.index(nmrResidue) == (len(allNmrResidues)-1):
     #     data['shiftLeftMouse'] = False
 
-    if data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) != 0:
-      showWarning(str(self.windowTitle()), "Illegal connection, 'i-1' residue must connect to the start of a chain")
-      getLogger().warning("Illegal connection, 'i-1' residue must connect to the start of a chain")
-      return
-    if not data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) != (len(allNmrResidues)-1):
-      showWarning(str(self.windowTitle()), "Illegal connection, 'i+1' residue must connect to the end of a chain")
-      getLogger().warning("Illegal connection, 'i+1' residue must connect to the end of a chain")
+    if data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) == (len(allNmrResidues)-1):
+      yesNo = showYesNo(str(self.windowTitle()), "Trying to connect 'i-1' nmrResidue to end terminal of chain.\n\n"
+                                                 "Do you want to continue?")
+      getLogger().warning("Trying to connect 'i-1' nmrResidue to end terminal of chain")
+      if not yesNo:
+        return
+
+    elif not data['shiftLeftMouse'] and allNmrResidues.index(nmrResidue) == 0:
+      yesNo = showYesNo(str(self.windowTitle()), "Trying to connect 'i+1' nmrResidue to start terminal of chain.\n\n"
+                                                 "Do you want to continue?")
+      getLogger().warning("Trying to connect 'i+1' nmrResidue to end terminal of chain")
+      if not yesNo:
+        return
+
+    else:
+      showWarning(str(self.windowTitle()), "Illegal connection, cannot connect to the middle of a chain")
+      getLogger().warning("Illegal connection, cannot connect to the middle of a chain")
       return
 
     # silence the update of the nmrResidueTable as we will to an explicit update later
