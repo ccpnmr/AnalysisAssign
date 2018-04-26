@@ -365,6 +365,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       getLogger().warning("Trying to connect 'i-1' nmrResidue to end of chain")
       if not yesNo:
         return
+
+      # force the connection to the start of chain
+      data['shiftLeftMouse'] = False
       okay = True
 
     elif not data['shiftLeftMouse'] and not plusChain and index == 0:
@@ -374,6 +377,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       getLogger().warning("Trying to connect 'i+1' nmrResidue to start of chain")
       if not yesNo:
         return
+
+      # force the connection to the end of chain
+      data['shiftLeftMouse'] = True
       okay = True
 
     else:

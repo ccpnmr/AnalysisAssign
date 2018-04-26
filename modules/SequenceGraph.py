@@ -285,9 +285,9 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     contextMenu = Menu('', event.widget(), isFloatWidget=True)
     from functools import partial
 
-    contextMenu.addAction('disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
-    contextMenu.addAction('disconnect nmrResidue', partial(self._disconnectNmrResidue))
-    contextMenu.addAction('disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
+    contextMenu.addAction(self.parent.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
+    contextMenu.addAction(self.parent.disconnectIcon, 'disconnect nmrResidue', partial(self._disconnectNmrResidue))
+    contextMenu.addAction(self.parent.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
     contextMenu.addSeparator()
     contextMenu.addAction('disconnect all nmrResidues', partial(self._disconnectAllNmrResidues))
     if self.nmrResidue.residue:
