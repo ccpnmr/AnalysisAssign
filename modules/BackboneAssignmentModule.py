@@ -407,14 +407,39 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         try:                          # display popup warning
           if data['shiftLeftMouse']:
             # leftShift drag; connect to previous
+
             nmrResidue.connectPrevious(droppedNmrResidue)
+
             matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
             if matchNmrResidue is None:
               # Non -1 residue - stay with current
               getLogger().info("NmrResidue %s has no i-1 residue to display" % droppedNmrResidue)
               matchNmrResidue = nmrResidue
           else:
-            nmrResidue.connectNext(droppedNmrResidue)
+
+            if not nmrResidue.residue and not droppedNmrResidue.residue:
+              nmrResidue.connectNext(droppedNmrResidue)
+
+            elif nmrResidue.residue and not droppedNmrResidue.residue:
+
+              if droppedNmrResidue.nmrChain.id == '@-':
+                # assume that it is the only one
+                print('>>>attach nmrChain: single')
+                droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.nextResidue)
+              else:
+                print('>>>attach nmrChain: connected')
+                droppedNmrResidue.nmrChain.assignConnectedResidues(nmrResidue.residue.nextResidue)
+
+            elif not nmrResidue.residue and droppedNmrResidue.residue:
+
+              if nmrResidue.nmrChain.id == '@-':
+                # assume that it is the only one
+                print('>>>attach assigned to nmrChain: single')
+                nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.previousResidue)
+              else:
+                print('>>>attach assigned to nmrChain: connected')
+                nmrResidue.nmrChain.assignConnectedResidues(droppedNmrResidue.residue.nextResidue)
+
             matchNmrResidue = droppedNmrResidue
         except Exception as es:
           showWarning('Connect NmrResidue', str(es))
