@@ -57,6 +57,9 @@ from ccpn.core.NmrChain import NmrChain
 from ccpn.util.Constants import ccpnmrJsonData
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
+from ccpn.ui.gui.widgets.Splitter import Splitter
+from ccpn.ui.gui.widgets.Frame import Frame
+from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 
 logger = getLogger()
 ALL = '<all>'
@@ -368,6 +371,14 @@ class SequenceGraphModule(CcpnModule):
       self.project = None
       self.current = None
 
+
+    # self.splitter = Splitter(QtCore.Qt.Vertical)
+    # self._SequenceModuleFrame = Frame(self.splitter, setLayout=True)
+    # self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
+    # self.mainWidget.getLayout().addWidget(self.splitter)
+    #
+    # self.thisSequenceModule = SequenceModule(self._SequenceModuleFrame)
+
     self.colours = getColours()
     self._lineColour = self.colours[SEQUENCEGRAPHMODULE_LINE]
     self._textColour = self.colours[SEQUENCEGRAPHMODULE_TEXT]
@@ -390,6 +401,7 @@ class SequenceGraphModule(CcpnModule):
 
     # self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
     self.mainWidget.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
+    # self._SequenceGraphFrame.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
 
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
 
@@ -400,6 +412,8 @@ class SequenceGraphModule(CcpnModule):
     colwidth = 140
     self._MWwidget = Widget(self.mainWidget, setLayout=True,
                              grid=(0, 0), vAlign='top', hAlign='left')
+    # self._MWwidget = Widget(self._SequenceModuleFrame, setLayout=True,
+    #                          grid=(0, 0), vAlign='top', hAlign='left')
 
     self.nmrChainPulldown = NmrChainPulldown(self._MWwidget, self.project, grid=(0, 0), gridSpan=(1, 1),
                                              showSelectName=True,
@@ -492,6 +506,7 @@ class SequenceGraphModule(CcpnModule):
     self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
 
     self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
+    # self.editingToolbar = ToolBar(self._SequenceModuleFrame, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
     self.disconnectPreviousIcon = Icon('icons/disconnectPrevious')

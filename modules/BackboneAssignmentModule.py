@@ -398,7 +398,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       progressText = "connecting  %s  <  %s" % (nmrResidue.pid, droppedNmrResidue.pid)
 
     with progressManager(self.mainWindow, progressText):
-      nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
+      # nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
 
       try:
 
@@ -478,8 +478,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         getLogger().warning(str(es))
         # raise es
       finally:
-        nmrResidue._endCommandEchoBlock()
-
+        # nmrResidue._endCommandEchoBlock()
+        pass
 
   def _centreStripForNmrResidue(self, nmrResidue, strip):
     """
