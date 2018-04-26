@@ -408,7 +408,29 @@ class BackboneAssignmentModule(NmrResidueTableModule):
           if data['shiftLeftMouse']:
             # leftShift drag; connect to previous
 
-            nmrResidue.connectPrevious(droppedNmrResidue)
+            if not nmrResidue.residue and not droppedNmrResidue.residue:
+              nmrResidue.connectPrevious(droppedNmrResidue)
+
+            # SPECIAL CASES
+            elif nmrResidue.residue and not droppedNmrResidue.residue:
+              # connected an unassigned nmrChain to the current assigned chain
+              if droppedNmrResidue.nmrChain.id == '@-':
+                # assume that it is the only one
+                droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.previousResidue)
+              else:
+                nRes = nmrResidue.residue
+                for ii in range(len(droppedNmrResidue.nmrChain.mainNmrResidues)):
+                  nRes = nRes.previousResidue
+                droppedNmrResidue.nmrChain.assignConnectedResidues(nRes)
+
+            elif not nmrResidue.residue and droppedNmrResidue.residue:
+              # connected an assigned chain to the current unassigned nmrChain
+
+              if nmrResidue.nmrChain.id == '@-':
+                # assume that it is the only one
+                nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.nextResidue)
+              else:
+                nmrResidue.nmrChain.assignConnectedResidues(droppedNmrResidue.residue.nexResidue)
 
             matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
             if matchNmrResidue is None:
@@ -420,25 +442,26 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             if not nmrResidue.residue and not droppedNmrResidue.residue:
               nmrResidue.connectNext(droppedNmrResidue)
 
+            # SPECIAL CASES
             elif nmrResidue.residue and not droppedNmrResidue.residue:
-
+              # connected an unassigned nmrChain to the current assigned chain
               if droppedNmrResidue.nmrChain.id == '@-':
                 # assume that it is the only one
-                print('>>>attach nmrChain: single')
                 droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.nextResidue)
               else:
-                print('>>>attach nmrChain: connected')
                 droppedNmrResidue.nmrChain.assignConnectedResidues(nmrResidue.residue.nextResidue)
 
             elif not nmrResidue.residue and droppedNmrResidue.residue:
+              # connected an assigned chain to the current unassigned nmrChain
 
               if nmrResidue.nmrChain.id == '@-':
                 # assume that it is the only one
-                print('>>>attach assigned to nmrChain: single')
                 nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.previousResidue)
               else:
-                print('>>>attach assigned to nmrChain: connected')
-                nmrResidue.nmrChain.assignConnectedResidues(droppedNmrResidue.residue.nextResidue)
+                dropRes = droppedNmrResidue.residue
+                for ii in range(len(nmrResidue.nmrChain.mainNmrResidues)):
+                  dropRes = dropRes.previousResidue
+                nmrResidue.nmrChain.assignConnectedResidues(dropRes)
 
             matchNmrResidue = droppedNmrResidue
         except Exception as es:
