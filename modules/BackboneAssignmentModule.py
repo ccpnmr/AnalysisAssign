@@ -235,6 +235,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                      plusChain=True)      #strip.getStripLabel().text()))
               self._stripNotifiers.append(notifier)
 
+              # obj = strip.project.getByPid(nmrAtoms[0].nmrResidue.pid)
+              # strip.header.setLabelText(position='l', text='<<<')
+              # strip.header.setLabelObject(position='c', obj=obj)
+              # strip.header.setLabelText(position='r', text='>>>')
+
             strip.spectrumDisplay.setColumnStretches(True)
 
 
