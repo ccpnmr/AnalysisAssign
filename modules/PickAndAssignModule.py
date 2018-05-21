@@ -200,7 +200,7 @@ class PickAndAssignModule(NmrResidueTableModule):
       logger.error('Undefined peak(s); select one or more before proceeding')
       return
 
-    self.application.project._appBase._startCommandBlock('application.pickAndAssignModule.assignSelected()')
+    self.application._startCommandBlock('application.pickAndAssignModule.assignSelected()')
     try:
       lastNmrResidue = self.application.current.nmrResidue
 

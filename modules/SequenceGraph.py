@@ -70,15 +70,17 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
   A graphical object specifying the position and name of an atom when created by the Assigner.
   Can be linked to a Nmr Atom.
   """
-  def __init__(self, project, text, pos=None, nmrAtom=None):
+  def __init__(self, mainWindow, text, pos=None, nmrAtom=None):
 
     super(GuiNmrAtom, self).__init__()
 
     self.setPlainText(text)
     self.setPos(QtCore.QPointF((pos[0]-self.boundingRect().x()), (pos[1]-self.boundingRect().y())))
 
-    self.project = project
-    self.current = project._appBase.current
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
     self.nmrAtom = nmrAtom
 
     ###if nmrAtom:
@@ -256,7 +258,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
         #   self.show()
 
   def _mousePressEvent(self, event):
-    self.nmrResidue.project._appBase.current.nmrResidue = self.nmrResidue
+    self.current.nmrResidue = self.nmrResidue
     self.setSelected(True)
 
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1159,8 +1161,8 @@ class SequenceGraphModule(CcpnModule):
       if possibleMatches:
         for possibleMatch in possibleMatches:
           if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
-            if hasattr(self.project._appBase, 'sequenceModule'):
-              self.project._appBase.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+            if hasattr(self.application, 'sequenceModule'):
+              self.application.sequenceModule._highlightPossibleStretches(possibleMatch[1])
 
   def _updateShowTreeAssignments(self, peak=None):
     nmrChainPid = self.nmrChainPulldown.getText()
@@ -1175,31 +1177,6 @@ class SequenceGraphModule(CcpnModule):
     nmrChainPid = self.nmrChainPulldown.getText()
     if nmrChainPid:
       self.setNmrChainDisplay(nmrChainPid)
-
-  # def _showBackboneAssignments(self, nmrChain):
-  #   self.project._startCommandEchoBlock('_showBackboneAssignments', nmrChain)
-  #   try:
-  #
-  #     for residue in nmrChain.chain.residues:
-  #       if not residue.nmrResidue:
-  #         newNmrResidue = nmrChain.fetchNmrResidue(sequenceCode=residue.sequenceCode, residueType=residue.residueType)
-  #         for atom in residue.atoms:
-  #           newNmrResidue.fetchNmrAtom(name=atom.name)
-  #       self.addResidue(residue.nmrResidue, direction='+1')
-  #     for ii, res in enumerate(self.guiResiduesShown):
-  #       if ii % 10 == 0:
-  #         if self.project._appBase.ui.mainWindow is not None:
-  #           mainWindow = self.project._appBase.ui.mainWindow
-  #         else:
-  #           mainWindow = self.project._appBase._mainWindow
-  #         mainWindow.pythonConsole.writeConsoleCommand('%s residues added' % str(ii))
-  #       ###if ii+1 < len(self.guiResiduesShown)-1:
-  #       if ii + 1 < len(self.guiResiduesShown):
-  #           self._addConnectingLine(res['CO'], self.guiResiduesShown[ii+1]['N'], self._lineColour, 1.0, 0)
-  #
-  #     self._getAssignmentsFromSpectra()
-  #   finally:
-  #     self.project._endCommandEchoBlock()
 
   def _addConnectingLine(self, atom1:GuiNmrAtom, atom2:GuiNmrAtom,
                          colour:str, width:float, displacement:float, style:str=None,
@@ -1314,7 +1291,7 @@ class SequenceGraphModule(CcpnModule):
     Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
     GuiNmrAtom can be linked to an NmrAtom by supplying it to the function.
     """
-    atom = GuiNmrAtom(self.project, text=atomType, pos=position, nmrAtom=nmrAtom)
+    atom = GuiNmrAtom(self.mainWindow, text=atomType, pos=position, nmrAtom=nmrAtom)
     self.guiNmrAtomDict[nmrAtom] = atom
     return atom
 
@@ -1323,7 +1300,7 @@ class SequenceGraphModule(CcpnModule):
     Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
     GuiNmrAtom can be linked to an NmrAtom by supplying it to the function.
     """
-    atom = GuiNmrAtom(self.project, text=atomType, pos=position, nmrAtom=nmrAtom)
+    atom = GuiNmrAtom(self.mainWindow, text=atomType, pos=position, nmrAtom=nmrAtom)
     # self.guiNmrAtomDict[nmrAtom] = atom
     return atom
 

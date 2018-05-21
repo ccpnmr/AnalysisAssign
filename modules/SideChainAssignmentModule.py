@@ -10,6 +10,11 @@ class SideChainAssignmentModule(PickAndAssignModule):
 
     PickAndAssignModule.__init__(self, mainWindow=mainWindow, name=name)
 
+    self.mainWindow = mainWindow
+    self.application = mainWindow.application
+    self.project = mainWindow.application.project
+    self.current = mainWindow.application.current
+
     # self.refreshButton.show()             # ejb - not working
     # self.refreshButton.setCallback(self._startAssignment)
     # self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
@@ -57,7 +62,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
     super(SideChainAssignmentModule, self)._closeModule()
 
   def _startAssignment(self):
-    self.project._appBase.ui.mainWindow.clearMarks()
+    self.mainWindow.clearMarks()
     if self.mode == 'singles':
       self._startAssignmentFromSingles()
     elif self.mode == 'pairs':

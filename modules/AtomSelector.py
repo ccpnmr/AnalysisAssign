@@ -551,7 +551,6 @@ class AtomSelectorModule(CcpnModule):
 
     assignResidue = self._getMainNmrResidue(self.current.nmrResidue)
 
-    # self.project._appBase._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
     self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
     try:
       name = atomType

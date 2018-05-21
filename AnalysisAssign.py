@@ -25,12 +25,6 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 # Start of code
 #=========================================================================================
 
-# from ccpn.ui.gui.AppBase import AppBase, defineProgramArguments
-# from ccpn.ui.gui.lib.Window import MODULE_DICT
-# from ccpn.ui.gui.modules import GuiStrip
-
-# from ccpn.framework.lib.SvnRevision import applicationVersion
-
 from ccpn.framework.Framework import Framework
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets import MessageDialog
