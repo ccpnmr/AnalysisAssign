@@ -375,11 +375,12 @@ class SequenceGraphModule(CcpnModule):
 
 
     self.splitter = Splitter(QtCore.Qt.Vertical)
-    self._SequenceModuleFrame = Frame(self.splitter, setLayout=True)
-    self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
-    self.mainWidget.getLayout().addWidget(self.splitter)
+    self._sequenceModuleFrame = Frame(self.splitter, setLayout=True)
+    # self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
+    self.mainWidget.getLayout().addWidget(self.splitter, 1, 0)
 
-    self.thisSequenceModule = SequenceModule(self._SequenceModuleFrame)
+    self.thisSequenceModule = SequenceModule(parent=self._sequenceModuleFrame,
+                                             mainWindow=mainWindow)
 
     self.colours = getColours()
     self._lineColour = self.colours[SEQUENCEGRAPHMODULE_LINE]
@@ -387,7 +388,13 @@ class SequenceGraphModule(CcpnModule):
 
     ###frame = Frame(parent=self.mainWidget)
     self._sequenceGraphScrollArea = QtWidgets.QScrollArea()
+    # self._sequenceGraphScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum)
     self._sequenceGraphScrollArea.setWidgetResizable(True)
+    self._sequenceGraphScrollArea.setMinimumHeight(80)
+
+    self.splitter.addWidget(self._sequenceGraphScrollArea)
+    self.splitter.setStretchFactor(1, 5)
+    self.splitter.setChildrenCollapsible(False)
 
     self.resetScene()
 
@@ -402,7 +409,7 @@ class SequenceGraphModule(CcpnModule):
     # # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
 
     # self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
-    self.mainWidget.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
+    # self.mainWidget.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
     # self._SequenceGraphFrame.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
 
     #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
@@ -414,7 +421,7 @@ class SequenceGraphModule(CcpnModule):
     colwidth = 140
     self._MWwidget = Widget(self.mainWidget, setLayout=True,
                              grid=(0, 0), vAlign='top', hAlign='left')
-    # self._MWwidget = Widget(self._SequenceModuleFrame, setLayout=True,
+    # self._MWwidget = Widget(self.splitter, setLayout=True,
     #                          grid=(0, 0), vAlign='top', hAlign='left')
 
     self.nmrChainPulldown = NmrChainPulldown(self._MWwidget, self.project, grid=(0, 0), gridSpan=(1, 1),
@@ -429,12 +436,12 @@ class SequenceGraphModule(CcpnModule):
                                                   tipText='Update display when current.nmrChain changes',
                                                   grid=(0, 1), gridSpan=(1,1))
 
-    self.assignmentsCheckBox = CheckBoxCompoundWidget(self._MWwidget,
-                                                      labelText='Show peak assignments:',
+    self.sequenceCheckBox = CheckBoxCompoundWidget(self._MWwidget,
+                                                      labelText='Show Sequence:',
                                                       checked=True,
                                                       fixedWidths=(colwidth, 30),
-                                                      tipText='Show peak assignments on display coloured by positiveContourColour',
-                                                      callback=self._updateShownAssignments,
+                                                      tipText='Show chain sequences',
+                                                      callback=self._toggleSequence,
                                                       grid=(0, 2), gridSpan=(1,1))
 
     self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self._MWwidget,
@@ -445,33 +452,46 @@ class SequenceGraphModule(CcpnModule):
                                                       callback=self._updateShownAssignments,
                                                       grid=(0, 3), gridSpan=(1,1))
 
+    row = 0
+    self.assignmentsCheckBox = CheckBoxCompoundWidget(self._SGwidget,
+                                                      labelText='Show peak assignments:',
+                                                      checked=True,
+                                                      fixedWidths=(colwidth, 30),
+                                                      tipText='Show peak assignments on display coloured by positiveContourColour',
+                                                      callback=self._updateShownAssignments,
+                                                      grid=(row, 0), gridSpan=(1,1))
+
+    row += 1
     self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self._SGwidget,
                                                       labelText='Show peak assignments as tree:',
                                                       checked=False,
                                                       fixedWidths=(colwidth, 30),
                                                       tipText='Show peak assignments as a tree below the main backbone',
                                                       callback=self._updateShownAssignments,
-                                                      grid=(0, 0), gridSpan=(1,1))
+                                                      grid=(row, 0), gridSpan=(1,1))
 
+    row += 1
     self.sequentialStripsWidget = CheckBoxCompoundWidget(self._SGwidget,
                                               labelText = 'Show sequential strips:',
                                               checked = False,
                                               fixedWidths=(colwidth, 30),
                                               tipText='Show nmrResidue in all strips',
                                               callback=self._updateShownAssignments,
-                                              grid=(1, 0), gridSpan=(1, 1))
+                                              grid=(row, 0), gridSpan=(1, 1))
 
+    row += 1
     self.markPositionsWidget = CheckBoxCompoundWidget(self._SGwidget,
                                               labelText = 'Mark positions:',
                                               checked = True,
                                               fixedWidths=(colwidth, 30),
                                               tipText='Mark positions in strips',
                                               callback = self._updateShownAssignments,
-                                              grid = (2, 0), gridSpan = (1, 1))
+                                              grid = (row, 0), gridSpan = (1, 1))
 
+    row += 1
     self.autoClearMarksWidget = CheckBoxCompoundWidget(
                                              self._SGwidget,
-                                             grid=(3,0), vAlign='top', stretch=(0,0), hAlign='left',
+                                             grid=(row,0), vAlign='top', stretch=(0,0), hAlign='left',
                                              #minimumWidths=(colwidth, 0),
                                              fixedWidths=(colwidth, 30),
                                              orientation = 'left',
@@ -498,16 +518,16 @@ class SequenceGraphModule(CcpnModule):
     self.displaysWidget.pulldownList.set(ALL)
     self.displaysWidget.setPreSelect(self._fillDisplayWidget)
 
-    self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-                         , grid=(4,2), gridSpan=(1,1))
+    self._spacer = Spacer(self.settingsWidget, 5, 5,
+                         QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+                         grid=(4,2), gridSpan=(1,1))
 
     self._SGwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
     self._MWwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
     self._MWwidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
     self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
 
-    self.editingToolbar = ToolBar(self.mainWidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
+    self.editingToolbar = ToolBar(self._MWwidget, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
     # self.editingToolbar = ToolBar(self._SequenceModuleFrame, grid=(0, 6), gridSpan=(1, 1), hAlign='right', iconSizes=(24,24))
 
     self.disconnectPreviousAction = self.editingToolbar.addAction("disconnectPrevious", self.disconnectPreviousNmrResidue)
@@ -534,9 +554,10 @@ class SequenceGraphModule(CcpnModule):
     if nmrChain is not None:
       self.selectSequence(nmrChain)
 
+    # self.thisSequenceModule.setFixedHeight(100)
     # connect to SequenceModule
-    from ccpn.ui.gui.modules.SequenceModule import SequenceModule
-    seqMods = [sm for sm in SequenceModule.getInstances()]
+    # from ccpn.ui.gui.modules.SequenceModule import SequenceModule
+    # seqMods = [sm for sm in SequenceModule.getInstances()]
 
     # # populate if the sequenceModule has an nmrChain attached
     # if seqMods:
@@ -546,7 +567,7 @@ class SequenceGraphModule(CcpnModule):
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
     # install the event filter to handle maximising from floated dock
-    self.installMaximiseEventHandler(self._maximise, self._closeModule)
+    # self.installMaximiseEventHandler(self._maximise, self._closeModule)
 
   def _maximise(self):
     """
@@ -1161,8 +1182,16 @@ class SequenceGraphModule(CcpnModule):
       if possibleMatches:
         for possibleMatch in possibleMatches:
           if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
-            if hasattr(self.application, 'sequenceModule'):
-              self.application.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+            # if hasattr(self.application, 'sequenceModule'):
+              # self.application.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+
+            self.thisSequenceModule._highlightPossibleStretches(possibleMatch[1])
+
+  def _toggleSequence(self):
+    if not self.sequenceCheckBox.isChecked():
+      self._sequenceModuleFrame.hide()
+    else:
+      self._sequenceModuleFrame.show()
 
   def _updateShowTreeAssignments(self, peak=None):
     nmrChainPid = self.nmrChainPulldown.getText()
