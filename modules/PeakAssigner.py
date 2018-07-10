@@ -610,9 +610,9 @@ class AxisAssignmentObject(Frame):
     """
     Creates a PulldownList with callback, editable.
     """
-    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan, tipText=tipText)
+    pulldownList = PulldownList(parent=parent, grid=grid,backgroundText=tipText, editable=True, gridSpan=gridSpan, tipText=tipText)
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
-    pulldownList.setEditable(True)
+    # pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
     pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
     return pulldownList
@@ -621,9 +621,9 @@ class AxisAssignmentObject(Frame):
     """
     Creates a PulldownList with a callback, editable.
     """
-    pulldownList = PulldownList(parent=parent, grid=grid, gridSpan=gridSpan, tipText=tipText)
+    pulldownList = PulldownList(parent=parent, grid=grid, backgroundText=tipText, editable=True,gridSpan=gridSpan, tipText=tipText)
     pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
-    pulldownList.setEditable(True)
+    # pulldownList.setEditable(True)
     pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
     pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
     pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
