@@ -374,12 +374,12 @@ class SequenceGraphModule(CcpnModule):
       self.current = None
 
 
-    # self.splitter = Splitter(QtCore.Qt.Vertical)
-    # self._SequenceModuleFrame = Frame(self.splitter, setLayout=True)
-    # self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
-    # self.mainWidget.getLayout().addWidget(self.splitter)
-    #
-    # self.thisSequenceModule = SequenceModule(self._SequenceModuleFrame)
+    self.splitter = Splitter(QtCore.Qt.Vertical)
+    self._SequenceModuleFrame = Frame(self.splitter, setLayout=True)
+    self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
+    self.mainWidget.getLayout().addWidget(self.splitter)
+
+    self.thisSequenceModule = SequenceModule(self._SequenceModuleFrame)
 
     self.colours = getColours()
     self._lineColour = self.colours[SEQUENCEGRAPHMODULE_LINE]
