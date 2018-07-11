@@ -373,6 +373,15 @@ class SequenceGraphModule(CcpnModule):
       self.project = None
       self.current = None
 
+    self.atomSpacing = 66
+    self.guiResiduesShown = []
+    self.predictedStretch = []
+    self.direction = None
+    self.selectedStretch = []
+    self.guiNmrResidues = OrderedDict()
+    self.guiNmrResidueLabels = []
+    self.guiNmrAtomDict = {}
+    self.ghostList = []
 
     self.splitter = Splitter(QtCore.Qt.Vertical)
     self._sequenceModuleFrame = Frame(self.splitter, setLayout=True)
@@ -541,16 +550,7 @@ class SequenceGraphModule(CcpnModule):
     self.disconnectNextIcon = Icon('icons/disconnectNext')
     self.disconnectNextAction.setIcon(self.disconnectNextIcon)
 
-    self.atomSpacing = 66
-    self.guiResiduesShown = []
-    self.predictedStretch = []
-    self.direction = None
-    self.selectedStretch = []
     self.scene.dragEnterEvent = self.dragEnterEvent
-    self.guiNmrResidues = OrderedDict()
-    self.guiNmrResidueLabels = []
-    self.guiNmrAtomDict = {}
-    self.ghostList = []
 
     if nmrChain is not None:
       self.selectSequence(nmrChain)
