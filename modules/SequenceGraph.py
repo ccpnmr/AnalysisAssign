@@ -379,8 +379,9 @@ class SequenceGraphModule(CcpnModule):
     # self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
     self.mainWidget.getLayout().addWidget(self.splitter, 1, 0)
 
-    self.thisSequenceModule = SequenceModule(parent=self._sequenceModuleFrame,
-                                             mainWindow=mainWindow)
+    self.thisSequenceModule = SequenceModule(moduleParent=self,
+                                              parent=self._sequenceModuleFrame,
+                                              mainWindow=mainWindow)
 
     self.colours = getColours()
     self._lineColour = self.colours[SEQUENCEGRAPHMODULE_LINE]
@@ -827,6 +828,7 @@ class SequenceGraphModule(CcpnModule):
     CCPN-INTERNAL: used to close the module
     """
     self._unRegisterNotifiers()
+    self.thisSequenceModule.close()
     super(SequenceGraphModule, self)._closeModule()
 
   def close(self):
