@@ -60,6 +60,8 @@ from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
 from ccpn.ui.gui.widgets.Splitter import Splitter
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
+from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
+
 
 logger = getLogger()
 ALL = '<all>'
@@ -1175,19 +1177,34 @@ class SequenceGraphModule(CcpnModule):
     Predicts sequence position for Nmr residues displayed in the Assigner and highlights appropriate
     positions in the Sequence Module if it is displayed.
     """
-    from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
-
     if self.project.chains and self.project.chemicalShiftLists:
-      possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
-                        self.project.chains[0], self.project.chemicalShiftLists[0])
 
-      if possibleMatches:
-        for possibleMatch in possibleMatches:
-          if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
-            # if hasattr(self.application, 'sequenceModule'):
-              # self.application.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+      matchesDict = {}
+      for chainNum, chain in enumerate(self.project.chains):
+        matchesDict[chainNum] = []
+        for chemList in self.project.chemicalShiftLists:
+          match = getSpinSystemsLocation(self.project, nmrResidues,
+                        chain, chemList)
+          if match:
+            matchesDict[chainNum].append(match)
 
-            self.thisSequenceModule._highlightPossibleStretches(possibleMatch[1])
+      for chainNum in matchesDict.keys():
+
+      # possibleMatches = getSpinSystemsLocation(self.project, nmrResidues,
+      #                   self.project.chains[0], self.project.chemicalShiftLists[0])
+
+        self.thisSequenceModule._clearStretches(chainNum)
+        possibleMatches = matchesDict[chainNum]
+
+        if possibleMatches:
+          for chemList in possibleMatches:
+            for possibleMatch in chemList:
+              if possibleMatch[0] > 1 and not len(possibleMatch[1]) < len(nmrResidues):
+                # if hasattr(self.application, 'sequenceModule'):
+                  # self.application.sequenceModule._highlightPossibleStretches(possibleMatch[1])
+
+                self.thisSequenceModule._highlightPossibleStretches(chainNum, possibleMatch[1])
+
 
   def _toggleSequence(self):
     if not self.sequenceCheckBox.isChecked():
