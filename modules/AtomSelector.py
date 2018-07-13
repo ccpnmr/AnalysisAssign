@@ -62,6 +62,7 @@ from ccpn.ui.gui.widgets.CheckBox import CheckBox
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.RadioButton import RadioButton
+from ccpn.ui.gui.widgets.RadioButtons import RadioButtons
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.Frame import Frame
@@ -70,6 +71,8 @@ from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, 
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpn.core.lib.Notifiers import Notifier
+from ccpn.core.lib.AssignmentLib import _assignNmrAtomsToPeaks
+
 
 logger = getLogger()
 
@@ -102,50 +105,27 @@ class AtomSelectorModule(CcpnModule):
       self.current = mainWindow.application.current
       self._registerNotifiers()
 
-      # self.current.registerNotify(self._predictAssignments, 'peaks')
-      # self.current.registerNotify(self._nmrResidueCallBack, 'nmrResidues')
-
     # Settings Widget
     self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
-    self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=MOLECULE_TYPES
-                                        , callback=self._changeMoleculeType)
+    self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=MOLECULE_TYPES , callback=self._changeMoleculeType)
 
-    self._spacer = Spacer(self.settingsWidget, 15, 5
-                         , QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-                         , grid=(0,2), gridSpan=(1,1))
-    self.radioButton1 = RadioButton(self.settingsWidget, grid=(0, 3), hAlign='r', callback=self._createBackBoneButtons)
-    self.radioButton1.setChecked(True)
-    self.label1 = Label(self.settingsWidget, 'Backbone', grid=(0, 4), hAlign='l')
-    self.radioButton2 = RadioButton(self.settingsWidget, grid=(0, 5), hAlign='r', callback=self._createSideChainButtons)
-    self.label2 = Label(self.settingsWidget, 'Side chain', grid=(0, 6), hAlign='l')
-    self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-                         , grid=(3,12), gridSpan=(1,1))
+    self.modeTypeLabel = Label(self.settingsWidget, 'Mode', grid=(1, 0))
+    self.modeRadioButtons = RadioButtons(self.settingsWidget, texts=['Backbone','Side chain'], selectedInd=0, callback=self._createButtonsCallback, grid=(1,1))
+    self.radioButton1, self.radioButton2 = self.modeRadioButtons.radioButtons
 
     # modifiers for sidechain
-    self.offsetLabel = Label(self.settingsWidget, 'Display for:   offset =', grid=(1,0))
-    self.offsetSelector = PulldownList(self.settingsWidget, grid=(1, 1), texts = ['0', '-1', '+1'],
-                                       callback= self._offsetPullDownCallback)
+    self.offsetLabel = Label(self.settingsWidget, 'Offset', grid=(2,0))
+    self.offsetSelector = PulldownList(self.settingsWidget, grid=(2, 1), texts = ['0', '-1', '+1'], callback= self._offsetPullDownCallback)
 
-    self.hCheckBox = CheckBox(self.settingsWidget, checked=False, grid=(1,2), hAlign='r', callback=self._toggleBox)
-    self.hLabel = Label(self.settingsWidget, 'H', grid=(1,3), hAlign='l')
-    self.cCheckBox = CheckBox(self.settingsWidget, checked=True, grid=(1,4), hAlign='r', callback=self._toggleBox)
-    self.cLabel = Label(self.settingsWidget, 'C', grid=(1,5), hAlign='l')
-    self.nCheckBox = CheckBox(self.settingsWidget, checked=False, grid=(1, 6), hAlign='r', callback=self._toggleBox)
-    self.nLabel = Label(self.settingsWidget, 'N', grid=(1, 7), hAlign='l')
-    self.otherCheckBox = CheckBox(self.settingsWidget, checked=False, grid=(1, 8), hAlign='r', callback=self._toggleBox)
-    self.otherLabel = Label(self.settingsWidget, 'Other', grid=(1, 9), hAlign='l')
+    self.atomTypeLabel = Label(self.settingsWidget, 'Atom Type', grid=(3, 0))
+    self.atomOptions = RadioButtons(self.settingsWidget,selectedInd=1, texts=['H','C','N', 'Other'],callback=self._toggleBox, grid=(3,1))
+    self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox  = self.atomOptions.radioButtons
 
-    # just store all these widget to be able to toggle them
-    # self._sidechainModifiers = [self.offsetLabel, self.offsetSelector,
-    #                             self.hCheckBox, self.hLabel,
-    #                             self.cCheckBox, self.cLabel,
-    #                             self.nCheckBox, self.nLabel,
-    #                             self.otherCheckBox, self.otherLabel]
     self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
     self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-    self.settingsWidget.setFixedHeight(45)
+    self.settingsWidget.setContentsMargins(10,10,10,10)
+    self.mainWidget.setContentsMargins(10, 10, 10, 10)
 
     for w in self._sidechainModifiers:  w.hide()
 
@@ -154,7 +134,6 @@ class AtomSelectorModule(CcpnModule):
     self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1))
     self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0)
                                   , hPolicy='minimal')
-    # self._nmrResidueLabel.setFixedSize(self._nmrResidueLabel.sizeHint())
     self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1), gridSpan=(1, 3)
                                         , hPolicy='minimalexpanding', hAlign='l')
     self._residueFrame.setFixedHeight(25)
@@ -201,6 +180,12 @@ class AtomSelectorModule(CcpnModule):
     self._unRegisterNotifiers()
     super(AtomSelectorModule, self)._closeModule()
 
+  def _createButtonsCallback(self):
+    if self.radioButton1.isChecked():
+      self._createBackBoneButtons()
+    if self.radioButton2.isChecked():
+      self._createSideChainButtons()
+
   def _nmrResidueCallBack(self, nmrResidues=None):
     "Callback if current.nmrResidue changes"
     if nmrResidues is not None and self.current.nmrResidue:
@@ -234,10 +219,50 @@ class AtomSelectorModule(CcpnModule):
           self._createSideChainButtons()
       else:
         self.currentNmrResidueLabel.setText('<not-defined>')
-
+      self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
       return
     except:
       return
+
+  def _removeOffsetFromButtonText(self, text:str):
+    p = text.split(' ')
+    if len(p)>0: return p[0]
+    else: return text
+
+  def _setCheckedButtonOfAssignedAtoms(self, nmrResidue, offset=None):
+    '''setChecked the radioButton Of Assigned Nmr Atoms. "Check" as tick the button '''
+    from ccpn.util.Common import makeIterableList
+
+    if len(self.current.peaks) > 0:
+      peaks = self.current.peaks
+    else:
+      return
+    if not nmrResidue:
+      return
+    allButtons = [b for key in self.buttons.keys() for b in self.buttons[key]]
+
+    for peak in peaks:
+      buttonsToCheck = set()
+      for assignedNmrAtom in  makeIterableList(peak.assignedNmrAtoms):
+        if assignedNmrAtom in nmrResidue.nmrAtoms:
+          for button in allButtons:
+            if assignedNmrAtom:
+              if offset =='0' or offset is None:
+                if assignedNmrAtom.name == button.getText():
+                  buttonsToCheck.add(button)
+              else:
+                btext = self.atomLabel(assignedNmrAtom.name, offset)
+                if btext ==  button.getText():
+                  buttonsToCheck.add(button)
+      for b in allButtons:
+        if b in list(buttonsToCheck):
+          b.setChecked(True)
+        else:
+          b.setChecked(False)
+
+
+
+
 
   def _createBackBoneButtons(self):
     self._cleanupPickAndAssignWidget()
@@ -280,10 +305,9 @@ class AtomSelectorModule(CcpnModule):
 
         for jj, offset in enumerate(['-1', '0', '+1']):
           btext = self.atomLabel(atom, offset)
-          button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj)
+          button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj)
                           , callback=partial(self.assignSelected, offset, atom))
           button.setMinimumSize(45, 24)
-
           self.buttons[atom].append(button)
 
     self._predictAssignments(self.current.peaks)
@@ -406,7 +430,7 @@ class AtomSelectorModule(CcpnModule):
             self.buttons[atom] = []
             offset = self.offsetSelector.currentText()
             btext = self.atomLabel(atom, offset)
-            button = Button(self.pickAndAssignWidget, text=btext, grid=(ii, jj), hAlign='t',
+            button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj), hAlign='t',
                             callback=partial(self.assignSelected, offset, atom))
             button.setMinimumSize(45, 24)
 
@@ -425,9 +449,13 @@ class AtomSelectorModule(CcpnModule):
         for ii, atomList in enumerate(atomButtonList2):
           for jj, atom in enumerate(atomList):
             self.buttons[atom] = []
-            button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
+            button = RadioButton(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
                     callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
+            # button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
+            #         callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
             button.setMinimumSize(45, 24)
+            # button.setAutoExclusive(True)
+
             self.buttons[atom].append(button)
 
   def _showMoreAtomButtons(self, buttons, moreButton):
@@ -486,8 +514,9 @@ class AtomSelectorModule(CcpnModule):
                   if score < 50:
                     button.setStyleSheet('background-color: mediumvioletred')
 
-                else:
-                  button.setStyleSheet('background-color: cornflowerblue')
+                # else: # Users don't need to know/ or be notified here that the nmrAtom exist in the selected nmrResidue.
+                #   button.setStyleSheet('background-color: cornflowerblue')
+
 
     return foundAtoms
 
@@ -517,6 +546,13 @@ class AtomSelectorModule(CcpnModule):
     return r
 
   def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
+    '''
+    This checks only if an NMRAtom exists not if is assigned to a peak!
+    :param nmrResidue:
+    :param offset:
+    :param atomType:
+    :return:
+    '''
     r = self._getCorrectResidue(nmrResidue=nmrResidue, offset=offset, atomType=atomType)
     if r:
       atom = r.getNmrAtom(atomType.translate(Pid.remapSeparators))
@@ -539,6 +575,21 @@ class AtomSelectorModule(CcpnModule):
     update the peak assignment and create a event to update the module
     """
     pass
+
+  def deassignAtomFromSelectedPeaks(self, peaks, nmrAtom):
+
+    if not peaks: return
+    if not nmrAtom: return
+
+    newAssignedAtoms = ()
+    for peak in peaks:
+      for subTuple in peak.assignedNmrAtoms:
+        a = tuple(None if na is nmrAtom else na for na in subTuple)
+        newAssignedAtoms += (a,)
+
+      peak.assignedNmrAtoms = newAssignedAtoms
+
+
 
   def assignSelected(self, offset:int, atomType:str):
     """
@@ -567,52 +618,21 @@ class AtomSelectorModule(CcpnModule):
       else:
         r = assignResidue
 
-      # check whether the nmrAtom already exists
-      newNmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
-
-      if newNmrAtom:
-        if showYesNo('Atom Selector', 'nmrAtom %s exists, do you want to delete?' % newNmrAtom):
-          # remove newNmrAtom the the peak.dimensionNmrAtom lists
-          for peak in self.current.peaks:
-            for strip in self.project.strips:
-              for peakListView in strip.peakListViews:
-                if peak in peakListView.peakItems.keys():
-                  spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
-                  index = spectrumIndices[1]
-                  axisCode = peak.axisCodes[index]
-
-                  currentList = list(peak.dimensionNmrAtoms[index])
-                  if newNmrAtom in currentList:
-                    currentList.remove(newNmrAtom)
-                    peak.assignDimension(axisCode, currentList)
-                  else:
-                    getLogger().warning('Error deleting nmrAtom from %s' % assignResidue)
-          # and delete the nmrAtom from the project
-          newNmrAtom.delete()
+      button = self.sender() #This mechanisms allows to uncheck a radiobutton and still keep the autoexclusionas
+      button.setAutoExclusive(False)
+      if not button.isChecked():
+        # means we are unchecking. Therefore Needs to deassign that atom to the selected peak:
+         nmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
+         if nmrAtom:
+           self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
+           self._setCheckedButtonOfAssignedAtoms(r, offset=offset)
+           return
 
       else:
-        newNmrAtom = r.fetchNmrAtom(name=name)
-
-        # add newNmrAtom to the peak.dimensionNmrAtom lists
-        for peak in self.current.peaks:
-          for strip in self.project.strips:
-            for peakListView in strip.peakListViews:
-              if peak in peakListView.peakItems.keys():
-                spectrumIndices = peakListView.spectrumView._displayOrderSpectrumDimensionIndices
-                index = spectrumIndices[1]
-                axisCode = peak.axisCodes[index]
-
-                currentList = list(peak.dimensionNmrAtoms[index])
-                if newNmrAtom not in currentList:
-                  nmrAtoms = currentList + [newNmrAtom]
-                  peak.assignDimension(axisCode, nmrAtoms)
-
-                  # TODO:ED add undo event here
-                else:
-                  getLogger().warning('Error adding new nmrAtom to %s' % assignResidue)
-
-      # self.current.peaks = []
-      # flag a change on this peak
+        nmrAtom = r.fetchNmrAtom(name=name)
+        _assignNmrAtomsToPeaks(strip=self.current.strip,
+                               nmrAtoms=[nmrAtom], peaks=self.current.peaks)
+        self._setCheckedButtonOfAssignedAtoms(r, offset=offset)
 
     except Exception as es:
       showWarning(str(self.windowTitle()), str(es))
@@ -626,24 +646,18 @@ class AtomSelectorModule(CcpnModule):
     """
     Returns all buttons in Atom Selector to original colours and style.
     """
-    if self.application.colourScheme == 'dark':
-      backgroundColour1 = '#535a83'
-      backgroundColour2 = '#e4e15b'
-    else:
-      backgroundColour1 = '#bd8413'
-      backgroundColour2 = '#fdfdfc'
 
     for buttons in self.buttons.values():
       for button in buttons:
         button.setStyleSheet(
-          """Dock QPushButton { background-color: %s }
-             Dock QPushButton::hover { background-color: %s}""" % (backgroundColour1, backgroundColour2)
-        )
+          """Dock QRadioButton { background-color: %s }
+             Dock QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white'))
 
   def _predictAssignmentsCallBack(self, data):
     peaks = data[Notifier.VALUE]
 
     self._predictAssignments(peaks)
+    self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
 
   def _predictAssignments(self, peaks:typing.List[Peak]):
     """
@@ -693,26 +707,26 @@ class AtomSelectorModule(CcpnModule):
         for atomPred in atomPredictions:
           if atomPred == 'CB' and self.buttons['CB']:
             if anyInterOnlyExperiments:
-              self.buttons['CB'][0].setStyleSheet('background-color: green')
+              self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
               foundPredictList[self.atomLabel('CB', '-1')] = 100
             else:
-              self.buttons['CB'][0].setStyleSheet('background-color: green')
-              self.buttons['CB'][1].setStyleSheet('background-color: green')
+              self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
+              self.buttons['CB'][1].setStyleSheet('background-color: mediumseagreen')
               foundPredictList[self.atomLabel('CB', '-1')] = 100
               foundPredictList[self.atomLabel('CB', '0')] = 100
           if atomPred == 'CA' and self.buttons['CA']:
             if anyInterOnlyExperiments:
-              self.buttons['CA'][0].setStyleSheet('background-color: green')
+              self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
               foundPredictList[self.atomLabel('CA', '-1')] = 100
             else:
-              self.buttons['CA'][0].setStyleSheet('background-color: green')
-              self.buttons['CA'][1].setStyleSheet('background-color: green')
+              self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
+              self.buttons['CA'][1].setStyleSheet('background-color: mediumseagreen')
               foundPredictList[self.atomLabel('CA', '-1')] = 100
               foundPredictList[self.atomLabel('CA', '0')] = 100
 
         # new routine to colour any existing atoms
-        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ATOM_TYPES
-                                             , foundPredictList, 'backbone')
+        # foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ATOM_TYPES
+        #                                      , foundPredictList, 'backbone')
 
       # sidechain is checked
       elif self.radioButton2.isChecked():
@@ -763,10 +777,10 @@ class AtomSelectorModule(CcpnModule):
                     button.setStyleSheet('background-color: red')
 
         # new routine to colour any existing atoms
-        atomButtonList = self._getAtomButtonList()
-        atomButtonList = [x for i in atomButtonList for x in i]
-        foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, atomButtonList
-                                             , foundPredictList, 'sideChain')
+        # atomButtonList = self._getAtomButtonList()
+        # atomButtonList = [x for i in atomButtonList for x in i]
+        # foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, atomButtonList
+        #                                      , foundPredictList, 'sideChain')
 
   def _changeMoleculeType(self, data):
     """
