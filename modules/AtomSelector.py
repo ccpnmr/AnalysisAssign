@@ -254,6 +254,17 @@ class AtomSelectorModule(CcpnModule):
                 btext = self.atomLabel(assignedNmrAtom.name, offset)
                 if btext ==  button.getText():
                   buttonsToCheck.add(button)
+        else: #Try to search in + and - 1 offset
+          for offset in ['-1', '+1']:
+            r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + offset)
+            if r:
+              if assignedNmrAtom in r.nmrAtoms:
+                for button in allButtons:
+                  if assignedNmrAtom:
+                      btext = self.atomLabel(assignedNmrAtom.name, offset)
+                      if btext == button.getText():
+                        buttonsToCheck.add(button)
+
       for b in allButtons:
         if b in list(buttonsToCheck):
           b.setChecked(True)
