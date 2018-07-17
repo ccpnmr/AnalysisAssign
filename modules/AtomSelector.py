@@ -731,8 +731,6 @@ class AtomSelectorModule(CcpnModule):
       if b != keepChecked:
         b.setChecked(False)
 
-  def _doubleCheckButtons(self, button):
-    print(button.isChecked())
 
   def _returnButtonsToNormal(self):
     """
