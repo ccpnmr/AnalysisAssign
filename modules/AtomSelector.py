@@ -154,34 +154,40 @@ class AtomSelectorModule(CcpnModule):
     self._updateWidget()
     # self._predictAssignments(self.current.peaks)
 
-  def _setMutualExclusiveButtons(self, pressedButton):
-    '''Ensures only a button at the time is checked, yet allows to uncheck a radio button'''
+  def _togglePressedButton(self, pressedButton=None):
+    '''Ensures only a button at the time is checked, yet allows to uncheck a radio button. If pressedButton is None: unchecks all'''
     for button in self.buttonGroup.buttons():
       if button != pressedButton:
         button.setChecked(False)
 
   def _nmrAtomButtonsCallback(self, pressedButton):
 
-    self._setMutualExclusiveButtons(pressedButton)
+    self._togglePressedButton(pressedButton)
+    try:
 
-    if pressedButton.isChecked():
-      self._assignSelected(atomName=pressedButton._atomName, offSet= pressedButton._offSet)
+      if pressedButton.isChecked():
+        self._assignSelected(atomName=pressedButton._atomName, offSet= pressedButton._offSet)
+      else:
+        self._deassignSelected(atomName=pressedButton._atomName, offSet= pressedButton._offSet)
 
-    else:
-      self._deassignSelected(atomName=pressedButton._atomName, offSet= pressedButton._offSet)
+    except Exception as es:
+      showWarning(str(self.windowTitle()), str(es))
+      self._togglePressedButton() # uncheck all if any error
+    finally:
+      self.application._endCommandBlock()
+
 
   def _deassignSelected(self, atomName, offSet):
-    print('_deassignSelected')
     nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
     nmrAtom = nmrResidue.getNmrAtom(atomName.translate(Pid.remapSeparators))
     if nmrAtom:
       self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
 
   def _assignSelected(self, atomName, offSet):
-    print('_assignSelected')
     nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
     nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
     _assignNmrAtomsToPeaks(strip=self.current.strip, nmrAtoms=[nmrAtom], peaks=self.current.peaks)
+    self._setCheckedButtonOfAssignedAtoms(nmrResidue, offSet) # this so that only assigned atoms are checked.
 
 
   def _registerNotifiers(self):
@@ -263,49 +269,49 @@ class AtomSelectorModule(CcpnModule):
     else: return text
 
   def _setCheckedButtonOfAssignedAtoms(self, nmrResidue, offset=None):
-    '''setChecked the radioButton Of Assigned Nmr Atoms. "Check" as tick the button '''
+    '''setChecked the radioButton Of Assigned Nmr Atoms.
+    This makes sure that if a peak is selected and and assigned to an nmrAtom, the relative button is checked '''
     from ccpn.util.Common import makeIterableList
 
-    if len(self.current.peaks) > 0:
-      peaks = self.current.peaks
-    else:
+    if len(self.current.peaks) > 1:
+      self._togglePressedButton()
+      return
+    if self.current.peak is None:
       return
     if not nmrResidue:
       return
-    allButtons = [b for key in self.buttons.keys() for b in self.buttons[key]]
 
-    for peak in peaks:
-      buttonsToCheck = set()
-      for assignedNmrAtom in  makeIterableList(peak.assignedNmrAtoms):
-        if assignedNmrAtom in nmrResidue.nmrAtoms:
-          for button in allButtons:
-            if assignedNmrAtom:
-              if offset =='0' or offset is None:
-                if assignedNmrAtom.name == button.getText():
-                  buttonsToCheck.add(button)
-              else:
-                btext = self.atomLabel(assignedNmrAtom.name, offset)
-                if btext ==  button.getText():
-                  buttonsToCheck.add(button)
-        else: #Try to search in + and - 1 offset
-          for offset in ['-1', '+1']:
-            r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + offset)
-            if r:
-              if assignedNmrAtom in r.nmrAtoms:
-                for button in allButtons:
-                  if assignedNmrAtom:
-                      btext = self.atomLabel(assignedNmrAtom.name, offset)
-                      if btext == button.getText():
-                        buttonsToCheck.add(button)
+    peak = self.current.peak
+    allButtons = self.buttonGroup.buttons()
 
-      for b in allButtons:
-        if b in list(buttonsToCheck):
-          b.setChecked(True)
-        else:
-          b.setChecked(False)
+    buttonsToCheck = set()
+    for assignedNmrAtom in  makeIterableList(peak.assignedNmrAtoms):
+      if assignedNmrAtom in nmrResidue.nmrAtoms:
+        for button in allButtons:
+          if assignedNmrAtom:
+            if offset =='0' or offset is None:
+              if assignedNmrAtom.name == button.getText():
+                buttonsToCheck.add(button)
+            else:
+              btext = self.atomLabel(assignedNmrAtom.name, offset)
+              if btext ==  button.getText():
+                buttonsToCheck.add(button)
+      else: #Try to search in + and - 1 offset
+        for offset in ['-1', '+1']:
+          r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + offset)
+          if r:
+            if assignedNmrAtom in r.nmrAtoms:
+              for button in allButtons:
+                if assignedNmrAtom:
+                    btext = self.atomLabel(assignedNmrAtom.name, offset)
+                    if btext == button.getText():
+                      buttonsToCheck.add(button)
 
-
-
+    for b in allButtons:
+      if b in list(buttonsToCheck):
+        b.setChecked(True)
+      else:
+        b.setChecked(False)
 
 
   def _createBackBoneButtons(self):
@@ -481,6 +487,8 @@ class AtomSelectorModule(CcpnModule):
             btext = self.atomLabel(atom, offset)
             button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj), hAlign='t',)
                             # callback=partial(self.assignSelected, offset, atom))
+            button._atomName = atom
+            button._offSet = offset
             button.setMinimumSize(45, 24)
             self.buttonGroup.addButton(button)
             self.buttons[atom].append(button)
@@ -502,6 +510,8 @@ class AtomSelectorModule(CcpnModule):
                     # callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
             # button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
             #         callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
+            button._atomName = atom
+            button._offSet = None
             self.buttonGroup.addButton(button)
             button.setMinimumSize(45, 24)
             # button.setAutoExclusive(True)
