@@ -134,9 +134,13 @@ class AtomSelectorModule(CcpnModule):
     self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1))
     self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0)
                                   , hPolicy='minimal')
-    self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1), gridSpan=(1, 3)
+    self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(1, 0)
+                                  , hPolicy='minimal')
+    self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1)
                                         , hPolicy='minimalexpanding', hAlign='l')
-    self._residueFrame.setFixedHeight(25)
+    self.currentPeaksLabel = Label(self._residueFrame, grid=(1, 1)
+                                        , hPolicy='minimalexpanding', hAlign='l')
+    # self._residueFrame.setFixedHeight(25)
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
 
     # gridLine 1
@@ -153,6 +157,15 @@ class AtomSelectorModule(CcpnModule):
 
     self._updateWidget()
     # self._predictAssignments(self.current.peaks)
+
+  def _truncateText(self, text, splitter= ' '):
+    maxWords = 4
+    words = text.split(splitter)
+    if len(words)>maxWords:
+      return ' , '.join(words[:maxWords]) + ' ...'
+    else:
+      return ' , '.join(words[:maxWords])
+
 
   def _togglePressedButton(self, pressedButton=None):
     '''Ensures only a button at the time is checked, yet allows to uncheck a radio button. If pressedButton is None: unchecks all'''
@@ -245,19 +258,28 @@ class AtomSelectorModule(CcpnModule):
 
   def _updateWidget(self):
     "Update the widget to reflect the proper state"
+    msg = '< Not-defined. Select any to start >'
     try:
       if self.current.nmrResidue is not None:
-        self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-        if self.radioButton1.isChecked():
-          for w in self._sidechainModifiers:
-            w.hide()
-          self._createBackBoneButtons()
-        elif self.radioButton2.isChecked():
-          for w in self._sidechainModifiers:
-            w.show()
-          self._createSideChainButtons()
+        if self.current.peak is not None:
+          self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+          splitter = ' , '
+          pText = self._truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
+          self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
+          self.currentPeaksLabel.setText(pText)
+          if self.radioButton1.isChecked():
+            for w in self._sidechainModifiers:
+              w.hide()
+            self._createBackBoneButtons()
+          elif self.radioButton2.isChecked():
+            for w in self._sidechainModifiers:
+              w.show()
+            self._createSideChainButtons()
+        else:
+          self.currentPeaksLabel.setText(msg)
       else:
-        self.currentNmrResidueLabel.setText('<not-defined>')
+        self.currentNmrResidueLabel.setText(msg)
+
       self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
       return
     except:
@@ -275,6 +297,7 @@ class AtomSelectorModule(CcpnModule):
 
     if len(self.current.peaks) > 1:
       self._togglePressedButton()
+
       return
     if self.current.peak is None:
       return
@@ -727,6 +750,7 @@ class AtomSelectorModule(CcpnModule):
 
     self._predictAssignments(peaks)
     self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+    self._updateWidget()
 
   def _predictAssignments(self, peaks:typing.List[Peak]):
     """
