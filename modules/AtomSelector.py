@@ -66,7 +66,7 @@ from ccpn.ui.gui.widgets.RadioButtons import RadioButtons
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.Frame import Frame
-from ccpn.util.Common import makeIterableList
+from ccpn.util.Common import makeIterableList, _truncateText
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
@@ -158,13 +158,7 @@ class AtomSelectorModule(CcpnModule):
     self._updateWidget()
     # self._predictAssignments(self.current.peaks)
 
-  def _truncateText(self, text, splitter= ' '):
-    maxWords = 4
-    words = text.split(splitter)
-    if len(words)>maxWords:
-      return ' , '.join(words[:maxWords]) + ' ...'
-    else:
-      return ' , '.join(words[:maxWords])
+
 
 
   def _togglePressedButton(self, pressedButton=None):
@@ -267,7 +261,7 @@ class AtomSelectorModule(CcpnModule):
 
     if self.current.peak is not None:
       splitter = ' , '
-      pText = self._truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
+      pText = _truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
       self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
       self.currentPeaksLabel.setText(pText)
     else:
