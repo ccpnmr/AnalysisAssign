@@ -120,6 +120,7 @@ class AtomSelectorModule(CcpnModule):
     self.atomTypeLabel = Label(self.settingsWidget, 'Atom Type', grid=(3, 0))
     self.atomOptions = RadioButtons(self.settingsWidget,selectedInd=1, texts=['H','C','N', 'Other'],callback=self._toggleBox, grid=(3,1))
     self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox  = self.atomOptions.radioButtons
+    self.otherCheckBox.setEnabled(False) # not implemented ? broken?
 
     self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
