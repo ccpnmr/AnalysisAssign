@@ -199,7 +199,7 @@ class AtomSelectorModule(CcpnModule):
   def _assignSelected(self, atomName, offSet):
     nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
     nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
-    _assignNmrAtomsToPeaks(strip=self.current.strip, nmrAtoms=[nmrAtom], peaks=self.current.peaks)
+    _assignNmrAtomsToPeaks(nmrAtoms=[nmrAtom], peaks=self.current.peaks)
     self._setCheckedButtonOfAssignedAtoms(nmrResidue, offSet=offSet) # this so that only assigned atoms are checked.
 
 
@@ -334,53 +334,6 @@ class AtomSelectorModule(CcpnModule):
     else:
       self._togglePressedButton()
 
-
-
-
-  # def _setCheckedButtonOfAssignedAtoms(self, nmrResidue, offset=None):
-  #   '''setChecked the radioButton Of Assigned Nmr Atoms.
-  #   This makes sure that if a peak is selected and and assigned to an nmrAtom, the relative button is checked '''
-  #   from ccpn.util.Common import makeIterableList
-  #
-  #   if len(self.current.peaks) > 1:
-  #     self._togglePressedButton()
-  #     return
-  #   if self.current.peak is None:
-  #     return
-  #   if not nmrResidue:
-  #     return
-  #
-  #   peak = self.current.peak
-  #   allButtons = self.buttonGroup.buttons()
-  #
-  #   buttonsToCheck = set()
-  #   for assignedNmrAtom in  makeIterableList(peak.assignedNmrAtoms):
-  #     if assignedNmrAtom in nmrResidue.nmrAtoms:
-  #       for button in allButtons:
-  #         if assignedNmrAtom:
-  #           if offset =='0' or offset is None:
-  #             if assignedNmrAtom.name == button.getText():
-  #               buttonsToCheck.add(button)
-  #           else:
-  #             btext = self.atomLabel(assignedNmrAtom.name, offset)
-  #             if btext ==  button.getText():
-  #               buttonsToCheck.add(button)
-  #     else: #Try to search in + and - 1 offset
-  #       for offset in ['-1', '+1']:
-  #         r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + offset)
-  #         if r:
-  #           if assignedNmrAtom in r.nmrAtoms:
-  #             for button in allButtons:
-  #               if assignedNmrAtom:
-  #                   btext = self.atomLabel(assignedNmrAtom.name, offset)
-  #                   if btext == button.getText():
-  #                     buttonsToCheck.add(button)
-  #
-  #   for b in allButtons:
-  #     if b in list(buttonsToCheck):
-  #       b.setChecked(True)
-  #     else:
-  #       b.setChecked(False)
 
 
   def _createBackBoneButtons(self):
@@ -804,6 +757,9 @@ class AtomSelectorModule(CcpnModule):
 
     # make sure that the widget is visible
     self.pickAndAssignWidget.show()
+    # make sure that you have buttons!
+    if len(self.buttonGroup.buttons()) == 0:
+      return
 
     # check if peaks coincide
     for dim in range(peaks[0].peakList.spectrum.dimensionCount):
