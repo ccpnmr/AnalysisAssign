@@ -80,7 +80,7 @@ logger = getLogger()
 # MOLECULE_TYPES = ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
 MOLECULE_TYPES = ['protein']
 ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
-
+MSG = '< Not-defined. Select any to start >'
 
 class AtomSelectorModule(CcpnModule):
   """
@@ -209,6 +209,11 @@ class AtomSelectorModule(CcpnModule):
                                     , [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE]
                                     , NmrAtom.__name__
                                     , self._nmrResidueCallBack)
+    self._peakChangeNotifier = Notifier(self.project
+                                     , [Notifier.CHANGE]
+                                     , Peak.__name__
+                                     , self._nmrResidueCallBack)
+
     self._peakNotifier = Notifier(self.current
                                  , [Notifier.CURRENT]
                                  , Peak._pluralLinkName
@@ -242,7 +247,7 @@ class AtomSelectorModule(CcpnModule):
   def _nmrResidueCallBack(self, nmrResidues=None):
     "Callback if current.nmrResidue changes"
     if nmrResidues is not None and self.current.nmrResidue:
-      # self._updateWidget()
+      self._updateWidget()
       if self.current.peaks:
         # self._predictAssignments(self.current.peaks)
         self.pickAndAssignWidget.show()
@@ -250,6 +255,7 @@ class AtomSelectorModule(CcpnModule):
         self.pickAndAssignWidget.hide()
     else:
       self.pickAndAssignWidget.hide()
+      self.currentNmrResidueLabel.setText(MSG)
 
   def _offsetPullDownCallback(self, tmp=None):
     "Callback if offset pullDown changes"
@@ -257,31 +263,34 @@ class AtomSelectorModule(CcpnModule):
       self._updateWidget()
       self._predictAssignments(self.current.peaks)
 
+  def _setPeaksLabel(self):
+
+    if self.current.peak is not None:
+      splitter = ' , '
+      pText = self._truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
+      self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
+      self.currentPeaksLabel.setText(pText)
+    else:
+      self.currentPeaksLabel.setText(MSG)
+
   def _updateWidget(self):
     "Update the widget to reflect the proper state"
-    msg = '< Not-defined. Select any to start >'
+
     try:
       if self.current.nmrResidue is not None:
-        if self.current.peak is not None:
-          self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-          splitter = ' , '
-          pText = self._truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
-          self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
-          self.currentPeaksLabel.setText(pText)
-          if self.radioButton1.isChecked():
-            for w in self._sidechainModifiers:
-              w.hide()
-            self._createBackBoneButtons()
-          elif self.radioButton2.isChecked():
-            for w in self._sidechainModifiers:
-              w.show()
-            self._createSideChainButtons()
-        else:
-          self.currentPeaksLabel.setText(msg)
+        self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+        self._setPeaksLabel()
+        if self.radioButton1.isChecked():
+          for w in self._sidechainModifiers:
+            w.hide()
+          self._createBackBoneButtons()
+        elif self.radioButton2.isChecked():
+          for w in self._sidechainModifiers:
+            w.show()
+          self._createSideChainButtons()
+        self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
       else:
-        self.currentNmrResidueLabel.setText(msg)
-
-      self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+        self.currentNmrResidueLabel.setText(MSG)
       return
     except:
       return
