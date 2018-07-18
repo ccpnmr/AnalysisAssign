@@ -215,12 +215,13 @@ class PeakAssigner(CcpnModule):
 
       # and enable the frame
       self.axisFrame.show()
-
-      peakList = ', '.join([str(pp.id) for pp in self.current.peaks])
+      from ccpn.util.Common import makeIterableList, _truncateText
+      peaksIds = ' , '.join([str(pp.id) for pp in self.current.peaks])
       if len(self.current.peaks) < 2:
         self.peakLabel.setText('Peak: %s' % self.current.peak.id)
       else:
-        self.peakLabel.setText('Peaks: %s' % peakList)
+        self.peakLabel.setText('Peaks: %s' %_truncateText(peaksIds, maxWords=10) )
+        self.peakLabel.setToolTip(peaksIds)
 
       self._updateNewTable()
 
