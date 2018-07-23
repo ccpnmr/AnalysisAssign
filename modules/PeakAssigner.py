@@ -61,6 +61,31 @@ from ccpn.core.lib.Notifiers import Notifier
 
 logger = getLogger()
 
+allowedResidueTypes = [('', '', ''),
+                       ('Alanine', 'ALA', 'A'),
+                       ('Arginine', 'ARG', 'R'),
+                       ('Asparagine', 'ASN', 'N'),
+                       ('Aspartic acid', 'ASP', 'D'),
+                       ('ASP/ASN ambiguous', 'ASX', 'B'),
+                       ('Cysteine', 'CYS', 'C'),
+                       ('Glutamine', 'GLN', 'Q'),
+                       ('Glutamic acid', 'GLU', 'E'),
+                       ('GLU/GLN ambiguous', 'GLX', 'Z'),
+                       ('Glycine', 'GLY', 'G'),
+                       ('Histidine', 'HIS', 'H'),
+                       ('Isoleucine', 'ILE', 'I'),
+                       ('Leucine', 'LEU', 'L'),
+                       ('Lysine', 'LYS', 'K'),
+                       ('Methionine', 'MET', 'M'),
+                       ('Phenylalanine', 'PHE', 'F'),
+                       ('Proline', 'PRO', 'P'),
+                       ('Serine', 'SER', 'S'),
+                       ('Threonine', 'THR', 'T'),
+                       ('Tryptophan', 'TRP', 'W'),
+                       ('Tyrosine', 'TYR', 'Y'),
+                       ('Unknown', 'UNK', ''),
+                       ('Valine', 'VAL', 'V')]
+
 
 class PeakAssigner(CcpnModule):
     """Module for assignment of nmrAtoms to the different axes of a peak.
@@ -267,6 +292,10 @@ class PeakAssigner(CcpnModule):
             axisCode = self.current.peak.peakList.spectrum.axisCodes[dim]
             text = '%s: %.3f' % (axisCode, avgPos)
             self.axisTables[dim].axisLabel.setText(text)
+
+            self.axisTables[dim].buttonList.setButtonEnabled('Delete', False)
+            self.axisTables[dim].buttonList.setButtonEnabled('Deassign', False)
+            self.axisTables[dim].buttonList.setButtonEnabled('Assign', False)
 
     def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> float:
         """
@@ -498,8 +527,8 @@ class AxisAssignmentObject(Frame):
         # seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
         # resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
         # atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
-        Spacer(self.pulldownFrame, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-               , grid=(0, 0), gridSpan=(1, 1))
+        Spacer(self.pulldownFrame, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+                grid=(0, 0), gridSpan=(1, 1))
         self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame,
                                                        grid=(1, 0), gridSpan=(1, 1),
                                                        tipText='Chain code')
@@ -523,6 +552,7 @@ class AxisAssignmentObject(Frame):
         self.seqCodePulldown.setMinimumWidth(70)
         self.resTypePulldown.setMinimumWidth(70)
         self.atomTypePulldown.setMinimumWidth(70)
+        self._setDefaultPulldowns()
 
         # set minimum width to accommodate the pulldowns
         self.layout().setColumnMinimumWidth(0, 280)
@@ -614,24 +644,25 @@ class AxisAssignmentObject(Frame):
                 self.buttonList.setButtonEnabled('Assign', True)
 
     def _createChainPulldown(self, parent=None, grid=(0, 0), gridSpan=(1, 1), tipText='') -> PulldownList:
-        """
-        Creates a PulldownList with callback, editable.
+        """Creates a PulldownList with callback, editable.
         """
         pulldownList = PulldownList(parent=parent, grid=grid, backgroundText=tipText, editable=True, gridSpan=gridSpan,
                                     tipText=tipText)
-        pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        pulldownList.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         # pulldownList.setEditable(True)
         pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
         pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
+        pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
         return pulldownList
 
+    # TODO:ED add _create for each pulldown, each defines the contents of the next...
+
     def _createPulldown(self, parent=None, grid=(0, 0), gridSpan=(1, 1), tipText='') -> PulldownList:
-        """
-        Creates a PulldownList with a callback, editable.
+        """Creates a PulldownList with callback, editable.
         """
         pulldownList = PulldownList(parent=parent, grid=grid, backgroundText=tipText, editable=True, gridSpan=gridSpan,
                                     tipText=tipText)
-        pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        pulldownList.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         # pulldownList.setEditable(True)
         pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
         pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
@@ -678,8 +709,6 @@ class AxisAssignmentObject(Frame):
             showWarning(str(self.windowTitle()), str(es))
         finally:
             self.project._endCommandEchoBlock()
-
-            # TODO:ED select the new item in the table
 
     def _assignNmrAtom(self, dim: int, action: bool = False):
         """
@@ -752,13 +781,29 @@ class AxisAssignmentObject(Frame):
 
                 # self._updateInterface()
                 self.parent._updateInterface()
-                self.tables[self.lastTableSelected].selectObjects([nmrAtom], setUpdatesEnabled=False)
-                self._updateAssignmentWidget(self.lastTableSelected, nmrAtom)
+                self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+                self._updateAssignmentWidget(0, nmrAtom)
 
-                self.lastTableSelected = 0
-                self.buttonList.setButtonEnabled('Delete', True)
-                self.buttonList.setButtonEnabled('Deassign', True)
-                self.buttonList.setButtonEnabled('Assign', False)
+                # self.lastTableSelected = 0
+                # self.buttonList.setButtonEnabled('Delete', True)
+                # self.buttonList.setButtonEnabled('Deassign', True)
+                # self.buttonList.setButtonEnabled('Assign', False)
+
+                # nextAtom = self.tables[1].getSelectedObjects()
+                if nmrAtom:
+                    self._updateAssignmentWidget(0, nmrAtom)
+
+                    self.lastTableSelected = 0
+                    self.buttonList.setButtonEnabled('Delete', True)
+                    self.buttonList.setButtonEnabled('Deassign', True)
+                    self.buttonList.setButtonEnabled('Assign', False)
+                else:
+                    self._updateAssignmentWidget(0, None)
+
+                    self.lastTableSelected = 0
+                    self.buttonList.setButtonEnabled('Delete', False)
+                    self.buttonList.setButtonEnabled('Deassign', False)
+                    self.buttonList.setButtonEnabled('Assign', False)
 
         except Exception as es:
             showWarning('Assign Peak to NmrAtom', str(es))
@@ -773,7 +818,6 @@ class AxisAssignmentObject(Frame):
         # return if no peaks selected
         if not self.current.peaks:
             return
-
 
         try:
             currentObject = self.tables[0].getSelectedObjects()
@@ -821,7 +865,6 @@ class AxisAssignmentObject(Frame):
 
         except Exception as es:
             showWarning('Deassign Peak from NmrAtom', str(es))
-
 
         # try:
         #     for peak in self.current.peaks:
@@ -922,7 +965,9 @@ class AxisAssignmentObject(Frame):
                 self.seqCodePulldown.setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
                 self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
 
-                residueTypes = [nmrResidue.residueType for nmrResidue in self.project.nmrResidues]
+                # residueTypes = [nmrResidue.residueType for nmrResidue in self.project.nmrResidues]
+
+                residueTypes = [nmrResidue[1] for nmrResidue in allowedResidueTypes]  # self.project.nmrResidues]
                 residueTypes = list(OrderedDict.fromkeys(residueTypes))
                 self.resTypePulldown.setData(sorted(residueTypes, key=CcpnSorting.stringSortKey))
                 self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
@@ -953,10 +998,7 @@ class AxisAssignmentObject(Frame):
                     self.resTypePulldown.setData(options[2])
                     self.atomTypePulldown.setData(options[3])
                 else:
-                    self.chainPulldown.clear()
-                    self.seqCodePulldown.clear()
-                    self.resTypePulldown.clear()
-                    self.atomTypePulldown.clear()
+                    self._setDefaultPulldowns()
 
                 try:
                     self.chainPulldown.setIndex(self.chainPulldown.texts.index(chain.id))
@@ -974,11 +1016,19 @@ class AxisAssignmentObject(Frame):
                                         self.resTypePulldown.currentText(),
                                         self.atomTypePulldown.currentText())
         else:
-            self.chainPulldown.clear()
-            self.seqCodePulldown.clear()
-            self.resTypePulldown.clear()
-            self.atomTypePulldown.clear()
+            self._setDefaultPulldowns()
             self.lastNmrAtomSelected = None
+
+    def _setDefaultPulldowns(self):
+        self.chainPulldown.clear()
+        self.seqCodePulldown.clear()
+        self.resTypePulldown.clear()
+        self.atomTypePulldown.clear()
+
+        # populate the chain pulldown from the project
+        chains = ['']
+        chains.extend([chain.id for chain in self.project.nmrChains])
+        self.chainPulldown.setData(chains)
 
     def _deleteNmrAtom(self, dim: int):
         """
