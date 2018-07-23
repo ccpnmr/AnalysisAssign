@@ -223,6 +223,8 @@ class AtomSelectorModule(CcpnModule):
     """
     if self._peakNotifier is not None:
       self._peakNotifier.unRegister()
+    if self._peakChangeNotifier is not None:
+      self._peakChangeNotifier.unRegister()
     if self._nmrResidueNotifier is not None:
       self._nmrResidueNotifier.unRegister()
     if self._nmrAtomNotifier is not None:
@@ -271,9 +273,9 @@ class AtomSelectorModule(CcpnModule):
     "Update the widget to reflect the proper state"
 
     try:
+      self._setPeaksLabel()
       if self.current.nmrResidue is not None:
         self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-        self._setPeaksLabel()
         if self.radioButton1.isChecked():
           for w in self._sidechainModifiers:
             w.hide()
@@ -299,7 +301,8 @@ class AtomSelectorModule(CcpnModule):
     '''setChecked the radioButton Of Assigned Nmr Atoms.
     This makes sure that if a peak is selected and and assigned to an nmrAtom, the relative button is checked '''
 
-    if not self.current.peak and not nmrResidue: return
+    if not self.current.peak: return
+    if not nmrResidue: return
 
     peaks = self.current.peaks
     currentDisplayedButtons = self.buttonGroup.buttons()
