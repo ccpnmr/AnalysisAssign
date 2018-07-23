@@ -11,7 +11,7 @@ __credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timot
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license",
-               "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
+                 "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
 #=========================================================================================
 # Last code modification
 #=========================================================================================
@@ -55,896 +55,970 @@ from ccpn.ui.gui.widgets.MessageDialog import showYesNoWarning
 from ccpn.ui.gui.guiSettings import COLOUR_SCHEMES, getColours, DIVIDER
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
-from ccpnmodel.ccpncore.lib.Constants import  defaultNmrChainCode
+from ccpnmodel.ccpncore.lib.Constants import defaultNmrChainCode
 from ccpn.core.lib.Notifiers import Notifier
+
 
 logger = getLogger()
 
 
 class PeakAssigner(CcpnModule):
-  """Module for assignment of nmrAtoms to the different axes of a peak.
-  Module responds to current.peak
-  """
-
-  # overide in specific module implementations
-  includeSettingsWidget = True
-  maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsPosition = 'top'
-  className = 'PeakAssigner'
-
-  class emptyObject():
-    def __init__(self):
-      pass
-
-  def __init__(self, mainWindow,  name="Peak Assigner"):
-
-    CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
-
-    # Derive application, project, and current from mainWindow
-    self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
-
-    # settings
-    doubleToleranceCheckboxLabel = Label(self.settingsWidget, text="Double Tolerances ", grid=(0,0))
-    self.doubleToleranceCheckbox = CheckBox(self.settingsWidget, checked=False,
-                                            callback=self._updateInterface,
-                                            grid=(0,1))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-                         grid=(0,2), gridSpan=(1,1))
-
-    intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0,3))
-    self.intraCheckbox = CheckBox(self.settingsWidget, checked=False,
-                                   callback=self._updateInterface,
-                                   grid=(0,4))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-                         grid=(0,5), gridSpan=(1,1))
-
-    multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0,6))
-    self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
-                                   callback=self._updateInterface,
-                                   grid=(0,7))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-                         grid=(0,8), gridSpan=(1,1))
-
-    expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0,9))
-    self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
-                                callback=self._updateInterface,
-                                grid=(0,10))
-    Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-                         grid=(0,11), gridSpan=(1,1))
-
-    allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0,12))
-    self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=False,
-                                callback=self._updateInterface,
-                                grid=(0,13))
-
-    self._spacer = Spacer(self.settingsWidget, 5, 5,
-                         QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-                         grid=(1,14), gridSpan=(1,1))
-
-    # Main content widgets
-    # TODO:ED check the overlapping of these widgets
-    self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0,0),
-                            text='Peak:', bold=True,
-                            grid=(0,0), margins=(2,2,2,2), hAlign='left', vAlign='t',
-                            hPolicy = 'fixed', vPolicy = 'fixed')
-    self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
-    self.peakLabel.setFixedHeight(20)
-
-    self.axisFrame = Frame(parent=self.mainWidget, setLayout=True, spacing=(0,0),
-                                showBorder=False, fShape='noFrame',
-                                grid=(1,0),
-                                hPolicy='expanding', vPolicy='expanding')
-    self.axisTables = []
-    self.NDims = 0
-    self.currentAtoms = None
-
-    Spacer(self.axisFrame, 5, 5, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
-                         grid=(6,0), gridSpan=(1,1))
-
-
-    # respond to peaks
-    # TODO:ED check which of these are still needed
-    self._registerNotifiers()
-
-    # self.current.registerNotify(self._updateInterface, 'peaks')
-    # # self.current.registerNotify(self._updateInterface, 'nmrAtoms')
-    # self.project.registerNotifier('NmrAtom', 'change', self._update)   # just refresh the table
-    # # self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
-
-    self._settingsScrollArea.setMaximumHeight(35)
-    self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
-    self.closeModule = self._closeModule
-
-    # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-    # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-    self._updateInterface()
-
-  def _registerNotifiers(self):
-    # without a tableSelection specified in the table callback, this nmrAtom callback is needed
-    # tio update the table
-    self._peakNotifier = Notifier(self.current,
-                                  [Notifier.CURRENT],
-                                  targetName=Peak._pluralLinkName,
-                                  callback=self._updateInterface)
-    self._nmrAtomNotifier = Notifier(self.project,
-                                  [Notifier.CHANGE, Notifier.RENAME],
-                                  targetName=NmrAtom.__name__,
-                                  callback=self._update)
-
-  def _unRegisterNotifiers(self):
-    if self._peakNotifier:
-      self._peakNotifier.unRegister()
-    if self._nmrAtomNotifier:
-      self._nmrAtomNotifier.unRegister()
-
-  def _update(self, *args):
-    self._updateInterface()
-
-  def __del__(self):
-    self._unRegisterNotifiers()
-
-  def _updateInterface(self, peaks:typing.List[Peak]=None):
-    """Updates the whole module, including recalculation
-       of which nmrAtoms fit to the peaks.
+    """Module for assignment of nmrAtoms to the different axes of a peak.
+    Module responds to current.peak
     """
-    # self._emptyAllTablesAndLists()
-    if not self.current.peaks or not self._peaksAreCompatible():
-      self.axisFrame.hide()
-    else:
 
-      Ndimensions = len(self.current.peak.position)
+    # overide in specific module implementations
+    includeSettingsWidget = True
+    maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+    settingsPosition = 'top'
+    className = 'PeakAssigner'
 
-      if Ndimensions > self.NDims:# len(self.axisTables):
-        for addNew in range(len(self.axisTables), Ndimensions):
 
-          # add a new axis item to the end of the list
-          self.axisTables.append(AxisAssignmentObject(self, index=addNew,
-                                                    parent=self.axisFrame,
-                                                    mainWindow=self.mainWindow,
-                                                    grid=(addNew,0), gridSpan=(1,1)))
-        for showNew in range(self.NDims, Ndimensions):
-          self.axisTables[showNew].show()
+    class emptyObject():
+        def __init__(self):
+            pass
 
-      elif Ndimensions < len(self.axisTables):
-        for delOld in range(Ndimensions, len(self.axisTables)):
-          self.axisTables[delOld].hide()
-      self.NDims = Ndimensions
 
-      # and enable the frame
-      self.axisFrame.show()
-      from ccpn.util.Common import makeIterableList, _truncateText
-      peaksIds = ' , '.join([str(pp.id) for pp in self.current.peaks])
-      if len(self.current.peaks) < 2:
-        self.peakLabel.setText('Peak: %s' % self.current.peak.id)
-      else:
-        self.peakLabel.setText('Peaks: %s' %_truncateText(peaksIds, maxWords=10) )
-        self.peakLabel.setToolTip(peaksIds)
+    def __init__(self, mainWindow, name="Peak Assigner"):
 
-      self._updateNewTable()
+        CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
-  def _updateNewTable(self):
-    """
-    update Assigned and alternatives tables showing which nmrAtoms
-    are assigned to which peak dimensions. If multiple
-    peaks are selected, only the assignment that they
-    have in common are shown. Maybe this should be all
-    assignments. You can see that at the peak annotation
-    though.
-    """
-    peaks = self.current.peaks
-    doubleTolerance = self.doubleToleranceCheckbox.isChecked()
-    intraResidual = self.intraCheckbox.isChecked()
-    nmrAtomsForTables = nmrAtomsForPeaks(peaks, self.project.nmrAtoms,
+        # Derive application, project, and current from mainWindow
+        self.mainWindow = mainWindow
+        self.application = mainWindow.application
+        self.project = mainWindow.application.project
+        self.current = mainWindow.application.current
+
+        # settings
+        doubleToleranceCheckboxLabel = Label(self.settingsWidget, text="Double Tolerances ", grid=(0, 0))
+        self.doubleToleranceCheckbox = CheckBox(self.settingsWidget, checked=False,
+                                                callback=self._updateInterface,
+                                                grid=(0, 1))
+        Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(0, 2), gridSpan=(1, 1))
+
+        intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0, 3))
+        self.intraCheckbox = CheckBox(self.settingsWidget, checked=False,
+                                      callback=self._updateInterface,
+                                      grid=(0, 4))
+        Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(0, 5), gridSpan=(1, 1))
+
+        multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0, 6))
+        self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
+                                      callback=self._updateInterface,
+                                      grid=(0, 7))
+        Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(0, 8), gridSpan=(1, 1))
+
+        expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0, 9))
+        self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
+                                    callback=self._updateInterface,
+                                    grid=(0, 10))
+        Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(0, 11), gridSpan=(1, 1))
+
+        allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0, 12))
+        self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=False,
+                                              callback=self._updateInterface,
+                                              grid=(0, 13))
+
+        self._spacer = Spacer(self.settingsWidget, 5, 5,
+                              QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+                              grid=(1, 14), gridSpan=(1, 1))
+
+        # Main content widgets
+        # TODO:ED check the overlapping of these widgets
+        self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0, 0),
+                               text='Peak:', bold=True,
+                               grid=(0, 0), margins=(2, 2, 2, 2), hAlign='left', vAlign='t',
+                               hPolicy='fixed', vPolicy='fixed')
+        self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
+        self.peakLabel.setFixedHeight(20)
+
+        self.axisFrame = Frame(parent=self.mainWidget, setLayout=True, spacing=(0, 0),
+                               showBorder=False, fShape='noFrame',
+                               grid=(1, 0),
+                               hPolicy='expanding', vPolicy='expanding')
+        self.axisTables = []
+        self.NDims = 0
+        self.currentAtoms = None
+
+        Spacer(self.axisFrame, 5, 5, QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+               grid=(6, 0), gridSpan=(1, 1))
+
+        # respond to peaks
+        # TODO:ED check which of these are still needed
+        self._registerNotifiers()
+
+        # self.current.registerNotify(self._updateInterface, 'peaks')
+        # # self.current.registerNotify(self._updateInterface, 'nmrAtoms')
+        # self.project.registerNotifier('NmrAtom', 'change', self._update)   # just refresh the table
+        # # self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
+
+        self._settingsScrollArea.setMaximumHeight(35)
+        self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        self.closeModule = self._closeModule
+
+        # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        self._updateInterface()
+
+    def _registerNotifiers(self):
+        # without a tableSelection specified in the table callback, this nmrAtom callback is needed
+        # tio update the table
+        self._peakNotifier = Notifier(self.current,
+                                      [Notifier.CURRENT],
+                                      targetName=Peak._pluralLinkName,
+                                      callback=self._updateInterface)
+        self._nmrAtomNotifier = Notifier(self.project,
+                                         [Notifier.CHANGE, Notifier.RENAME],
+                                         targetName=NmrAtom.__name__,
+                                         callback=self._update)
+
+    def _unRegisterNotifiers(self):
+        if self._peakNotifier:
+            self._peakNotifier.unRegister()
+        if self._nmrAtomNotifier:
+            self._nmrAtomNotifier.unRegister()
+
+    def _update(self, *args):
+        self._updateInterface()
+
+    def __del__(self):
+        self._unRegisterNotifiers()
+
+    def _updateInterface(self, peaks: typing.List[Peak] = None):
+        """Updates the whole module, including recalculation
+           of which nmrAtoms fit to the peaks.
+        """
+        # self._emptyAllTablesAndLists()
+        if not self.current.peaks or not self._peaksAreCompatible():
+            self.axisFrame.hide()
+            self.peakLabel.setText('Peak: <None>')
+        else:
+
+            Ndimensions = len(self.current.peak.position)
+
+            if Ndimensions > self.NDims:  # len(self.axisTables):
+                for addNew in range(len(self.axisTables), Ndimensions):
+                    # add a new axis item to the end of the list
+                    self.axisTables.append(AxisAssignmentObject(self, index=addNew,
+                                                                parent=self.axisFrame,
+                                                                mainWindow=self.mainWindow,
+                                                                grid=(addNew, 0), gridSpan=(1, 1)))
+                for showNew in range(self.NDims, Ndimensions):
+                    self.axisTables[showNew].show()
+
+            elif Ndimensions < len(self.axisTables):
+                for delOld in range(Ndimensions, len(self.axisTables)):
+                    self.axisTables[delOld].hide()
+            self.NDims = Ndimensions
+
+            # and enable the frame
+            self.axisFrame.show()
+            from ccpn.util.Common import makeIterableList, _truncateText
+            peaksIds = ' , '.join([str(pp.id) for pp in self.current.peaks])
+            if len(self.current.peaks) < 2:
+                self.peakLabel.setText('Peak: %s' % self.current.peak.id)
+            else:
+                self.peakLabel.setText('Peaks: %s' % _truncateText(peaksIds, maxWords=6))
+                self.peakLabel.setToolTip(peaksIds)
+
+            self._updateNewTable()
+
+    def _updateNewTable(self):
+        """
+        update Assigned and alternatives tables showing which nmrAtoms
+        are assigned to which peak dimensions. If multiple
+        peaks are selected, only the assignment that they
+        have in common are shown. Maybe this should be all
+        assignments. You can see that at the peak annotation
+        though.
+        """
+        peaks = self.current.peaks
+        doubleTolerance = self.doubleToleranceCheckbox.isChecked()
+        intraResidual = self.intraCheckbox.isChecked()
+        nmrAtomsForTables = nmrAtomsForPeaks(peaks, self.project.nmrAtoms,
                                              doubleTolerance=doubleTolerance,
                                              intraResidual=intraResidual)
 
-    Ndimensions = len(nmrAtomsForTables)
-    self.currentList = []
+        Ndimensions = len(nmrAtomsForTables)
+        self.currentList = []
 
-    self._tables = [self.emptyObject()] * Ndimensions
+        self._tables = [self.emptyObject()] * Ndimensions
 
-    for dim, nmrAtoms in zip(range(Ndimensions),
-                                          nmrAtomsForTables):
-      ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
-      self.nmrAtoms = list(sorted(set.intersection(*ll)))    # was intersection
+        for dim, nmrAtoms in zip(range(Ndimensions),
+                                 nmrAtomsForTables):
+            ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
+            self.nmrAtoms = list(sorted(set.intersection(*ll)))  # was intersection
 
-      self.currentList.append([str(a.pid) for a in self.nmrAtoms])  # ejb - keep another list
-      self.axisTables[dim].setAssignedTable(self.nmrAtoms)
+            self.currentList.append([str(a.pid) for a in self.nmrAtoms])  # ejb - keep another list
+            self.axisTables[dim].setAssignedTable(self.nmrAtoms)
 
-      nmrAtomsForTables[dim] = [nmr for nmr in nmrAtomsForTables[dim] if nmr not in self.nmrAtoms]
-      if peaksAreOnLine(peaks, dim):
-        self.axisTables[dim].setAlternativesTable(nmrAtomsForTables[dim])
-      else:
-        self.axisTables[dim].setAlternativesTable(None)
+            nmrAtomsForTables[dim] = [nmr for nmr in nmrAtomsForTables[dim] if nmr not in self.nmrAtoms]
+            if peaksAreOnLine(peaks, dim):
+                self.axisTables[dim].setAlternativesTable(nmrAtomsForTables[dim])
+            else:
+                self.axisTables[dim].setAlternativesTable(None)
 
-      positions = [peak.position[dim] for peak in self.current.peaks]
-      avgPos = round(sum(positions)/len(positions), 3)
-      axisCode = self.current.peak.peakList.spectrum.axisCodes[dim]
-      text = '%s: %.3f' % (axisCode, avgPos)
-      self.axisTables[dim].axisLabel.setText(text)
+            positions = [peak.position[dim] for peak in self.current.peaks]
+            avgPos = round(sum(positions) / len(positions), 3)
+            axisCode = self.current.peak.peakList.spectrum.axisCodes[dim]
+            text = '%s: %.3f' % (axisCode, avgPos)
+            self.axisTables[dim].axisLabel.setText(text)
 
-  def getDeltaShift(self, nmrAtom:NmrAtom, dim:int) -> float:
-    """
-    Calculation of delta shift to add to the table.
-    """
-    if not self.current.peaks:
-      return ''
+    def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> float:
+        """
+        Calculation of delta shift to add to the table.
+        """
+        if not self.current.peaks:
+            return ''
 
-    if nmrAtom is NOL:
-      return ''
+        if nmrAtom is NOL:
+            return ''
 
-    deltas = []
-    for peak in self.current.peaks:
-      shiftList = peak.peakList.spectrum.chemicalShiftList
-      if shiftList:
-        shift = shiftList.getChemicalShift(nmrAtom.id)
-        if shift:
-          position = peak.position[dim]
-          deltas.append(abs(shift.value-position))
-    # average = sum(deltas)/len(deltas) #Bug: ZERO DIVISION!
+        deltas = []
+        for peak in self.current.peaks:
+            shiftList = peak.peakList.spectrum.chemicalShiftList
+            if shiftList:
+                shift = shiftList.getChemicalShift(nmrAtom.id)
+                if shift:
+                    position = peak.position[dim]
+                    deltas.append(abs(shift.value - position))
+        # average = sum(deltas)/len(deltas) #Bug: ZERO DIVISION!
 
-    if len(deltas)>0:
-      return '%6.3f' % np.mean(deltas)
-    else:
-      return ''
+        if len(deltas) > 0:
+            return '%6.3f' % np.mean(deltas)
+        else:
+            return ''
 
-  def _getShift(self, nmrAtom:NmrAtom) -> float:
-    """
-    Calculation of chemical shift value to add to the table.
-    """
-    if not self.current.peaks:
-      return ''
+    def _getShift(self, nmrAtom: NmrAtom) -> float:
+        """
+        Calculation of chemical shift value to add to the table.
+        """
+        if not self.current.peaks:
+            return ''
 
-    if nmrAtom is NOL:
-      return ''
-    for peak in self.current.peaks:
-      shiftList = peak.peakList.spectrum.chemicalShiftList
-      if shiftList:
-        shift = shiftList.getChemicalShift(nmrAtom.id)
-        if shift:
-          return '%8.3f' % shift.value
+        if nmrAtom is NOL:
+            return ''
+        for peak in self.current.peaks:
+            shiftList = peak.peakList.spectrum.chemicalShiftList
+            if shiftList:
+                shift = shiftList.getChemicalShift(nmrAtom.id)
+                if shift:
+                    return '%8.3f' % shift.value
 
-
-  def _peaksAreCompatible(self) -> bool:
-    """
-    If multiple peaks are selected, a check is performed
-    to determine whether assignment of corresponding
-    dimensions of a peak allowed.
-    """
-    if len(self.current.peaks) == 1:
-      return True
-    if not self.multiCheckbox.isChecked():
-      self.project._logger.warning("Multiple peaks selected, not allowed.")
-      return False
-    dimensionalities = set([len(peak.position) for peak in self.current.peaks])
-    if len(dimensionalities) > 1:
-      self.project._logger.warning('Not all peaks have the same number of dimensions.')
-      return False
-    for dim in range(len(self.current.peak.position)):
-      if not sameAxisCodes(self.current.peaks, dim):
-        self.project._logger.warning('''The combination of axiscodes is different for multiple
+    def _peaksAreCompatible(self) -> bool:
+        """
+        If multiple peaks are selected, a check is performed
+        to determine whether assignment of corresponding
+        dimensions of a peak allowed.
+        """
+        if len(self.current.peaks) == 1:
+            return True
+        if not self.multiCheckbox.isChecked():
+            self.project._logger.warning("Multiple peaks selected, not allowed.")
+            return False
+        dimensionalities = set([len(peak.position) for peak in self.current.peaks])
+        if len(dimensionalities) > 1:
+            self.project._logger.warning('Not all peaks have the same number of dimensions.')
+            return False
+        for dim in range(len(self.current.peak.position)):
+            if not sameAxisCodes(self.current.peaks, dim):
+                self.project._logger.warning('''The combination of axiscodes is different for multiple
                  selected peaks.''')
-        return False
-    return True
+                return False
+        return True
 
+    def _emptyAllTablesAndLists(self):
+        """
+        Quick erase of all present information in ListWidgets and ObjectTables.
+        """
+        self.peakLabel.setText('Peak: <None>')
+        for label in self.labels:
+            label.setText('')
+        for objectTable in self.objectTables:
+            objectTable.setObjects([])
+        for listWidget in self.listWidgets:
+            listWidget.clear()
 
-  def _emptyAllTablesAndLists(self):
-    """
-    Quick erase of all present information in ListWidgets and ObjectTables.
-    """
-    self.peakLabel.setText('Peak: <None>')
-    for label in self.labels:
-      label.setText('')
-    for objectTable in self.objectTables:
-      objectTable.setObjects([])
-    for listWidget in self.listWidgets:
-      listWidget.clear()
+    def _createNewNmrAtom(self, dim):
+        isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
+        nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
+                                             ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
 
+        self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
+        try:
 
-  def _createNewNmrAtom(self, dim):
-    isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
-    nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
-                                           ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
+            for peak in self.current.peaks:
+                if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+                    # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
 
-    self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
-    try:
+                    newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
+                    axisCode = peak.peakList.spectrum.axisCodes[dim]
+                    peak.assignDimension(axisCode, newAssignments)
+            # self.listWidgets[dim].addItem(nmrAtom.pid)
+            # self._updateTables()
+            self._updateNewTable()
 
-      for peak in self.current.peaks:
-        if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-          # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+        except Exception as es:
+            showWarning(str(self.windowTitle()), str(es))
+        finally:
+            self.project._endCommandEchoBlock()
 
-          newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]    # ejb - changed to list
-          axisCode = peak.peakList.spectrum.axisCodes[dim]
-          peak.assignDimension(axisCode, newAssignments)
-      # self.listWidgets[dim].addItem(nmrAtom.pid)
-      # self._updateTables()
-      self._updateNewTable()
+    def _updatePulldownLists(self, dim: int, row: int = None, col: int = None, obj: object = None):
+        objectTable = self.objectTables[dim]
+        nmrAtom = objectTable.getCurrentObject()
+        self._updateAssignmentWidget(dim, nmrAtom)
 
-    except Exception as es:
-      showWarning(str(self.windowTitle()), str(es))
-    finally:
-      self.project._endCommandEchoBlock()
+    def _closeModule(self):
+        """
+        CCPN-INTERNAL: used to close the module
+        """
+        self._unRegisterNotifiers()
+        super(PeakAssigner, self)._closeModule()
 
-  def _updatePulldownLists(self, dim:int, row:int=None, col:int=None, obj:object=None):
-    objectTable = self.objectTables[dim]
-    nmrAtom = objectTable.getCurrentObject()
-    self._updateAssignmentWidget(dim, nmrAtom)
+    def close(self):
+        """
+        Close the table from the commandline
+        """
+        self._closeModule()
 
-  def _closeModule(self):
-    """
-    CCPN-INTERNAL: used to close the module
-    """
-    self._unRegisterNotifiers()
-    super(PeakAssigner, self)._closeModule()
-
-  def close(self):
-    """
-    Close the table from the commandline
-    """
-    self._closeModule()
 
 class NotOnLine(object):
-  """
-  Small 'fake' object to get a message the user in the assignment
-  Table that a specific dimension can not be assigned in one go
-  since the frequencies of the peaks in this dimension are not on
-  one line (i.e. the C frequencies of the CA and CB in a strip for
-  instance).
-  """
-  def __init__(self):
-    self.pid = 'Multiple selected peaks not on line.'
-    self.id = 'Multiple selected peaks not on line.'
+    """
+    Small 'fake' object to get a message the user in the assignment
+    Table that a specific dimension can not be assigned in one go
+    since the frequencies of the peaks in this dimension are not on
+    one line (i.e. the C frequencies of the CA and CB in a strip for
+    instance).
+    """
+
+    def __init__(self):
+        self.pid = 'Multiple selected peaks not on line.'
+        self.id = 'Multiple selected peaks not on line.'
+
 
 NOL = NotOnLine()
 
+
 class AxisAssignmentObject(Frame):
-  """
-  Create a new frame for displaying information in 1 axis of peakassigner
-  """
-  def __init__(self, parentModule, index=None, parent=None, mainWindow=None, grid=None, gridSpan=None):
-    super(AxisAssignmentObject, self).__init__(parent=parent, setLayout=True, spacing=(0,0),
-          showBorder=False, fShape='noFrame',
-          vAlign='top',
-          hPolicy='expanding', vPolicy='expanding',
-          grid=grid, gridSpan=gridSpan)
+    """
+    Create a new frame for displaying information in 1 axis of peakassigner
+    """
 
-    # Derive application, project, and current from mainWindow
-    self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
-    self.currentAtoms = None
+    def __init__(self, parentModule, index=None, parent=None, mainWindow=None, grid=None, gridSpan=None):
+        super(AxisAssignmentObject, self).__init__(parent=parent, setLayout=True, spacing=(0, 0),
+                                                   showBorder=False, fShape='noFrame',
+                                                   vAlign='top',
+                                                   hPolicy='expanding', vPolicy='expanding',
+                                                   grid=grid, gridSpan=gridSpan)
 
-    # TODO:ED change divider at the top
-    row = 0
-    self.divider = HLine(self, grid=(row,0), gridSpan=(1,3), colour=getColours()[DIVIDER], height=15)
+        # Derive application, project, and current from mainWindow
+        self.mainWindow = mainWindow
+        self.application = mainWindow.application
+        self.project = mainWindow.application.project
+        self.current = mainWindow.application.current
+        self.currentAtoms = None
 
-    # add the labelling to the top of the frame
-    # row += 1
-    # self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(row,0))
-    row += 1
-    # self._assignmentsLabel = Label(self, 'Current Assignments', hAlign='l', grid=(row,0))
-    self.axisLabel = Label(self, 'Axis', hAlign='l', grid=(row, 0), bold=True)
-    self._alternativesLabel = Label(self, 'Alternatives', hAlign='l', grid=(row,2))
+        # TODO:ED change divider at the top
+        row = 0
+        self.divider = HLine(self, grid=(row, 0), gridSpan=(1, 3), colour=getColours()[DIVIDER], height=15)
 
-    # add two tables - left is current assignments, right is alternatives
-    row += 1
-    self.tables = [QuickTable(parent=self,
-                              mainWindow=mainWindow,
-                              dataFrameObject=None,
-                              setLayout=True,
-                              autoResize=True, multiSelect=False,
-                              actionCallback=partial(self._assignDeassignNmrAtom, 0),
-                              selectionCallback=partial(self._updatePulldownLists, 0),
-                              grid=(row,0), gridSpan=(1,1),
-                              stretchLastSection=True,
-                              enableSearch=False,
-                              acceptDrops=True),
+        # add the labelling to the top of the frame
+        # row += 1
+        # self.axisLabel = Label(self, 'Axis', hAlign='c', grid=(row,0))
+        row += 1
+        # self._assignmentsLabel = Label(self, 'Current Assignments', hAlign='l', grid=(row,0))
+        self.axisLabel = Label(self, 'Axis', hAlign='l', grid=(row, 0), bold=True)
+        self._alternativesLabel = Label(self, 'Alternatives', hAlign='l', grid=(row, 2))
 
-                  QuickTable(parent=self,
-                              mainWindow=mainWindow,
-                              dataFrameObject=None,
-                              setLayout=True,
-                              autoResize=True, multiSelect=False,
-                              actionCallback=partial(self._assignDeassignNmrAtom, 1),
-                              selectionCallback=partial(self._updatePulldownLists, 1),
-                              grid=(row,2), gridSpan=(7,1),
-                              stretchLastSection=False,
-                              enableSearch=False,
-                              acceptDrops=True)
-                  ]
+        # add two tables - left is current assignments, right is alternatives
+        row += 1
+        self.tables = [QuickTable(parent=self,
+                                  mainWindow=mainWindow,
+                                  dataFrameObject=None,
+                                  setLayout=True,
+                                  autoResize=True, multiSelect=False,
+                                  actionCallback=partial(self._assignDeassignNmrAtom, 0),
+                                  selectionCallback=partial(self._updatePulldownLists, 0),
+                                  grid=(row, 0), gridSpan=(1, 1),
+                                  stretchLastSection=True,
+                                  enableSearch=False,
+                                  acceptDrops=True),
 
-    # need to make this a little cleaner
-    self.tables[0].setTableNotifiers(tableClass=Peak,
-                            rowClass=NmrAtom,
-                            cellClassNames=None,
-                            tableName='assignedPeaks', rowName='nmrAtom',
-                            changeFunc=parentModule._updateInterface,
-                            className='peakLists',
-                            updateFunc=parentModule._updateInterface,
-                            tableSelection=None,
-                            pullDownWidget=None,
-                            callBackClass=NmrAtom)
-    self.tables[1].setTableNotifiers(tableClass=Peak,
-                            rowClass=NmrAtom,
-                            cellClassNames=None,
-                            tableName='assignedPeaks', rowName='nmrAtom',
-                            changeFunc=parentModule._updateInterface,
-                            className='peakLists',
-                            updateFunc=parentModule._updateInterface,
-                            tableSelection=None,
-                            pullDownWidget=None,
-                            callBackClass=NmrAtom)
+                       QuickTable(parent=self,
+                                  mainWindow=mainWindow,
+                                  dataFrameObject=None,
+                                  setLayout=True,
+                                  autoResize=True, multiSelect=False,
+                                  actionCallback=partial(self._assignDeassignNmrAtom, 1),
+                                  selectionCallback=partial(self._updatePulldownLists, 1),
+                                  grid=(row, 2), gridSpan=(7, 1),
+                                  stretchLastSection=True,
+                                  enableSearch=False,
+                                  acceptDrops=True)
+                       ]
 
-    # add a spacer to pad out the middle
-    Spacer(self, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding,
-          grid=(row,1), gridSpan=(1,1))
+        # set up notifiers to changes to peaks, nmrAtoms and assignments
+        self.tables[0].setTableNotifiers(tableClass=Peak,
+                                         rowClass=NmrAtom,
+                                         cellClassNames=None,
+                                         tableName='assignedPeaks', rowName='nmrAtom',
+                                         changeFunc=parentModule._updateInterface,
+                                         className='peakLists',
+                                         updateFunc=parentModule._updateInterface,
+                                         tableSelection=None,
+                                         pullDownWidget=None,
+                                         callBackClass=NmrAtom)
+        self.tables[1].setTableNotifiers(tableClass=Peak,
+                                         rowClass=NmrAtom,
+                                         cellClassNames=None,
+                                         tableName='assignedPeaks', rowName='nmrAtom',
+                                         changeFunc=parentModule._updateInterface,
+                                         className='peakLists',
+                                         updateFunc=parentModule._updateInterface,
+                                         tableSelection=None,
+                                         pullDownWidget=None,
+                                         callBackClass=NmrAtom)
 
-    # add pulldowns for editing new assignment
-    row += 1
-    self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(5,0), margins=(0,0,0,0),
-                                showBorder=False, fShape='noFrame',
-                                vAlign='top',
-                                grid=(row,0), gridSpan=(1,1))
+        # add a spacer to pad out the middle
+        Spacer(self, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding,
+               grid=(row, 1), gridSpan=(1, 1))
 
-    # chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
-    # seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
-    # resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
-    # atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
-    Spacer(self.pulldownFrame, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-          , grid=(0,0), gridSpan=(1,1))
-    self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame,
-                                                   grid=(1,0), gridSpan=(1,1),
-                                                   tipText='Chain code')
-    self.seqCodePulldown = self._createPulldown(parent=self.pulldownFrame,
-                                                   grid=(1,2), gridSpan=(1,1),
-                                                   tipText='Sequence code')
-    self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame,
-                                                   grid=(1,4), gridSpan=(1,1),
-                                                   tipText='Residue type')
-    self.atomTypePulldown = self._createPulldown(parent=self.pulldownFrame,
-                                                   grid=(1,6), gridSpan=(1,1),
-                                                   tipText='Atom type')
-    Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-          grid=(1,1), gridSpan=(1,1))
-    Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-          grid=(1,3), gridSpan=(1,1))
-    Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-          grid=(1,5), gridSpan=(1,1))
+        # add pulldowns for editing new assignment
+        row += 1
+        self.pulldownFrame = Frame(parent=self, setLayout=True, spacing=(5, 0), margins=(0, 0, 0, 0),
+                                   showBorder=False, fShape='noFrame',
+                                   vAlign='top',
+                                   grid=(row, 0), gridSpan=(1, 1))
 
-    self.chainPulldown.setMinimumWidth(70)
-    self.seqCodePulldown.setMinimumWidth(70)
-    self.resTypePulldown.setMinimumWidth(70)
-    self.atomTypePulldown.setMinimumWidth(70)
+        # chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
+        # seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
+        # resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
+        # atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
+        Spacer(self.pulldownFrame, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
+               , grid=(0, 0), gridSpan=(1, 1))
+        self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame,
+                                                       grid=(1, 0), gridSpan=(1, 1),
+                                                       tipText='Chain code')
+        self.seqCodePulldown = self._createPulldown(parent=self.pulldownFrame,
+                                                    grid=(1, 2), gridSpan=(1, 1),
+                                                    tipText='Sequence code')
+        self.resTypePulldown = self._createPulldown(parent=self.pulldownFrame,
+                                                    grid=(1, 4), gridSpan=(1, 1),
+                                                    tipText='Residue type')
+        self.atomTypePulldown = self._createPulldown(parent=self.pulldownFrame,
+                                                     grid=(1, 6), gridSpan=(1, 1),
+                                                     tipText='Atom type')
+        Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(1, 1), gridSpan=(1, 1))
+        Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(1, 3), gridSpan=(1, 1))
+        Spacer(self.pulldownFrame, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(1, 5), gridSpan=(1, 1))
 
-    # set minimum width to accommodate the pulldowns
-    self.layout().setColumnMinimumWidth(0, 280)
+        self.chainPulldown.setMinimumWidth(70)
+        self.seqCodePulldown.setMinimumWidth(70)
+        self.resTypePulldown.setMinimumWidth(70)
+        self.atomTypePulldown.setMinimumWidth(70)
 
-    # self.pulldownFrame.hide()
+        # set minimum width to accommodate the pulldowns
+        self.layout().setColumnMinimumWidth(0, 280)
 
-    self.pulldownFrame.setStyleSheet("""QComboBox {
+        # self.pulldownFrame.hide()
+
+        self.pulldownFrame.setStyleSheet("""QComboBox {
                                     padding: px;
                                     margin: 0px 0px 0px 0px;
                                     border: 0px;
                               }
                             """)
 
-    # another spacer
-    row += 1
-    Spacer(self, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-          grid=(row,0), gridSpan=(1,1))
-
-    # add a buttonlist
-    row += 1
-    self.buttonList = ButtonList(parent=self, texts=['New', 'Delete', 'Deassign', 'Assign'],
-                                 callbacks=[partial(self._createNewNmrAtom, index),
-                                              partial(self._deleteNmrAtom, index),
-                                              partial(self._deassignNmrAtom, index),
-                                              partial(self._assignNmrAtom, index)],
-                                 grid=(row,0), gridSpan=(1,1),
-                                 vPolicy='minimum', hPolicy='expanding',
-                                 vAlign='b')
-    self.buttonList.setButtonEnabled('Delete', False)
-    self.buttonList.setButtonEnabled('Deassign', False)
-    self.buttonList.setButtonEnabled('Assign', False)
-
-    self.layout().setColumnStretch(0, 1)
-    self.layout().setColumnStretch(1, 0)
-    self.layout().setColumnStretch(2, 2)
-
-    # initialise axis information
-    self.index = index
-    self.parent = parentModule
-    self.dataFrameAssigned=None
-    self.dataFrameAlternatives=None
-    self.lastTableSelected = None
-    self.lastNmrAtomSelected = None
-
-    # set column definitions and hidden columns for each table
-    self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None),
-                                   ('Pid', lambda nmrAtom: str(nmrAtom.pid), 'Pid of the nmrAtom', None),
-                                   ('_object', lambda nmrAtom:nmrAtom, 'Object', None),
-                                   ('Shift', lambda nmrAtom: parentModule._getShift(nmrAtom), 'Chemical shift', None),
-                                   ('Delta', lambda nmrAtom: parentModule.getDeltaShift(nmrAtom, index), 'Delta shift', None)])
-    self._hiddenColumns = [['Pid', 'Shift'], ['Pid', 'Shift']]
-
-    # set the fixed height of the frame
-    self.setFixedHeight(175)
-    # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
-
-  def _assignDeassignNmrAtom(self, tableNum:int, data):
-    """
-    Assign/Deassign the nmrAtom that is double clicked to the
-    the corresponding dimension of the selected
-    peaks.
-    """
-    if tableNum == 0:
-      # deassign from left to right
-      self._deassignNmrAtom(self.index)
-    elif tableNum == 1:
-      # assign from right to left
-      self._assignNmrAtom(self.index, action=True)
-
-  def _updatePulldownLists(self, tableNum, data):
-    self.lastTableSelected = tableNum
-    if tableNum == 0:
-      obj = data[Notifier.OBJECT]
-      if obj:
-        self._updateAssignmentWidget(tableNum, obj[0])
-        self.tables[1].clearSelection()
-        self.buttonList.setButtonEnabled('Delete', True)
-        self.buttonList.setButtonEnabled('Deassign', True)
-        self.buttonList.setButtonEnabled('Assign', False)
-    elif tableNum == 1:
-      obj = data[Notifier.OBJECT]
-      if obj:
-        self._updateAssignmentWidget(tableNum, obj[0])
-        self.tables[0].clearSelection()
-        self.buttonList.setButtonEnabled('Delete', True)
-        self.buttonList.setButtonEnabled('Deassign', False)
-        self.buttonList.setButtonEnabled('Assign', True)
-
-  def _createChainPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1), tipText='') -> PulldownList:
-    """
-    Creates a PulldownList with callback, editable.
-    """
-    pulldownList = PulldownList(parent=parent, grid=grid,backgroundText=tipText, editable=True, gridSpan=gridSpan, tipText=tipText)
-    pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
-    # pulldownList.setEditable(True)
-    pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
-    pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
-    return pulldownList
-
-  def _createPulldown(self, parent=None, grid=(0,0), gridSpan=(1,1), tipText='') -> PulldownList:
-    """
-    Creates a PulldownList with a callback, editable.
-    """
-    pulldownList = PulldownList(parent=parent, grid=grid, backgroundText=tipText, editable=True,gridSpan=gridSpan, tipText=tipText)
-    pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
-    # pulldownList.setEditable(True)
-    pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
-    pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
-    pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
-    return pulldownList
-
-  def _addItemToPulldown(self, pulldown:object):
-    """
-    Add items to pulldown list if changed
-    """
-    if pulldown.lineEdit().isModified():
-      text = pulldown.currentText()
-      if text and text not in pulldown.texts:
-
-        # TODO:ED this is old, should be able to delete
-        # pulldown.addItem(text)
-        pass
-
-  def _createNewNmrAtom(self, dim):
-    isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
-    nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
-                                           ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
-
-    self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
-    try:
-
-      for peak in self.current.peaks:
-        if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-          # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
-
-          newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]    # ejb - changed to list
-          axisCode = peak.peakList.spectrum.axisCodes[dim]
-          peak.assignDimension(axisCode, newAssignments)
-      self.parent._updateInterface()
-
-      # highlight on the table and populate the pulldowns
-      self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-      self.tables[1].clearSelection()
-      self._updateAssignmentWidget(0, nmrAtom)
-      self.buttonList.setButtonEnabled('Delete', True)
-      self.buttonList.setButtonEnabled('Deassign', True)
-      self.buttonList.setButtonEnabled('Assign', False)
-
-    except Exception as es:
-      showWarning(str(self.windowTitle()), str(es))
-    finally:
-      self.project._endCommandEchoBlock()
-
-      # TODO:ED select the new item in the table
-
-  def _assignNmrAtom(self, dim:int, action:bool=False):
-    """
-    Assigns dimensionNmrAtoms to peak dimension when called using Assign Button in assignment widget.
-    :param dim - axis dimension of the atom:
-    :param action - True if callback is action from the table:
-    """
-    # FIXME Potential Bug: no error checks for dim. It can give easily an IndexError
-
-    try:
-      currentNmrAtomSelected = (self.chainPulldown.currentText()
-                                , self.seqCodePulldown.currentText()
-                                , self.resTypePulldown.currentText()
-                                , self.atomTypePulldown.currentText())
-      atomCompare = self._atomCompare(self.lastNmrAtomSelected, currentNmrAtomSelected)
-
-      nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
-
-      if not action and (atomCompare[0] == True and
-          atomCompare[1] == True and
-          atomCompare[2] == False):
-
-        seqCode = self.seqCodePulldown.currentText()
-        newResType = self.resTypePulldown.currentText()
-        if showYesNoWarning('Assigning nmrAtoms'
-            , 'This will change all nmrAtoms to the residueType %s, continue?' % newResType):
-          nmrResidue = nmrChain.fetchNmrResidue(seqCode)
-
-          # change the residueType
-          nmrResidue.rename('.'.join([seqCode, newResType]))
-        else:
-          return
-
-      else:
-        nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText()
-                                                , self.resTypePulldown.currentText())
-
-      if nmrResidue:
-        nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
-        for peak in self.current.peaks:
-          dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
-
-          currentObject = nmrAtom
-          if nmrAtom not in dimNmrAtoms:
-            dimNmrAtoms.append(nmrAtom)
-
-          self.project._startCommandEchoBlock('application.peakAssigner.assignNmrAtom', peak.pid)
-          try:
-            toAssign = dimNmrAtoms.index(currentObject)
-
-            dimNmrAtoms[toAssign] = nmrAtom
-            allAtoms = list(peak.dimensionNmrAtoms)
-            allAtoms[dim] = dimNmrAtoms
-            peak.dimensionNmrAtoms = allAtoms
-
-          except Exception as es:
-            showWarning(str(self.windowTitle()), str(es))
-
-          finally:
-            self.project._endCommandEchoBlock()
-
-            # notifier to update other tables
-            # nmrResidue._finaliseAction('change')
-
-        # self._updateInterface()
-        self.parent._updateInterface()
-        self.tables[self.lastTableSelected].selectObjects([nmrAtom], setUpdatesEnabled=False)
-        self._updateAssignmentWidget(self.lastTableSelected, nmrAtom)
-
-        self.lastTableSelected = 0
-        self.buttonList.setButtonEnabled('Delete', True)
-        self.buttonList.setButtonEnabled('Deassign', True)
-        self.buttonList.setButtonEnabled('Assign', False)
-
-    except Exception as es:
-      showWarning('Assign Peak to NmrAtom', str(es))
-      self._updateAssignmentWidget(self.lastTableSelected, None)
-      self.buttonList.setButtonEnabled('Assign', False)
-
-  def _deassignNmrAtom(self, dim:int):
-    """
-    remove nmrAtom from peak assignment
-    """
-    try:
-      for peak in self.current.peaks:
-        # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
-
-        dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])   # ejb - changed to list
-        currentObject = self.tables[0].getSelectedObjects()
-
-        if currentObject:
-          self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom', peak.pid)
-          try:
-            # toAssign = dimNmrAtoms.index(currentObject)                   # error here..
-
-            dimNmrAtoms.remove(currentObject[0])
-
-            allAtoms = list(peak.dimensionNmrAtoms)
-            allAtoms[dim] = dimNmrAtoms
-            peak.dimensionNmrAtoms = allAtoms
-
-          except Exception as es:
-            showWarning(str(self.windowTitle()), str(es))
-
-          finally:
-            self.project._endCommandEchoBlock()
-
-            # notifier to update other tables
-            # nmrResidue._finaliseAction('change')
-
-          # self._updateInterface()
-          self.parent._updateInterface()
-          self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
-          nextAtom = self.tables[1].getSelectedObjects()
-          if nextAtom:
-            self._updateAssignmentWidget(1, currentObject[0])
-
-            self.lastTableSelected = 1
-            self.buttonList.setButtonEnabled('Delete', True)
-            self.buttonList.setButtonEnabled('Deassign', False)
-            self.buttonList.setButtonEnabled('Assign', True)
-          else:
-            self._updateAssignmentWidget(1, None)
-
-            self.lastTableSelected = 1
-            self.buttonList.setButtonEnabled('Delete', False)
-            self.buttonList.setButtonEnabled('Deassign', False)
-            self.buttonList.setButtonEnabled('Assign', False)
-
-    except Exception as es:
-      showWarning('Deassign Peak from NmrAtom', str(es))
-
-  def setAssignedTable(self, atomList:list):
-    # self.project.blankNotification()
-    objs = self.tables[0].getSelectedObjects()
-
-    # build a dataFrame object from the list" atomList - list of nmrAtoms
-    self.dataFrameAssigned = self.tables[0].getDataFrameFromList(table=self.tables[0],
-                                                buildList=atomList,
-                                                colDefs=self.columnDefs,
-                                                hiddenColumns=self._hiddenColumns[0])
-
-    # populate from the Pandas dataFrame inside the dataFrameObject
-    self.tables[0].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAssigned)
-    self.tables[0]._highLightObjs(objs)
-    # self.project.unblankNotification()
-
-  def setAlternativesTable(self, atomList:list):
-    # self.project.blankNotification()
-    objs = self.tables[1].getSelectedObjects()
-
-    # build a dataFrame object from the list" atomList - list of nmrAtoms
-    self.dataFrameAlternatives = self.tables[1].getDataFrameFromList(table=self.tables[1],
-                                                buildList=atomList,
-                                                colDefs=self.columnDefs,
-                                                hiddenColumns=self._hiddenColumns[1])
-
-    # populate from the Pandas dataFrame inside the dataFrameObject
-    self.tables[1].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAlternatives)
-    self.tables[1]._highLightObjs(objs)
-    # self.project.unblankNotification()
-
-  def _updateAssignmentWidget(self, tableNum:int, item:object):
-    """
-    Update all information in assignment widget when NmrAtom is selected in list widget of that
-    assignment widget.
-    """
-    nmrAtom = item
-
-    if nmrAtom:
-      chain = nmrAtom.nmrResidue.nmrChain
-      sequenceCode = nmrAtom.nmrResidue.sequenceCode
-      residueType = nmrAtom.nmrResidue.residueType
-
-      if not self.parent.allChainCheckBoxLabel.isChecked():
-        self.chainPulldown.setData([chain.id for chain in self.project.nmrChains])
-        self.chainPulldown.setIndex(self.chainPulldown.texts.index(chain.id))
-
-        sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
-        self.seqCodePulldown.setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
-        self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
-
-        residueTypes = [nmrResidue.residueType for nmrResidue in self.project.nmrResidues]
-        residueTypes = list(OrderedDict.fromkeys(residueTypes))
-        self.resTypePulldown.setData(sorted(residueTypes, key=CcpnSorting.stringSortKey))
-        self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
-
-        atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[self.index][-1]
-        atomNames = [atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name]
-        self.atomTypePulldown.setData(atomNames)
-        self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name))
-      else:
-
-        # only allow selection of peaks from the table
-        # atoms = self.objectTables[dim].getObjects()
-        atoms = self.tables[tableNum]._dataFrameObject.objects
-        if atoms:
-          options = [None] * 4    # 4 empty lists
-          for atom in atoms:
-            thisOpt = atom.id.split('.')
-
-            for optionNum in range(0, len(thisOpt)):
-              if options[optionNum]:
-                if thisOpt[optionNum] not in options[optionNum]:
-                  options[optionNum].append(thisOpt[optionNum])
-              else:
-                options[optionNum] = [thisOpt[optionNum]]
-
-          self.chainPulldown.setData(options[0])
-          self.seqCodePulldown.setData(options[1])
-          self.resTypePulldown.setData(options[2])
-          self.atomTypePulldown.setData(options[3])
-        else:
-          self.chainPulldown.clear()
-          self.seqCodePulldown.clear()
-          self.resTypePulldown.clear()
-          self.atomTypePulldown.clear()
-
-        try:
-          self.chainPulldown.setIndex(self.chainPulldown.texts.index(chain.id))
-          self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
-          self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
-          self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name))
-        except:
-          self.chainPulldown.setIndex(0)
-          self.seqCodePulldown.setIndex(0)
-          self.resTypePulldown.setIndex(0)
-          self.atomTypePulldown.setIndex(0)
-
-      self.lastNmrAtomSelected = (self.chainPulldown.currentText()
-                                   , self.seqCodePulldown.currentText()
-                                   , self.resTypePulldown.currentText()
-                                   , self.atomTypePulldown.currentText())
-    else:
-      self.chainPulldown.clear()
-      self.seqCodePulldown.clear()
-      self.resTypePulldown.clear()
-      self.atomTypePulldown.clear()
-      self.lastNmrAtomSelected = None
-
-  def _deleteNmrAtom(self, dim:int):
-    """
-    delete selected nmrAtom from project
-    """
-    if self.lastTableSelected is not None:
-      self.tables[self.lastTableSelected].deleteObjFromTable()
-      nextAtoms = self.tables[self.lastTableSelected].getSelectedObjects()
-      if not nextAtoms:
+        # another spacer
+        row += 1
+        Spacer(self, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+               grid=(row, 0), gridSpan=(1, 1))
+
+        # add a buttonlist
+        row += 1
+        self.buttonList = ButtonList(parent=self, texts=['New', 'Delete', 'Deassign', 'Assign'],
+                                     callbacks=[partial(self._createNewNmrAtom, index),
+                                                partial(self._deleteNmrAtom, index),
+                                                partial(self._deassignNmrAtom, index),
+                                                partial(self._assignNmrAtom, index)],
+                                     grid=(row, 0), gridSpan=(1, 1),
+                                     vPolicy='minimum', hPolicy='expanding',
+                                     vAlign='b')
         self.buttonList.setButtonEnabled('Delete', False)
         self.buttonList.setButtonEnabled('Deassign', False)
         self.buttonList.setButtonEnabled('Assign', False)
-        self._updateAssignmentWidget(self.lastTableSelected, None)
-      else:
-        self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])
 
-  #TODO:ED add pulldownselections
-  def _pulldownEdited(self, pulldown:object):
-    """
-    Enable the assignment button if the text has changed in the pulldown
-    """
-    currentNmrAtomSelected = (self.chainPulldown.currentText()
-                              , self.seqCodePulldown.currentText()
-                              , self.resTypePulldown.currentText()
-                              , self.atomTypePulldown.currentText())
-    self.buttonList.setButtonEnabled('Assign', False in self._atomCompare(self.lastNmrAtomSelected
-                                                                          , currentNmrAtomSelected))
+        self.layout().setColumnStretch(0, 1)
+        self.layout().setColumnStretch(1, 0)
+        self.layout().setColumnStretch(2, 2)
 
-  def _atomCompare(self, atom1:tuple, atom2:tuple):
-    """
-    check whether the selection has changed from being clicked
-    """
-    if atom1 and atom2:
-      return [True if a == b else False for a, b in zip(atom1, atom2)]
-    else:
-      return []
+        # initialise axis information
+        self.index = index
+        self.parent = parentModule
+        self.dataFrameAssigned = None
+        self.dataFrameAlternatives = None
+        self.lastTableSelected = None
+        self.lastNmrAtomSelected = None
+
+        # set column definitions and hidden columns for each table
+        self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None),
+                                       ('Pid', lambda nmrAtom: str(nmrAtom.pid), 'Pid of the nmrAtom', None),
+                                       ('_object', lambda nmrAtom: nmrAtom, 'Object', None),
+                                       ('Shift', lambda nmrAtom: parentModule._getShift(nmrAtom), 'Chemical shift',
+                                        None),
+                                       ('Delta', lambda nmrAtom: parentModule.getDeltaShift(nmrAtom, index),
+                                        'Delta shift', None)])
+        self._hiddenColumns = [['Pid', 'Shift'], ['Pid', 'Shift']]
+
+        # set the fixed height of the frame
+        self.setFixedHeight(175)
+        # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
+
+    def _assignDeassignNmrAtom(self, tableNum: int, data):
+        """
+        Assign/Deassign the nmrAtom that is double clicked to the
+        the corresponding dimension of the selected
+        peaks.
+        """
+        if tableNum == 0:
+            # deassign from left to right
+            self._deassignNmrAtom(self.index)
+        elif tableNum == 1:
+            # assign from right to left
+            self._assignNmrAtom(self.index, action=True)
+
+    def _updatePulldownLists(self, tableNum, data):
+        self.lastTableSelected = tableNum
+        if tableNum == 0:
+            obj = data[Notifier.OBJECT]
+            if obj:
+                self._updateAssignmentWidget(tableNum, obj[0])
+                self.tables[1].clearSelection()
+                self.buttonList.setButtonEnabled('Delete', True)
+                self.buttonList.setButtonEnabled('Deassign', True)
+                self.buttonList.setButtonEnabled('Assign', False)
+        elif tableNum == 1:
+            obj = data[Notifier.OBJECT]
+            if obj:
+                self._updateAssignmentWidget(tableNum, obj[0])
+                self.tables[0].clearSelection()
+                self.buttonList.setButtonEnabled('Delete', True)
+                self.buttonList.setButtonEnabled('Deassign', False)
+                self.buttonList.setButtonEnabled('Assign', True)
+
+    def _createChainPulldown(self, parent=None, grid=(0, 0), gridSpan=(1, 1), tipText='') -> PulldownList:
+        """
+        Creates a PulldownList with callback, editable.
+        """
+        pulldownList = PulldownList(parent=parent, grid=grid, backgroundText=tipText, editable=True, gridSpan=gridSpan,
+                                    tipText=tipText)
+        pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        # pulldownList.setEditable(True)
+        pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
+        pulldownList.lineEdit().textEdited.connect(partial(self._pulldownEdited, pulldownList))
+        return pulldownList
+
+    def _createPulldown(self, parent=None, grid=(0, 0), gridSpan=(1, 1), tipText='') -> PulldownList:
+        """
+        Creates a PulldownList with a callback, editable.
+        """
+        pulldownList = PulldownList(parent=parent, grid=grid, backgroundText=tipText, editable=True, gridSpan=gridSpan,
+                                    tipText=tipText)
+        pulldownList.setSizeAdjustPolicy(QtGui.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+        # pulldownList.setEditable(True)
+        pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
+        pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
+        pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
+        return pulldownList
+
+    def _addItemToPulldown(self, pulldown: object):
+        """
+        Add items to pulldown list if changed
+        """
+        if pulldown.lineEdit().isModified():
+            text = pulldown.currentText()
+            if text and text not in pulldown.texts:
+                # TODO:ED this is old, should be able to delete
+                # pulldown.addItem(text)
+                pass
+
+    def _createNewNmrAtom(self, dim):
+        isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
+        nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
+                                             ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
+
+        self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
+        try:
+
+            for peak in self.current.peaks:
+                if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+                    # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+
+                    newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
+                    axisCode = peak.peakList.spectrum.axisCodes[dim]
+                    peak.assignDimension(axisCode, newAssignments)
+            self.parent._updateInterface()
+
+            # highlight on the table and populate the pulldowns
+            self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+            self.tables[1].clearSelection()
+            self._updateAssignmentWidget(0, nmrAtom)
+            self.buttonList.setButtonEnabled('Delete', True)
+            self.buttonList.setButtonEnabled('Deassign', True)
+            self.buttonList.setButtonEnabled('Assign', False)
+
+        except Exception as es:
+            showWarning(str(self.windowTitle()), str(es))
+        finally:
+            self.project._endCommandEchoBlock()
+
+            # TODO:ED select the new item in the table
+
+    def _assignNmrAtom(self, dim: int, action: bool = False):
+        """
+        Assigns dimensionNmrAtoms to peak dimension when called using Assign Button in assignment widget.
+        :param dim - axis dimension of the atom:
+        :param action - True if callback is action from the table:
+        """
+        # FIXME Potential Bug: no error checks for dim. It can give easily an IndexError
+
+        # return if no peaks selected
+        if not self.current.peaks:
+            return
+
+        try:
+            currentNmrAtomSelected = (self.chainPulldown.currentText(),
+                                      self.seqCodePulldown.currentText(),
+                                      self.resTypePulldown.currentText(),
+                                      self.atomTypePulldown.currentText())
+            atomCompare = self._atomCompare(self.lastNmrAtomSelected, currentNmrAtomSelected)
+
+            nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
+
+            if not action and (atomCompare[0] == True and
+                               atomCompare[1] == True and
+                               atomCompare[2] == False):
+
+                seqCode = self.seqCodePulldown.currentText()
+                newResType = self.resTypePulldown.currentText()
+                if showYesNoWarning('Assigning nmrAtoms',
+                                    'This will change all nmrAtoms to the residueType %s, continue?' % newResType):
+                    nmrResidue = nmrChain.fetchNmrResidue(seqCode)
+
+                    # change the residueType
+                    nmrResidue.rename('.'.join([seqCode, newResType]))
+                else:
+                    return
+
+            else:
+                nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText(),
+                                                      self.resTypePulldown.currentText())
+
+            if nmrResidue:
+                nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
+
+                self.project._startCommandEchoBlock('application.peakAssigner.assignNmrAtom')
+                try:
+
+                    for peak in self.current.peaks:
+                        dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+
+                        currentObject = nmrAtom
+                        if nmrAtom not in dimNmrAtoms:
+                            dimNmrAtoms.append(nmrAtom)
+
+                            toAssign = dimNmrAtoms.index(currentObject)
+
+                            dimNmrAtoms[toAssign] = nmrAtom
+                            allAtoms = list(peak.dimensionNmrAtoms)
+                            allAtoms[dim] = dimNmrAtoms
+                            peak.dimensionNmrAtoms = allAtoms
+
+                except Exception as es:
+                    showWarning(str(self.windowTitle()), str(es))
+
+                finally:
+                    self.project._endCommandEchoBlock()
+
+                    # notifier to update other tables
+                    # nmrResidue._finaliseAction('change')
+
+                # self._updateInterface()
+                self.parent._updateInterface()
+                self.tables[self.lastTableSelected].selectObjects([nmrAtom], setUpdatesEnabled=False)
+                self._updateAssignmentWidget(self.lastTableSelected, nmrAtom)
+
+                self.lastTableSelected = 0
+                self.buttonList.setButtonEnabled('Delete', True)
+                self.buttonList.setButtonEnabled('Deassign', True)
+                self.buttonList.setButtonEnabled('Assign', False)
+
+        except Exception as es:
+            showWarning('Assign Peak to NmrAtom', str(es))
+            self._updateAssignmentWidget(self.lastTableSelected, None)
+            self.buttonList.setButtonEnabled('Assign', False)
+
+    def _deassignNmrAtom(self, dim: int):
+        """
+        remove nmrAtom from peak assignment
+        """
+
+        # return if no peaks selected
+        if not self.current.peaks:
+            return
+
+
+        try:
+            currentObject = self.tables[0].getSelectedObjects()
+
+            if currentObject:
+                self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom')
+                try:
+                    for peak in self.current.peaks:
+                        # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
+
+                        dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])  # ejb - changed to list
+                        dimNmrAtoms.remove(currentObject[0])
+
+                        allAtoms = list(peak.dimensionNmrAtoms)
+                        allAtoms[dim] = dimNmrAtoms
+                        peak.dimensionNmrAtoms = allAtoms
+
+                except Exception as es:
+                    showWarning(str(self.windowTitle()), str(es))
+
+                finally:
+                    self.project._endCommandEchoBlock()
+
+                    # notifier to update other tables
+                    # nmrResidue._finaliseAction('change')
+
+                # self._updateInterface()
+                self.parent._updateInterface()
+                self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
+                nextAtom = self.tables[1].getSelectedObjects()
+                if nextAtom:
+                    self._updateAssignmentWidget(1, currentObject[0])
+
+                    self.lastTableSelected = 1
+                    self.buttonList.setButtonEnabled('Delete', True)
+                    self.buttonList.setButtonEnabled('Deassign', False)
+                    self.buttonList.setButtonEnabled('Assign', True)
+                else:
+                    self._updateAssignmentWidget(1, None)
+
+                    self.lastTableSelected = 1
+                    self.buttonList.setButtonEnabled('Delete', False)
+                    self.buttonList.setButtonEnabled('Deassign', False)
+                    self.buttonList.setButtonEnabled('Assign', False)
+
+        except Exception as es:
+            showWarning('Deassign Peak from NmrAtom', str(es))
+
+
+        # try:
+        #     for peak in self.current.peaks:
+        #         # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
+        #
+        #         dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])  # ejb - changed to list
+        #         currentObject = self.tables[0].getSelectedObjects()
+        #
+        #         if currentObject:
+        #             self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom', peak.pid)
+        #             try:
+        #                 # toAssign = dimNmrAtoms.index(currentObject)                   # error here..
+        #
+        #                 dimNmrAtoms.remove(currentObject[0])
+        #
+        #                 allAtoms = list(peak.dimensionNmrAtoms)
+        #                 allAtoms[dim] = dimNmrAtoms
+        #                 peak.dimensionNmrAtoms = allAtoms
+        #
+        #             except Exception as es:
+        #                 showWarning(str(self.windowTitle()), str(es))
+        #
+        #             finally:
+        #                 self.project._endCommandEchoBlock()
+        #
+        #                 # notifier to update other tables
+        #                 # nmrResidue._finaliseAction('change')
+        #
+        #             # self._updateInterface()
+        #             self.parent._updateInterface()
+        #             self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
+        #             nextAtom = self.tables[1].getSelectedObjects()
+        #             if nextAtom:
+        #                 self._updateAssignmentWidget(1, currentObject[0])
+        #
+        #                 self.lastTableSelected = 1
+        #                 self.buttonList.setButtonEnabled('Delete', True)
+        #                 self.buttonList.setButtonEnabled('Deassign', False)
+        #                 self.buttonList.setButtonEnabled('Assign', True)
+        #             else:
+        #                 self._updateAssignmentWidget(1, None)
+        #
+        #                 self.lastTableSelected = 1
+        #                 self.buttonList.setButtonEnabled('Delete', False)
+        #                 self.buttonList.setButtonEnabled('Deassign', False)
+        #                 self.buttonList.setButtonEnabled('Assign', False)
+        #
+        # except Exception as es:
+        #     showWarning('Deassign Peak from NmrAtom', str(es))
+
+    def setAssignedTable(self, atomList: list):
+        # self.project.blankNotification()
+        objs = self.tables[0].getSelectedObjects()
+
+        # build a dataFrame object from the list" atomList - list of nmrAtoms
+        self.dataFrameAssigned = self.tables[0].getDataFrameFromList(table=self.tables[0],
+                                                                     buildList=atomList,
+                                                                     colDefs=self.columnDefs,
+                                                                     hiddenColumns=self._hiddenColumns[0])
+
+        # populate from the Pandas dataFrame inside the dataFrameObject
+        self.tables[0].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAssigned)
+        self.tables[0]._highLightObjs(objs)
+        # self.project.unblankNotification()
+
+    def setAlternativesTable(self, atomList: list):
+        # self.project.blankNotification()
+        objs = self.tables[1].getSelectedObjects()
+
+        # build a dataFrame object from the list" atomList - list of nmrAtoms
+        self.dataFrameAlternatives = self.tables[1].getDataFrameFromList(table=self.tables[1],
+                                                                         buildList=atomList,
+                                                                         colDefs=self.columnDefs,
+                                                                         hiddenColumns=self._hiddenColumns[1])
+
+        # populate from the Pandas dataFrame inside the dataFrameObject
+        self.tables[1].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAlternatives)
+        self.tables[1]._highLightObjs(objs)
+        # self.project.unblankNotification()
+
+    def _updateAssignmentWidget(self, tableNum: int, item: object):
+        """
+        Update all information in assignment widget when NmrAtom is selected in list widget of that
+        assignment widget.
+        """
+        nmrAtom = item
+
+        if nmrAtom:
+            chain = nmrAtom.nmrResidue.nmrChain
+            sequenceCode = nmrAtom.nmrResidue.sequenceCode
+            residueType = nmrAtom.nmrResidue.residueType
+
+            if not self.parent.allChainCheckBoxLabel.isChecked():
+                self.chainPulldown.setData([chain.id for chain in self.project.nmrChains])
+                self.chainPulldown.setIndex(self.chainPulldown.texts.index(chain.id))
+
+                sequenceCodes = [nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues]
+                self.seqCodePulldown.setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
+                self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
+
+                residueTypes = [nmrResidue.residueType for nmrResidue in self.project.nmrResidues]
+                residueTypes = list(OrderedDict.fromkeys(residueTypes))
+                self.resTypePulldown.setData(sorted(residueTypes, key=CcpnSorting.stringSortKey))
+                self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
+
+                atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[self.index][-1]
+                atomNames = [atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name]
+                self.atomTypePulldown.setData(atomNames)
+                self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name))
+            else:
+
+                # only allow selection of peaks from the table
+                # atoms = self.objectTables[dim].getObjects()
+                atoms = self.tables[tableNum]._dataFrameObject.objects
+                if atoms:
+                    options = [None] * 4  # 4 empty lists
+                    for atom in atoms:
+                        thisOpt = atom.id.split('.')
+
+                        for optionNum in range(0, len(thisOpt)):
+                            if options[optionNum]:
+                                if thisOpt[optionNum] not in options[optionNum]:
+                                    options[optionNum].append(thisOpt[optionNum])
+                            else:
+                                options[optionNum] = [thisOpt[optionNum]]
+
+                    self.chainPulldown.setData(options[0])
+                    self.seqCodePulldown.setData(options[1])
+                    self.resTypePulldown.setData(options[2])
+                    self.atomTypePulldown.setData(options[3])
+                else:
+                    self.chainPulldown.clear()
+                    self.seqCodePulldown.clear()
+                    self.resTypePulldown.clear()
+                    self.atomTypePulldown.clear()
+
+                try:
+                    self.chainPulldown.setIndex(self.chainPulldown.texts.index(chain.id))
+                    self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
+                    self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
+                    self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name))
+                except:
+                    self.chainPulldown.setIndex(0)
+                    self.seqCodePulldown.setIndex(0)
+                    self.resTypePulldown.setIndex(0)
+                    self.atomTypePulldown.setIndex(0)
+
+            self.lastNmrAtomSelected = (self.chainPulldown.currentText(),
+                                        self.seqCodePulldown.currentText(),
+                                        self.resTypePulldown.currentText(),
+                                        self.atomTypePulldown.currentText())
+        else:
+            self.chainPulldown.clear()
+            self.seqCodePulldown.clear()
+            self.resTypePulldown.clear()
+            self.atomTypePulldown.clear()
+            self.lastNmrAtomSelected = None
+
+    def _deleteNmrAtom(self, dim: int):
+        """
+        delete selected nmrAtom from project
+        """
+        if self.lastTableSelected is not None:
+
+            # deassign if assigned
+            self._deassignNmrAtom(dim)
+
+            # remove from the table
+            self.tables[self.lastTableSelected].deleteObjFromTable()
+            nextAtoms = self.tables[self.lastTableSelected].getSelectedObjects()
+
+            # reset buttons
+            if not nextAtoms:
+                self.buttonList.setButtonEnabled('Delete', False)
+                self.buttonList.setButtonEnabled('Deassign', False)
+                self.buttonList.setButtonEnabled('Assign', False)
+                self._updateAssignmentWidget(self.lastTableSelected, None)
+            else:
+                self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])
+
+    #TODO:ED add pulldownselections
+    def _pulldownEdited(self, pulldown: object):
+        """
+        Enable the assignment button if the text has changed in the pulldown
+        """
+        currentNmrAtomSelected = (self.chainPulldown.currentText(),
+                                  self.seqCodePulldown.currentText(),
+                                  self.resTypePulldown.currentText(),
+                                  self.atomTypePulldown.currentText())
+        self.buttonList.setButtonEnabled('Assign', False in self._atomCompare(self.lastNmrAtomSelected,
+                                                                              currentNmrAtomSelected))
+
+    def _atomCompare(self, atom1: tuple, atom2: tuple):
+        """
+        check whether the selection has changed from being clicked
+        """
+        if atom1 and atom2:
+            return [True if a == b else False for a, b in zip(atom1, atom2)]
+        else:
+            return []
