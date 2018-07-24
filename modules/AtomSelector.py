@@ -81,6 +81,10 @@ logger = getLogger()
 MOLECULE_TYPES = ['protein']
 ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
 MSG = '< Not-defined. Select any to start >'
+PROTEIN_MOLECULE = 'protein'
+DNA_MOLECULE = 'DNA'
+RNA_MOLECULE = 'RNA'
+
 
 class AtomSelectorModule(CcpnModule):
   """
@@ -120,7 +124,7 @@ class AtomSelectorModule(CcpnModule):
     self.atomTypeLabel = Label(self.settingsWidget, 'Atom Type', grid=(3, 0))
     self.atomOptions = RadioButtons(self.settingsWidget,selectedInd=1, texts=['H','C','N', 'Other'],callback=self._toggleBox, grid=(3,1))
     self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox  = self.atomOptions.radioButtons
-    self.otherCheckBox.setEnabled(False) # not implemented ? broken?
+    self.otherCheckBox.setEnabled(True) # not implemented ? broken?
 
     self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
@@ -133,14 +137,14 @@ class AtomSelectorModule(CcpnModule):
     # Main widget
     gridLine = 0
     self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1))
-    self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0)
-                                  , hPolicy='minimal')
-    self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(1, 0)
-                                  , hPolicy='minimal')
-    self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1)
-                                        , hPolicy='minimalexpanding', hAlign='l')
-    self.currentPeaksLabel = Label(self._residueFrame, grid=(1, 1)
-                                        , hPolicy='minimalexpanding', hAlign='l')
+    self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0),
+                                   hPolicy='minimal')
+    self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(1, 0),
+                                   hPolicy='minimal')
+    self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1),
+                                         hPolicy='minimalexpanding', hAlign='l')
+    self.currentPeaksLabel = Label(self._residueFrame, grid=(1, 1),
+                                         hPolicy='minimalexpanding', hAlign='l')
     # self._residueFrame.setFixedHeight(25)
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
 
@@ -150,9 +154,9 @@ class AtomSelectorModule(CcpnModule):
     self.buttonGroup.buttonClicked.connect(self._nmrAtomButtonsCallback)
     self.buttonGroup.setExclusive(False)
     self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1), vAlign='top')
-    Spacer(self.mainWidget, 5, 5
-           , QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding
-           , grid=(gridLine, 0), gridSpan=(1,1))
+    Spacer(self.mainWidget, 5, 5,
+            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+            grid=(gridLine, 0), gridSpan=(1,1))
 
     self.buttons = {}
     self._updateWidget()
@@ -199,23 +203,23 @@ class AtomSelectorModule(CcpnModule):
 
 
   def _registerNotifiers(self):
-    self._nmrAtomNotifier = Notifier(self.project
-                                    , [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE]
-                                    , NmrAtom.__name__
-                                    , self._nmrResidueCallBack)
-    self._peakChangeNotifier = Notifier(self.project
-                                     , [Notifier.CHANGE]
-                                     , Peak.__name__
-                                     , self._nmrResidueCallBack)
+    self._nmrAtomNotifier = Notifier(self.project,
+                                     [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                     NmrAtom.__name__,
+                                     self._nmrResidueCallBack)
+    self._peakChangeNotifier = Notifier(self.project,
+                                      [Notifier.CHANGE],
+                                      Peak.__name__,
+                                      self._nmrResidueCallBack)
 
-    self._peakNotifier = Notifier(self.current
-                                 , [Notifier.CURRENT]
-                                 , Peak._pluralLinkName
-                                 , self._predictAssignmentsCallBack)
-    self._nmrResidueNotifier = Notifier(self.current
-                                 , [Notifier.CURRENT]
-                                 , NmrResidue._pluralLinkName
-                                 , self._nmrResidueCallBack)
+    self._peakNotifier = Notifier(self.current,
+                                  [Notifier.CURRENT],
+                                  Peak._pluralLinkName,
+                                  self._predictAssignmentsCallBack)
+    self._nmrResidueNotifier = Notifier(self.current,
+                                  [Notifier.CURRENT],
+                                  NmrResidue._pluralLinkName,
+                                  self._nmrResidueCallBack)
 
   def _unRegisterNotifiers(self):
     """
@@ -307,6 +311,7 @@ class AtomSelectorModule(CcpnModule):
     peaks = self.current.peaks
     currentDisplayedButtons = self.buttonGroup.buttons()
     buttonsToCheck = []
+
     for peak in peaks:
       counts = set()
       for assignedNmrAtom in  makeIterableList(peak.assignedNmrAtoms):
@@ -322,7 +327,7 @@ class AtomSelectorModule(CcpnModule):
 
         else: #Try to search in + and - 1 offset
           for offset in ['-1', '+1']:
-            r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + offset)
+            r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.mainNmrResidue.sequenceCode + offset)
             if r:
               if assignedNmrAtom in r.nmrAtoms:
                 for button in currentDisplayedButtons:
@@ -331,6 +336,7 @@ class AtomSelectorModule(CcpnModule):
                     if btext == button.getText():
                       counts.add(button)
       buttonsToCheck.append(list(counts))
+
     buttonsToCheck = makeIterableList(buttonsToCheck)
     if len(buttonsToCheck) == len(peaks):
       for b in currentDisplayedButtons:
@@ -386,8 +392,8 @@ class AtomSelectorModule(CcpnModule):
 
         for jj, offset in enumerate(['-1', '0', '+1']):
           btext = self.atomLabel(atom, offset)
-          button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj)
-                          , callback=None) #partial(self.assignSelected, offset, atom))
+          button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj),
+                           callback=None) #partial(self.assignSelected, offset, atom))
           button.setMinimumSize(45, 24)
           self.buttonGroup.addButton(button)
           button._atomName = atom
@@ -473,11 +479,17 @@ class AtomSelectorModule(CcpnModule):
 
   def _updateChainLayout(self):
 
-    # group atoms in useful categories based on usage
-    atomButtonList = self._getAtomButtonList()
+    if self.molTypePulldown.currentText() == PROTEIN_MOLECULE:
+        # group atoms in useful categories based on usage
+        atomButtonList = self._getAtomButtonList()
 
-    # testing DNA/RNA buttonlist
-    # atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
+    elif self.molTypePulldown.currentText() == DNA_MOLECULE:
+        # testing DNA/RNA buttonlist
+        atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
+
+    elif self.molTypePulldown.currentText() == RNA_MOLECULE:
+        # testing DNA/RNA buttonlist
+        atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
 
     # Activate button for Carbons
     if not self.cCheckBox.isChecked():
