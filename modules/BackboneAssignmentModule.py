@@ -594,6 +594,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     for modulePid in self.matchWidget.getTexts():
       module = self.application.project.getByPid(modulePid)
+
+      # skip of the module if not defined - possibly in the case that spectrumDisplays have been closed
+      if not module:
+        continue
+
       makeStripPlot(module, nmrAtomPairs)
 
       for ii, strip in enumerate(module.strips):
