@@ -26,7 +26,7 @@ __credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timot
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license",
-               "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
+                 "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
 
 #=========================================================================================
 # Last code modification
@@ -72,7 +72,7 @@ from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.core.lib.AssignmentLib import _assignNmrAtomsToPeaks
-
+from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 
 logger = getLogger()
 
@@ -85,829 +85,934 @@ PROTEIN_MOLECULE = 'protein'
 DNA_MOLECULE = 'DNA'
 RNA_MOLECULE = 'RNA'
 
+BUTTON_MINX = 70
+BUTTON_MINY = 24
+
 
 class AtomSelectorModule(CcpnModule):
-  """
-  Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
-  to peak dimensions
-  Responds to current.nmrResidue and current.peaks
-  """
-  className = 'AtomSelectorModule'
-
-  includeSettingsWidget = True
-  maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-  settingsPosition = 'top'
-
-  def __init__(self, mainWindow=None, name='Atom Selector', nmrAtom=None):
-    CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
-
-    # Derive application, project, and current from mainWindow
-    self.mainWindow = mainWindow
-    if mainWindow:
-      self.application = mainWindow.application
-      self.project = mainWindow.application.project
-      self.current = mainWindow.application.current
-      self._registerNotifiers()
-
-    # Settings Widget
-    self.molTypeLabel = Label(self.settingsWidget, 'Molecule Type', grid=(0, 0))
-    self.molTypePulldown = PulldownList(self.settingsWidget, grid=(0, 1), texts=MOLECULE_TYPES , callback=self._changeMoleculeType)
-
-    self.modeTypeLabel = Label(self.settingsWidget, 'Mode', grid=(1, 0))
-    self.modeRadioButtons = RadioButtons(self.settingsWidget, texts=['Backbone','Side chain'], selectedInd=0, callback=self._createButtonsCallback, grid=(1,1))
-    self.radioButton1, self.radioButton2 = self.modeRadioButtons.radioButtons
-
-    # modifiers for sidechain
-    self.offsetLabel = Label(self.settingsWidget, 'Offset', grid=(2,0))
-    self.offsetSelector = PulldownList(self.settingsWidget, grid=(2, 1), texts = ['0', '-1', '+1'], callback= self._offsetPullDownCallback)
-
-    self.atomTypeLabel = Label(self.settingsWidget, 'Atom Type', grid=(3, 0))
-    self.atomOptions = RadioButtons(self.settingsWidget,selectedInd=1, texts=['H','C','N', 'Other'],callback=self._toggleBox, grid=(3,1))
-    self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox  = self.atomOptions.radioButtons
-    self.otherCheckBox.setEnabled(True) # not implemented ? broken?
-
-    self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
-
-    self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-    self.settingsWidget.setContentsMargins(10,10,10,10)
-    self.mainWidget.setContentsMargins(10, 10, 10, 10)
-
-    for w in self._sidechainModifiers:  w.hide()
-
-    # Main widget
-    gridLine = 0
-    self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1))
-    self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(0, 0),
-                                   hPolicy='minimal')
-    self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(1, 0),
-                                   hPolicy='minimal')
-    self.currentNmrResidueLabel = Label(self._residueFrame, grid=(0, 1),
-                                         hPolicy='minimalexpanding', hAlign='l')
-    self.currentPeaksLabel = Label(self._residueFrame, grid=(1, 1),
-                                         hPolicy='minimalexpanding', hAlign='l')
-    # self._residueFrame.setFixedHeight(25)
-    self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Expanding)
-
-    # gridLine 1
-    gridLine += 1
-    self.buttonGroup = QtWidgets.QButtonGroup(self.mainWidget)
-    self.buttonGroup.buttonClicked.connect(self._nmrAtomButtonsCallback)
-    self.buttonGroup.setExclusive(False)
-    self.pickAndAssignWidget = Widget(self.mainWidget, setLayout=True, grid=(gridLine, 0), gridSpan=(1,1), vAlign='top')
-    Spacer(self.mainWidget, 5, 5,
-            QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
-            grid=(gridLine, 0), gridSpan=(1,1))
-
-    self.buttons = {}
-    self._updateWidget()
-    # self._predictAssignments(self.current.peaks)
-
-
-
-
-  def _togglePressedButton(self, pressedButton=None):
-    '''Ensures only a button at the time is checked, yet allows to uncheck a radio button. If pressedButton is None: unchecks all'''
-    for button in self.buttonGroup.buttons():
-      if button != pressedButton:
-        button.setChecked(False)
-
-  def _nmrAtomButtonsCallback(self, pressedButton):
-
-    self._togglePressedButton(pressedButton)
-
-    self.application._startCommandBlock('application.atomSelector._nmrAtomButtonsCallback(%s)'%pressedButton)
-    try:
-      if pressedButton.isChecked():
-        self._assignSelected(atomName=pressedButton._atomName, offSet= pressedButton._offSet)
-      else:
-        self._deassignSelected(atomName=pressedButton._atomName, offSet= pressedButton._offSet)
-
-    except Exception as es:
-      showWarning(str(self.windowTitle()), str(es))
-      self._togglePressedButton() # uncheck all if any error
-    finally:
-      self.application._endCommandBlock()
-
-
-  def _deassignSelected(self, atomName, offSet):
-    nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
-    nmrAtom = nmrResidue.getNmrAtom(atomName.translate(Pid.remapSeparators))
-    if nmrAtom:
-      self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
-
-  def _assignSelected(self, atomName, offSet):
-    nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
-    nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
-    _assignNmrAtomsToPeaks(nmrAtoms=[nmrAtom], peaks=self.current.peaks)
-    self._setCheckedButtonOfAssignedAtoms(nmrResidue, offSet=offSet) # this so that only assigned atoms are checked.
-
-
-  def _registerNotifiers(self):
-    self._nmrAtomNotifier = Notifier(self.project,
-                                     [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
-                                     NmrAtom.__name__,
-                                     self._nmrResidueCallBack)
-    self._peakChangeNotifier = Notifier(self.project,
-                                      [Notifier.CHANGE],
-                                      Peak.__name__,
-                                      self._nmrResidueCallBack)
-
-    self._peakNotifier = Notifier(self.current,
-                                  [Notifier.CURRENT],
-                                  Peak._pluralLinkName,
-                                  self._predictAssignmentsCallBack)
-    self._nmrResidueNotifier = Notifier(self.current,
-                                  [Notifier.CURRENT],
-                                  NmrResidue._pluralLinkName,
-                                  self._nmrResidueCallBack)
-
-  def _unRegisterNotifiers(self):
     """
-    clean up the notifiers
+    Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
+    to peak dimensions
+    Responds to current.nmrResidue and current.peaks
     """
-    if self._peakNotifier is not None:
-      self._peakNotifier.unRegister()
-    if self._peakChangeNotifier is not None:
-      self._peakChangeNotifier.unRegister()
-    if self._nmrResidueNotifier is not None:
-      self._nmrResidueNotifier.unRegister()
-    if self._nmrAtomNotifier is not None:
-      self._nmrAtomNotifier.unRegister()
+    className = 'AtomSelectorModule'
 
-  def _closeModule(self):
-    self._unRegisterNotifiers()
-    super(AtomSelectorModule, self)._closeModule()
+    includeSettingsWidget = True
+    maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+    settingsPosition = 'top'
 
-  def _createButtonsCallback(self):
-    if self.radioButton1.isChecked():
-      self._createBackBoneButtons()
-    if self.radioButton2.isChecked():
-      self._createSideChainButtons()
+    def __init__(self, mainWindow=None, name='Atom Selector', nmrAtom=None):
+        CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
-  def _nmrResidueCallBack(self, nmrResidues=None):
-    "Callback if current.nmrResidue changes"
-    if nmrResidues is not None and self.current.nmrResidue:
-      self._updateWidget()
-      if self.current.peaks:
+        # Derive application, project, and current from mainWindow
+        self.mainWindow = mainWindow
+        if mainWindow:
+            self.application = mainWindow.application
+            self.project = mainWindow.application.project
+            self.current = mainWindow.application.current
+            self._registerNotifiers()
+
+        # Settings Widget
+        self._ASwidget = Widget(self.settingsWidget, setLayout=True,
+                                grid=(0, 0), vAlign='top', hAlign='left')
+
+        row = 0
+        self.molTypeLabel = Label(self._ASwidget, 'Molecule Type', grid=(row, 0))
+        self.molTypePulldown = PulldownList(self._ASwidget, grid=(row, 1), texts=MOLECULE_TYPES,
+                                            callback=self._changeMoleculeType)
+
+        row += 1
+        self.modeTypeLabel = Label(self._ASwidget, 'Mode', grid=(row, 0))
+        self.modeRadioButtons = RadioButtons(self._ASwidget, texts=['Backbone', 'Side chain'], selectedInd=0,
+                                             callback=self._createButtonsCallback, grid=(row, 1))
+        self.radioButton1, self.radioButton2 = self.modeRadioButtons.radioButtons
+
+        # modifiers for sidechain
+        row += 1
+        self.offsetLabel = Label(self._ASwidget, 'Offset', grid=(row, 0))
+        self.offsetSelector = PulldownList(self._ASwidget, grid=(row, 1), texts=['0', '-1', '+1'],
+                                           callback=self._offsetPullDownCallback)
+        self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
+
+        # # modifier for atomType
+        # row += 1
+        # self.atomTypeLabel = Label(self._ASwidget, 'Atom Type', grid=(row, 0))
+        # self.atomOptions = RadioButtons(self._ASwidget, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
+        #                                 callback=self._toggleBox, grid=(row, 1))
+        #
+        # self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomOptions.radioButtons
+        # self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
+
+
+        # set size policies to allow the main widget to overlap the settings, cleaner display
+        self._ASwidget.setMinimumSize(self._ASwidget.sizeHint())
+        self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
+        self.settingsWidget.setContentsMargins(10, 10, 10, 10)
+        self.mainWidget.setContentsMargins(10, 10, 10, 10)
+
+        for w in self._sidechainModifiers:  w.hide()
+
+        # add widgets to the main widget area
+        row = 0
+        self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
+
+        resRow = 0
+        self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(resRow, 0),
+                                      hPolicy='minimal')
+        self.currentNmrResidueLabel = Label(self._residueFrame, grid=(resRow, 1),
+                                            hPolicy='minimal', hAlign='l')
+
+        resRow += 1
+        self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(resRow, 0),
+                                 hPolicy='minimal')
+        self.currentPeaksLabel = Label(self._residueFrame, grid=(resRow, 1),
+                                       hPolicy='minimal', hAlign='l')
+
+        # modifier for atomType
+        resRow += 1
+        self.atomTypeLabel = Label(self._residueFrame, 'Atom Type', grid=(resRow, 0))
+        self.atomOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
+                                        callback=self._toggleBox, grid=(resRow, 1))
+
+        self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomOptions.radioButtons
+        self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
+
+
+        row += 1
+        self._pickAndAssignScrollArea = ScrollArea(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
+        self._pickAndAssignScrollArea.setWidgetResizable(True)
+
+        self.pickAndAssignWidget = Frame(self.mainWidget, setLayout=True, showBorder=False)
+        self._pickAndAssignScrollArea.setWidget(self.pickAndAssignWidget)
+        self.pickAndAssignWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self._pickAndAssignScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self._pickAndAssignScrollArea.setStyleSheet("""ScrollArea { border: 0px; }""")
+
+        # hide unnecessary widgets on initialise
+        self._pickAndAssignWidgetHide()
+
+        self.buttonGroup = QtWidgets.QButtonGroup()  #self.pickAndAssignWidget)
+        self.buttonGroup.buttonClicked.connect(self._nmrAtomButtonsCallback)
+        self.buttonGroup.setExclusive(False)
+
+        # # add a spacer to control size
+        # gridLine += 1
+        # Spacer(self._MWwidget, 3, 3,
+        #        QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+        #        grid=(gridLine, 1), gridSpan=(1, 1))
+
+        # self._MWwidget.setMinimumSize(self._ASwidget.sizeHint())
+        # self._MWwidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
+        # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+
+        self.buttons = {}
+        self._updateWidget()
         # self._predictAssignments(self.current.peaks)
-        self.pickAndAssignWidget.show()
-      else:
-        self.pickAndAssignWidget.hide()
-    else:
-      self.pickAndAssignWidget.hide()
-      self.currentNmrResidueLabel.setText(MSG)
 
-  def _offsetPullDownCallback(self, tmp=None):
-    "Callback if offset pullDown changes"
-    if self.current.nmrResidue:
-      self._updateWidget()
-      self._predictAssignments(self.current.peaks)
-
-  def _setPeaksLabel(self):
-
-    if self.current.peak is not None:
-      splitter = ' , '
-      pText = _truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
-      self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
-      self.currentPeaksLabel.setText(pText)
-    else:
-      self.currentPeaksLabel.setText(MSG)
-
-  def _updateWidget(self):
-    "Update the widget to reflect the proper state"
-
-    try:
-      self._setPeaksLabel()
-      if self.current.nmrResidue is not None:
-        self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-        if self.radioButton1.isChecked():
-          for w in self._sidechainModifiers:
-            w.hide()
-          self._createBackBoneButtons()
-        elif self.radioButton2.isChecked():
-          for w in self._sidechainModifiers:
-            w.show()
-          self._createSideChainButtons()
-        self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
-      else:
-        self.currentNmrResidueLabel.setText(MSG)
-      return
-    except:
-      return
-
-  def _removeOffsetFromButtonText(self, text:str):
-    p = text.split(' ')
-    if len(p)>0: return p[0]
-    else: return text
-
-
-  def _setCheckedButtonOfAssignedAtoms(self, nmrResidue, offSet='0'):
-    '''setChecked the radioButton Of Assigned Nmr Atoms.
-    This makes sure that if a peak is selected and and assigned to an nmrAtom, the relative button is checked '''
-
-    if not self.current.peak: return
-    if not nmrResidue: return
-
-    peaks = self.current.peaks
-    currentDisplayedButtons = self.buttonGroup.buttons()
-    buttonsToCheck = []
-
-    for peak in peaks:
-      counts = set()
-      for assignedNmrAtom in  makeIterableList(peak.assignedNmrAtoms):
-        if assignedNmrAtom in nmrResidue.nmrAtoms:
-          for button in currentDisplayedButtons:
-            if assignedNmrAtom:
-              if offSet == '0':
-                if assignedNmrAtom.name == button.getText():
-                  counts.add(button)
-              elif  button._offSet == offSet:
-                if assignedNmrAtom.name == button._atomName:
-                  counts.add(button)
-
-        else: #Try to search in + and - 1 offset
-          for offset in ['-1', '+1']:
-            r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.mainNmrResidue.sequenceCode + offset)
-            if r:
-              if assignedNmrAtom in r.nmrAtoms:
-                for button in currentDisplayedButtons:
-                  if assignedNmrAtom:
-                    btext = self.atomLabel(assignedNmrAtom.name, offset)
-                    if btext == button.getText():
-                      counts.add(button)
-      buttonsToCheck.append(list(counts))
-
-    buttonsToCheck = makeIterableList(buttonsToCheck)
-    if len(buttonsToCheck) == len(peaks):
-      for b in currentDisplayedButtons:
-        if b in buttonsToCheck:
-          b.setChecked(True)
-        else:
-          b.setChecked(False)
-    else:
-      self._togglePressedButton()
-
-
-
-  def _createBackBoneButtons(self):
-    self._cleanupPickAndAssignWidget()
-    for w in self._sidechainModifiers: w.hide()
-
-    # wb104 27 Jun 2017: changed _cleanupPickAndAssignWidget so removes widgets in reverse order
-    # not sure if there was anything else leading to this cludge (and one below) though
-    # cludge: don't know why I have to do this for the button to appear: TODO: fix this
-    ###_Label = Label(self, text='')
-    ###self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
-    self.buttons = {}
-    atoms = ATOM_TYPES
-    for b in self.buttonGroup.buttons():
-      self.buttonGroup.removeButton(b)
-
-    rowCount = self.pickAndAssignWidget.layout().rowCount()
-    colCount = self.pickAndAssignWidget.layout().columnCount()
-
-    # for r in range(1, rowCount):
-    #   for m in range(colCount):
-    #     item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
-    #     if item:
-    #       if item.widget():
-    #         item.widget().hide()
-    #     self.pickAndAssignWidget.layout().removeItem(item)
-
-    if self.current.nmrResidue:
-      for ii, atom in enumerate(atoms):
-        self.buttons[atom] = []
-
-        # skip of startswith these atomTypes
-        if not self.cCheckBox.isChecked() and atom.startswith('C'):
-          continue
-        if not self.hCheckBox.isChecked() and atom.startswith('H'):
-          continue
-        if not self.nCheckBox.isChecked() and atom.startswith('N'):
-          continue
-        if not self.otherCheckBox.isChecked() and not atom.startswith('C')\
-                                              and not atom.startswith('H') \
-                                              and not atom.startswith('N'):
-          continue
-
-        for jj, offset in enumerate(['-1', '0', '+1']):
-          btext = self.atomLabel(atom, offset)
-          button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj),
-                           callback=None) #partial(self.assignSelected, offset, atom))
-          button.setMinimumSize(45, 24)
-          self.buttonGroup.addButton(button)
-          button._atomName = atom
-          button._offSet = offset
-          # button.clicked.connect(self._buttonCallback)
-
-          self.buttons[atom].append(button)
-
-    self._predictAssignments(self.current.peaks)
-
-  def _createSideChainButtons(self):
-    self._cleanupPickAndAssignWidget()
-    for w in self._sidechainModifiers: w.show()
-
-    # see comment about cludge above
-    # cludge: don't know why I have to do this for the button to appear: TODO: fix this
-    ###_label= Label(self.pickAndAssignWidget, '',  hAlign='l')
-    ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
-
-    self._updateChainLayout()
-    self._predictAssignments(self.current.peaks)
-
-  def _toggleBox(self):
-    if self.radioButton1.isChecked():
-      for w in self._sidechainModifiers: w.hide()
-    elif self.radioButton2.isChecked():
-      for w in self._sidechainModifiers: w.show()
-    self._updateWidget()
-    # self._predictAssignments(self.current.peaks)
-
-  def _getAtomsForButtons(self, atomList, atomName):
-    [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
-
-  def _getAtomButtonList(self, residueType=None):
-
-    alphaAtoms = [x for x in ALL_ATOMS_SORTED['alphas']]
-    betaAtoms = [x for x in ALL_ATOMS_SORTED['betas']]
-    gammaAtoms = [x for x in ALL_ATOMS_SORTED['gammas']]
-    moreGammaAtoms = [x for x in ALL_ATOMS_SORTED['moreGammas']]
-    deltaAtoms = [x for x in ALL_ATOMS_SORTED['deltas']]
-    moreDeltaAtoms = [x for x in ALL_ATOMS_SORTED['moreDeltas']]
-    epsilonAtoms = [x for x in ALL_ATOMS_SORTED['epsilons']]
-    moreEpsilonAtoms = [x for x in ALL_ATOMS_SORTED['moreEpsilons']]
-    zetaAtoms = [x for x in ALL_ATOMS_SORTED['zetas']]
-    etaAtoms = [x for x in ALL_ATOMS_SORTED['etas']]
-    moreEtaAtoms = [x for x in ALL_ATOMS_SORTED['moreEtas']]
-    atomButtonList = [alphaAtoms, betaAtoms, gammaAtoms, moreGammaAtoms, deltaAtoms, moreDeltaAtoms,
-                      epsilonAtoms, moreEpsilonAtoms, zetaAtoms, etaAtoms, moreEtaAtoms]
-
-    if residueType:
-      residueAtoms = PROTEIN_ATOM_NAMES[residueType]
-      residueAlphas = [atom for atom in alphaAtoms if atom in residueAtoms]
-      residueBetas = [atom for atom in betaAtoms if atom in residueAtoms]
-      residueGammas = [atom for atom in gammaAtoms if atom in residueAtoms]
-      residueMoreGammas = [atom for atom in moreGammaAtoms if atom in residueAtoms]
-      residueDeltas = [atom for atom in deltaAtoms if atom in residueAtoms]
-      residueMoreDeltas = [atom for atom in moreDeltaAtoms if atom in residueAtoms]
-      residueEpsilons = [atom for atom in epsilonAtoms if atom in residueAtoms]
-      residueMoreEpsilons = [atom for atom in moreEpsilonAtoms if atom in residueAtoms]
-      residueZetas = [atom for atom in zetaAtoms if atom in residueAtoms]
-      residueEtas = [atom for atom in etaAtoms if atom in residueAtoms]
-      residueMoreEtas = [atom for atom in moreEtaAtoms if atom in residueAtoms]
-      residueAtomButtonList = [residueAlphas, residueBetas, residueGammas, residueMoreGammas,
-                               residueDeltas, residueMoreDeltas, residueEpsilons,
-                               residueMoreEpsilons, residueZetas, residueEtas, residueMoreEtas]
-      return residueAtomButtonList
-
-    return atomButtonList
-
-  def _getDnaRnaButtonList(self, atomList=None, residueType=None):
-    residueAtomButtonList = copy.deepcopy(ALL_DNARNA_ATOMS_SORTED)
-
-    if residueType and atomList:
-      residueAtoms = atomList[residueType]
-
-      for atomType in ALL_DNARNA_ATOMS_SORTED.keys():
-        atomTypeList = ALL_DNARNA_ATOMS_SORTED[atomType]
-        for atom in atomTypeList:
-          if atom not in residueAtoms:
-            residueAtomButtonList[atomType].remove(atom)
-
-    return [residueAtomButtonList[atom] for atom in residueAtomButtonList.keys()]
-
-  def _updateChainLayout(self):
-
-    if self.molTypePulldown.currentText() == PROTEIN_MOLECULE:
-        # group atoms in useful categories based on usage
-        atomButtonList = self._getAtomButtonList()
-
-    elif self.molTypePulldown.currentText() == DNA_MOLECULE:
-        # testing DNA/RNA buttonlist
-        atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
-
-    elif self.molTypePulldown.currentText() == RNA_MOLECULE:
-        # testing DNA/RNA buttonlist
-        atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
-
-    # Activate button for Carbons
-    if not self.cCheckBox.isChecked():
-      [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
-
-    if not self.hCheckBox.isChecked():
-      [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
-
-    if not self.nCheckBox.isChecked():
-      [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
-
-    if not self.otherCheckBox.isChecked():
-      for atomList in atomButtonList:
-        [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
-        and not atom.startswith('H') \
-        and not atom.startswith('N')]
-
-    rowCount = self.pickAndAssignWidget.layout().rowCount()
-    colCount = self.pickAndAssignWidget.layout().columnCount()
-
-    for r in range(1, rowCount):
-      for m in range(colCount):
-        item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
-        if item:
-          if item.widget():
-            item.widget().hide()
-        self.pickAndAssignWidget.layout().removeItem(item)
-
-    if self.current.nmrResidue:
-      self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-      if self.current.nmrResidue.residueType == '':
-        self.buttons = {}
-        for ii, atomList in enumerate(atomButtonList):
-
-          for jj, atom in enumerate(atomList):
-            self.buttons[atom] = []
-            offset = self.offsetSelector.currentText()
-            btext = self.atomLabel(atom, offset)
-            button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(ii, jj), hAlign='t',)
-                            # callback=partial(self.assignSelected, offset, atom))
-            button._atomName = atom
-            button._offSet = offset
-            button.setMinimumSize(45, 24)
-            self.buttonGroup.addButton(button)
-            self.buttons[atom].append(button)
-
-      else:
-        self.buttons = {}
-        if self.offsetSelector.currentText() == '-1':
-          nmrResidue = self.current.nmrResidue.previousNmrResidue
-        elif self.offsetSelector.currentText() == '+1':
-          nmrResidue = self.current.nmrResidue.nextNmrResidue
-        else:
-          nmrResidue = self.current.nmrResidue
-        residueType = nmrResidue.residueType.upper()
-        atomButtonList2 = self._getAtomButtonList(residueType)
-        for ii, atomList in enumerate(atomButtonList2):
-          for jj, atom in enumerate(atomList):
-            self.buttons[atom] = []
-            button = RadioButton(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',)
-                    # callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
-            # button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
-            #         callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
-            button._atomName = atom
-            button._offSet = None
-            self.buttonGroup.addButton(button)
-            button.setMinimumSize(45, 24)
-            # button.setAutoExclusive(True)
-
-            self.buttons[atom].append(button)
-
-  def _showMoreAtomButtons(self, buttons, moreButton):
-    if moreButton.isChecked():
-      [button.show() for button in buttons]
-    else:
-      [button.hide() for button in buttons]
-
-  def _cleanupPickAndAssignWidget(self):
-
-    layout = self.pickAndAssignWidget.layout()
-    for r in range(layout.rowCount()-1,-1,-1):
-      for c in range(layout.columnCount()-1,-1,-1):
-        item = layout.itemAtPosition(r, c)
-        if item:
-          if item.widget():
-            item.widget().hide()
-        layout.removeItem(item)
-
-  def atomLabel(self, atom, offset, showAll=False):
-    if showAll:
-      return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
-    else:
-      return str(atom if offset == '0' else atom + ' [i' + offset + ']')
-
-  # NOT NEEDED
-  # def checkAssignedAtoms(self, nmrResidue, atoms, predictAtoms, checkMode='backbone'):
-  #   """
-  #   Check if the i-1, i, i+1 nmrAtoms for the current residue exist
-  #   :param nmrResidue:
-  #   :return foundAtoms - dict containing True for each found nmrAtom:
-  #   """
-  #   foundAtoms = {}
-  #   if checkMode == 'backbone':
-  #     # all residues are displayed so use the central mainNmrResidue
-  #     nmrResidue = self._getMainNmrResidue(nmrResidue)
-  #
-  #   # atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
-  #   for ii, atom in enumerate(atoms):
-  #     for jj, offset in enumerate(['-1', '0', '+1']):
-  #       bText = self.atomLabel(atom, offset)
-  #
-  #       if self._checkAssignedAtom(nmrResidue, offset, atom):
-  #         foundAtoms[bText] = True
-  #         if atom in self.buttons.keys():
-  #           for button in self.buttons[atom]:
-  #             if button.getText() == bText:
-  #
-  #               # colour the button if the atom exists
-  #               if bText in predictAtoms:
-  #                 score = predictAtoms[bText]
-  #
-  #                 if score >= 85:
-  #                   button.setStyleSheet('background-color: mediumseagreen')
-  #                 elif 50 < score < 85:
-  #                   button.setStyleSheet('background-color: lightsalmon')
-  #                 if score < 50:
-  #                   button.setStyleSheet('background-color: mediumvioletred')
-  #
-  #               # else: # Users don't need to know/ or be notified here that the nmrAtom exist in the selected nmrResidue.
-  #               #   button.setStyleSheet('background-color: cornflowerblue')
-  #
-  #
-  #   return foundAtoms
-
-  def _getNmrResidue(self, nmrChain, sequenceCode: typing.Union[int, str] = None,
-                       residueType: str = None) -> typing.Optional[NmrResidue]:
-    partialId = '%s.%s.' % (nmrChain.id, str(sequenceCode).translate(Pid.remapSeparators))
-    ll = self.project.getObjectsByPartialId(className='NmrResidue', idStartsWith=partialId)
-    if ll:
-      return ll[0]
-    else:
-      return nmrChain.fetchNmrResidue(sequenceCode)
-
-  def _getCorrectResidue(self, nmrResidue, offset:str, atomType:str):
-    name = atomType
-    r = None
-    if offset == '-1' and '-1' not in nmrResidue.sequenceCode:
-      r = nmrResidue.previousNmrResidue
-      if not r:
-        r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '-1')
-    elif offset == '+1' and '+1' not in nmrResidue.sequenceCode:
-      r = nmrResidue.nextNmrResidue
-      if not r:
-        r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '+1')
-    else:
-      r = nmrResidue
-
-    return r
-
-  # NOT NEEDED
-  # def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
-  #   '''
-  #   This checks only if an NMRAtom exists not if is assigned to a peak!
-  #   :param nmrResidue:
-  #   :param offset:
-  #   :param atomType:
-  #   :return:
-  #   '''
-  #   r = self._getCorrectResidue(nmrResidue=nmrResidue, offset=offset, atomType=atomType)
-  #   if r:
-  #     atom = r.getNmrAtom(atomType.translate(Pid.remapSeparators))
-  #     if atom and not atom.isDeleted:
-  #       return r
-  #     else:
-  #       return None
-  #   else:
-  #     return None
-
-  # def _getMainNmrResidue(self, nmrResidue):
-  #   if nmrResidue:
-  #     if nmrResidue.relativeOffset and nmrResidue.relativeOffset != 0:
-  #       return nmrResidue.mainNmrResidue
-  #
-  #   return nmrResidue
-
-
-
-  def _assignDimension(self):
-    """
-    update the peak assignment and create a event to update the module
-    """
-    pass
-
-  def deassignAtomFromSelectedPeaks(self, peaks, nmrAtom):
-
-    if not peaks: return
-    if not nmrAtom: return
-
-    newAssignedAtoms = ()
-    for peak in peaks:
-      for subTuple in peak.assignedNmrAtoms:
-        a = tuple(None if na is nmrAtom else na for na in subTuple)
-        newAssignedAtoms += (a,)
-
-      peak.assignedNmrAtoms = newAssignedAtoms
-
-
-
-  # def assignSelected(self,offset:int, atomType:str):
-  #   """
-  #   Takes a position either -1, 0 or +1 and an atom type, fetches an NmrAtom with name corresponding
-  #   to the atom type and the position and assigns it to correct dimension of current.peaks
-  #   """
-  #
-  #   if not self.current.nmrResidue or not self.current.peaks:
-  #     return
-  #
-  #   assignResidue = self._getMainNmrResidue(self.current.nmrResidue)
-  #
-  #   self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
-  #   try:
-  #     name = atomType
-  #
-  #     # search for and create the nmrResidue if it doesn't exists
-  #     if offset == '-1' and '-1' not in assignResidue.sequenceCode:
-  #       r = assignResidue.previousNmrResidue
-  #       if not r:
-  #         r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode+'-1')
-  #     elif offset == '+1' and '+1' not in assignResidue.sequenceCode:
-  #       r = assignResidue.nextNmrResidue
-  #       if not r:
-  #         r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode + '+1')
-  #     else:
-  #       r = assignResidue
-  #
-  #     if not button.isChecked():
-  #       # means we are unchecking. Therefore Needs to deassign that atom to the selected peak:
-  #        nmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
-  #        if nmrAtom:
-  #          self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
-  #     else:
-  #       nmrAtom = r.fetchNmrAtom(name=name)
-  #       _assignNmrAtomsToPeaks(strip=self.current.strip, nmrAtoms=[nmrAtom], peaks=self.current.peaks)
-  #
-  #
-  #   except Exception as es:
-  #     showWarning(str(self.windowTitle()), str(es))
-  #   finally:
-  #     # self.project._endCommandEchoBlock()
-  #     self.application._endCommandBlock()
-  #     # self._updateWidget()
-  #     # self._returnButtonsToNormal()
-      # self._predictAssignments(self.current.peaks)
-
-
-
-  def _returnButtonsToNormal(self):
-    """
-    Returns all buttons in Atom Selector to original colours and style.
-    """
-
-    for buttons in self.buttons.values():
-      for button in buttons:
-        button.setStyleSheet(
-          """Dock QRadioButton { background-color: %s }
-             Dock QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white'))
-
-  def _predictAssignmentsCallBack(self, data):
-    peaks = data[Notifier.VALUE]
-
-    self._predictAssignments(peaks)
-    self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
-    self._updateWidget()
-
-  def _predictAssignments(self, peaks:typing.List[Peak]):
-    """
-    Predicts atom type for selected peaks and highlights the relevant buttons with confidence of
-    that assignment prediction, green is very confident, orange is less confident.
-    """
-    self._returnButtonsToNormal()
-    if self.current.nmrResidue is None or len(peaks) == 0:
-      self.pickAndAssignWidget.hide()
-      return
-
-    # make sure that the widget is visible
-    self.pickAndAssignWidget.show()
-    # make sure that you have buttons!
-    if len(self.buttonGroup.buttons()) == 0:
-      return
-
-    # check if peaks coincide
-    for dim in range(peaks[0].peakList.spectrum.dimensionCount):
-      if not peaksAreOnLine(peaks, dim):
-        logger.debug('dimension %s: peaksAreonLine=False' % dim)
+    def _togglePressedButton(self, pressedButton=None):
+        '''Ensures only a button at the time is checked, yet allows to uncheck a radio button. If pressedButton is None: unchecks all'''
+        for button in self.buttonGroup.buttons():
+            if button != pressedButton:
+                button.setChecked(False)
+
+    def _nmrAtomButtonsCallback(self, pressedButton):
+
+        self._togglePressedButton(pressedButton)
+
+        self.application._startCommandBlock('application.atomSelector._nmrAtomButtonsCallback(%s)' % pressedButton)
+        try:
+            if pressedButton.isChecked():
+                self._assignSelected(atomName=pressedButton._atomName, offSet=pressedButton._offSet)
+            else:
+                self._deassignSelected(atomName=pressedButton._atomName, offSet=pressedButton._offSet)
+
+        except Exception as es:
+            showWarning(str(self.windowTitle()), str(es))
+            self._togglePressedButton()  # uncheck all if any error
+        finally:
+            self.application._endCommandBlock()
+
+    def _deassignSelected(self, atomName, offSet):
+        nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
+        nmrAtom = nmrResidue.getNmrAtom(atomName.translate(Pid.remapSeparators))
+        if nmrAtom:
+            self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
+
+    def _assignSelected(self, atomName, offSet):
+        nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
+        nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
+        _assignNmrAtomsToPeaks(nmrAtoms=[nmrAtom], peaks=self.current.peaks)
+        self._setCheckedButtonOfAssignedAtoms(nmrResidue,
+                                              offSet=offSet)  # this so that only assigned atoms are checked.
+
+    def _registerNotifiers(self):
+        self._nmrAtomNotifier = Notifier(self.project,
+                                         [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                         NmrAtom.__name__,
+                                         self._nmrResidueCallBack)
+        self._peakChangeNotifier = Notifier(self.project,
+                                            [Notifier.CHANGE],
+                                            Peak.__name__,
+                                            self._nmrResidueCallBack,
+                                            onceOnly=True)
+        self._peakNotifier = Notifier(self.current,
+                                      [Notifier.CURRENT],
+                                      Peak._pluralLinkName,
+                                      self._predictAssignmentsCallBack)
+        self._nmrResidueNotifier = Notifier(self.current,
+                                            [Notifier.CURRENT],
+                                            NmrResidue._pluralLinkName,
+                                            self._nmrResidueCallBack)
+
+    def _unRegisterNotifiers(self):
+        """
+        clean up the notifiers
+        """
+        if self._peakNotifier is not None:
+            self._peakNotifier.unRegister()
+        if self._peakChangeNotifier is not None:
+            self._peakChangeNotifier.unRegister()
+        if self._nmrResidueNotifier is not None:
+            self._nmrResidueNotifier.unRegister()
+        if self._nmrAtomNotifier is not None:
+            self._nmrAtomNotifier.unRegister()
+
+    def _closeModule(self):
+        self._unRegisterNotifiers()
+        super(AtomSelectorModule, self)._closeModule()
+
+    def _createButtonsCallback(self):
+        self._updateWidget()
         return
 
-    types = set(peak.peakList.spectrum.experimentType for peak in peaks)
-    anyInterOnlyExperiments = any(isInterOnlyExpt(x) for x in types)
+        if self.radioButton1.isChecked():
+            self._createBackBoneButtons()
+        if self.radioButton2.isChecked():
+            self._createSideChainButtons()
 
-    logger.debug('peaks=%s' % (peaks,))
-    logger.debug('types=%s, anyInterOnlyExperiments=%s' % (types, anyInterOnlyExperiments))
-
-    peak = peaks[0]
-    peakListViews = [peakListView for peakListView in self.project.peakListViews if peakListView.peakList == peak.peakList]
-
-    #TODO: AtomSelector crashes if there is nothing in the view
-    if peakListViews:
-      spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
-      isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
-
-      # backbone
-      if self.radioButton1.isChecked():
-        predictedAtomTypes = [getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True)
-                              for ccpCode in CCP_CODES]
-        refinedPreds = [(type[0][0][1], type[0][1]) for type in predictedAtomTypes if len(type) > 0]
-        atomPredictions = set()
-        for atomPred, score in refinedPreds:
-          if score > 90:
-            atomPredictions.add(atomPred)
-
-        # list containing those atoms that exist - used for colouring in 'checkAssignedAtoms'
-        foundPredictList = {}
-        for atomPred in atomPredictions:
-          if atomPred == 'CB' and self.buttons['CB']:
-            if anyInterOnlyExperiments:
-              self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
-              foundPredictList[self.atomLabel('CB', '-1')] = 100
+    def _nmrResidueCallBack(self, nmrResidues=None):
+        "Callback if current.nmrResidue changes"
+        if nmrResidues is not None and self.current.nmrResidue:
+            self._updateWidget()
+            if self.current.peaks:
+                # self._predictAssignments(self.current.peaks)
+                self._pickAndAssignWidgetShow()
             else:
-              self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
-              self.buttons['CB'][1].setStyleSheet('background-color: mediumseagreen')
-              foundPredictList[self.atomLabel('CB', '-1')] = 100
-              foundPredictList[self.atomLabel('CB', '0')] = 100
-          if atomPred == 'CA' and self.buttons['CA']:
-            if anyInterOnlyExperiments:
-              self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
-              foundPredictList[self.atomLabel('CA', '-1')] = 100
-            else:
-              self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
-              self.buttons['CA'][1].setStyleSheet('background-color: mediumseagreen')
-              foundPredictList[self.atomLabel('CA', '-1')] = 100
-              foundPredictList[self.atomLabel('CA', '0')] = 100
-
-        # new routine to colour any existing atoms
-        # foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ATOM_TYPES
-        #                                      , foundPredictList, 'backbone')
-
-      # sidechain is checked
-      elif self.radioButton2.isChecked():
-        foundPredictList = {}
-
-        if self.current.nmrResidue.residueType == '':
-          # In this case, we loop over all CCP_CODES (i.e. residue types)
-          predictedAtomTypes = []
-          for residueType in CCP_CODES:
-            for type, score in getNmrAtomPrediction(residueType, peak.position[spectrumIndices[1]], isotopeCode):
-              if len(type) > 0 and score>50:
-                predictedAtomTypes.append((type,score))
-
+                self._pickAndAssignWidgetHide()
         else:
-          if self.offsetSelector.currentText() == '-1':
-            nmrResidue = self.current.nmrResidue.previousNmrResidue
-          elif self.offsetSelector.currentText() == '+1':
-            nmrResidue = self.current.nmrResidue.nextNmrResidue
-          else:
-            nmrResidue = self.current.nmrResidue
-          predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(), peak.position[spectrumIndices[1]], isotopeCode)
+            self._pickAndAssignWidgetHide()
+            self.currentNmrResidueLabel.setText(MSG)
 
-        # print('>predictAtomTypes>', predictedAtomTypes)
-        # find the maximum of each atomType
-        predictedDict = {}
-        for type, score in predictedAtomTypes:
-          if type[1] not in predictedDict:
-            predictedDict[type[1]] = (type[0], score)
-          else:
-            if score > predictedDict[type[1]][1]:
-              predictedDict[type[1]] = (type[0], score)
-        # print ('>>>predictedDict', predictedDict)
+    def _pickAndAssignWidgetShow(self):
+        self.pickAndAssignWidget.show()
+        self.atomTypeLabel.show()
+        self.atomOptions.show()
 
-        for atomDictType in predictedDict.keys():
-          bText = self.atomLabel(atomDictType, '0')
-          for atomType, buttons in self.buttons.items():      # get the correct button list
-            if atomDictType == atomType:
-              for button in buttons:
-                if bText == button.getText():
-                  # print('>type[1], atomType, button>', atomDictType, bText)
-                  foundPredictList[self.atomLabel(atomDictType, '0')] = score
+    def _pickAndAssignWidgetHide(self):
+        self.pickAndAssignWidget.hide()
+        self.atomTypeLabel.hide()
+        self.atomOptions.hide()
 
-                  if score >= 85:
-                    button.setStyleSheet('background-color: green')
-                  elif 50 < score < 85:
-                    button.setStyleSheet('background-color: orange')
-                  if score < 50:
-                    button.setStyleSheet('background-color: red')
+    def _offsetPullDownCallback(self, tmp=None):
+        "Callback if offset pullDown changes"
+        if self.current.nmrResidue:
+            self._updateWidget()
+            self._predictAssignments(self.current.peaks)
 
-        # new routine to colour any existing atoms
-        # atomButtonList = self._getAtomButtonList()
-        # atomButtonList = [x for i in atomButtonList for x in i]
-        # foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, atomButtonList
-        #                                      , foundPredictList, 'sideChain')
+    def _setPeaksLabel(self):
 
-  def _changeMoleculeType(self, data):
-    """
-    change the  available atomList depending on the moleculeType
-    :param data - str from pullDown:
-    """
-    pass
+        if self.current.peak is not None:
+            splitter = ' , '
+            pText = _truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
+            self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
+            self.currentPeaksLabel.setText(pText)
+        else:
+            self.currentPeaksLabel.setText(MSG)
 
-  def getResidueTypes(self, moleculeType:str='protein'):
-    """
-    return a list of residue types assiciated with the moleculeType
-    :param moleculeType - str ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
-    :return list of str:
-    """
-    if moleculeType in MOLECULE_TYPES:
-      if moleculeType == 'protein':
-        return [atomName for atomName in PROTEIN_ATOM_NAMES.keys()]
-    else:
-      return None
+    def _updateWidget(self):
+        "Update the widget to reflect the proper state"
+        # try:
+        ii = jj = 0
+        self._setPeaksLabel()
+        if self.current.nmrResidue is not None:
+            self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            if self.radioButton1.isChecked():
+                for w in self._sidechainModifiers:
+                    w.hide()
+                ii, jj = self._createBackBoneButtons()
+            elif self.radioButton2.isChecked():
+                for w in self._sidechainModifiers:
+                    w.show()
+                ii, jj = self._createSideChainButtons()
+            self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+        else:
+            self.currentNmrResidueLabel.setText(MSG)
+
+        # add a spacer to the radiobutton box
+        Spacer(self.pickAndAssignWidget, 3, 3,
+               QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+               grid=(30, 30), gridSpan=(1, 1))
+
+        # except:
+        #     return
+        #
+        # finally:
+
+        # self.pickAndAssignWidget.setMinimumSize(self.pickAndAssignWidget.minimumSizeHint())
+
+        # self.pickAndAssignWidget.setMinimumSize(
+        #     QtCore.QSize(ii * (BUTTON_MINX+1), jj * (BUTTON_MINY+1)))
+
+    def _removeOffsetFromButtonText(self, text: str):
+        p = text.split(' ')
+        if len(p) > 0:
+            return p[0]
+        else:
+            return text
+
+    def _setCheckedButtonOfAssignedAtoms(self, nmrResidue, offSet='0'):
+        '''setChecked the radioButton Of Assigned Nmr Atoms.
+        This makes sure that if a peak is selected and and assigned to an nmrAtom, the relative button is checked '''
+
+        if not self.current.peak: return
+        if not nmrResidue: return
+
+        peaks = self.current.peaks
+        currentDisplayedButtons = self.buttonGroup.buttons()
+        buttonsToCheck = []
+
+        for peak in peaks:
+            counts = set()
+            for assignedNmrAtom in makeIterableList(peak.assignedNmrAtoms):
+                if assignedNmrAtom in nmrResidue.nmrAtoms:
+                    for button in currentDisplayedButtons:
+                        if assignedNmrAtom:
+                            if offSet == '0':
+                                if assignedNmrAtom.name == button.getText():
+                                    counts.add(button)
+                            elif button._offSet == offSet:
+                                if assignedNmrAtom.name == button._atomName:
+                                    counts.add(button)
+
+                else:  #Try to search in + and - 1 offset
+                    for offset in ['-1', '+1']:
+                        r = self._getNmrResidue(nmrResidue.nmrChain,
+                                                sequenceCode=nmrResidue.mainNmrResidue.sequenceCode + offset)
+                        if r:
+                            if assignedNmrAtom in r.nmrAtoms:
+                                for button in currentDisplayedButtons:
+                                    if assignedNmrAtom:
+                                        btext = self.atomLabel(assignedNmrAtom.name, offset)
+                                        if btext == button.getText():
+                                            counts.add(button)
+            buttonsToCheck.append(list(counts))
+
+        buttonsToCheck = makeIterableList(buttonsToCheck)
+        if len(buttonsToCheck) == len(peaks):
+            for b in currentDisplayedButtons:
+                if b in buttonsToCheck:
+                    b.setChecked(True)
+                else:
+                    b.setChecked(False)
+        else:
+            self._togglePressedButton()
+
+    def _createBackBoneButtons(self):
+        self._cleanupPickAndAssignWidget()
+        for w in self._sidechainModifiers: w.hide()
+
+        # wb104 27 Jun 2017: changed _cleanupPickAndAssignWidget so removes widgets in reverse order
+        # not sure if there was anything else leading to this cludge (and one below) though
+        # cludge: don't know why I have to do this for the button to appear: TODO: fix this
+        ###_Label = Label(self, text='')
+        ###self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
+        self.buttons = {}
+        atoms = ATOM_TYPES
+        for b in self.buttonGroup.buttons():
+            self.buttonGroup.removeButton(b)
+
+        # rowCount = self.pickAndAssignWidget.layout().rowCount()
+        # colCount = self.pickAndAssignWidget.layout().columnCount()
+        #
+        # for r in range(1, rowCount):
+        #   for m in range(colCount):
+        #     item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        #     if item:
+        #       if item.widget():
+        #         item.widget().hide()
+        #     self.pickAndAssignWidget.layout().removeItem(item)
+
+        if self.current.nmrResidue:
+            rows = 0
+            cols = 0
+            for ii, atom in enumerate(atoms):
+                self.buttons[atom] = []
+
+                # skip if startswith these atomTypes
+                if not self.cCheckBox.isChecked() and atom.startswith('C'):
+                    continue
+                if not self.hCheckBox.isChecked() and atom.startswith('H'):
+                    continue
+                if not self.nCheckBox.isChecked() and atom.startswith('N'):
+                    continue
+                if not self.otherCheckBox.isChecked() and not atom.startswith('C') \
+                        and not atom.startswith('H') \
+                        and not atom.startswith('N'):
+                    continue
+
+                innerCols=0
+                for jj, offset in enumerate(['-1', '0', '+1']):
+                    btext = self.atomLabel(atom, offset)
+                    button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(rows, jj),
+                                         callback=None)  #partial(self.assignSelected, offset, atom))
+                    button.setMinimumSize(BUTTON_MINX, BUTTON_MINY)
+                    self.buttonGroup.addButton(button)
+                    button._atomName = atom
+                    button._offSet = offset
+                    # button.clicked.connect(self._buttonCallback)
+
+                    self.buttons[atom].append(button)
+
+                    innerCols += 1
+                rows += 1
+                cols = max(cols, innerCols)
+
+            self._predictAssignments(self.current.peaks)
+            return rows, cols
+
+    def _createSideChainButtons(self):
+        self._cleanupPickAndAssignWidget()
+        for w in self._sidechainModifiers: w.show()
+
+        # see comment about cludge above
+        # cludge: don't know why I have to do this for the button to appear: TODO: fix this
+        ###_label= Label(self.pickAndAssignWidget, '',  hAlign='l')
+        ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
+
+        ii, jj = self._updateChainLayout()
+        self._predictAssignments(self.current.peaks)
+        return ii, jj
+
+    def _toggleBox(self):
+        if self.radioButton1.isChecked():
+            for w in self._sidechainModifiers: w.hide()
+        elif self.radioButton2.isChecked():
+            for w in self._sidechainModifiers: w.show()
+        self._updateWidget()
+        # self._predictAssignments(self.current.peaks)
+
+    def _getAtomsForButtons(self, atomList, atomName):
+        [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
+
+    def _getAtomButtonList(self, residueType=None):
+
+        alphaAtoms = [x for x in ALL_ATOMS_SORTED['alphas']]
+        betaAtoms = [x for x in ALL_ATOMS_SORTED['betas']]
+        gammaAtoms = [x for x in ALL_ATOMS_SORTED['gammas']]
+        moreGammaAtoms = [x for x in ALL_ATOMS_SORTED['moreGammas']]
+        deltaAtoms = [x for x in ALL_ATOMS_SORTED['deltas']]
+        moreDeltaAtoms = [x for x in ALL_ATOMS_SORTED['moreDeltas']]
+        epsilonAtoms = [x for x in ALL_ATOMS_SORTED['epsilons']]
+        moreEpsilonAtoms = [x for x in ALL_ATOMS_SORTED['moreEpsilons']]
+        zetaAtoms = [x for x in ALL_ATOMS_SORTED['zetas']]
+        etaAtoms = [x for x in ALL_ATOMS_SORTED['etas']]
+        moreEtaAtoms = [x for x in ALL_ATOMS_SORTED['moreEtas']]
+        atomButtonList = [alphaAtoms, betaAtoms, gammaAtoms, moreGammaAtoms, deltaAtoms, moreDeltaAtoms,
+                          epsilonAtoms, moreEpsilonAtoms, zetaAtoms, etaAtoms, moreEtaAtoms]
+
+        if residueType:
+            residueAtoms = PROTEIN_ATOM_NAMES[residueType]
+            residueAlphas = [atom for atom in alphaAtoms if atom in residueAtoms]
+            residueBetas = [atom for atom in betaAtoms if atom in residueAtoms]
+            residueGammas = [atom for atom in gammaAtoms if atom in residueAtoms]
+            residueMoreGammas = [atom for atom in moreGammaAtoms if atom in residueAtoms]
+            residueDeltas = [atom for atom in deltaAtoms if atom in residueAtoms]
+            residueMoreDeltas = [atom for atom in moreDeltaAtoms if atom in residueAtoms]
+            residueEpsilons = [atom for atom in epsilonAtoms if atom in residueAtoms]
+            residueMoreEpsilons = [atom for atom in moreEpsilonAtoms if atom in residueAtoms]
+            residueZetas = [atom for atom in zetaAtoms if atom in residueAtoms]
+            residueEtas = [atom for atom in etaAtoms if atom in residueAtoms]
+            residueMoreEtas = [atom for atom in moreEtaAtoms if atom in residueAtoms]
+            residueAtomButtonList = [residueAlphas, residueBetas, residueGammas, residueMoreGammas,
+                                     residueDeltas, residueMoreDeltas, residueEpsilons,
+                                     residueMoreEpsilons, residueZetas, residueEtas, residueMoreEtas]
+            return residueAtomButtonList
+
+        return atomButtonList
+
+    def _getDnaRnaButtonList(self, atomList=None, residueType=None):
+        residueAtomButtonList = copy.deepcopy(ALL_DNARNA_ATOMS_SORTED)
+
+        if residueType and atomList:
+            residueAtoms = atomList[residueType]
+
+            for atomType in ALL_DNARNA_ATOMS_SORTED.keys():
+                atomTypeList = ALL_DNARNA_ATOMS_SORTED[atomType]
+                for atom in atomTypeList:
+                    if atom not in residueAtoms:
+                        residueAtomButtonList[atomType].remove(atom)
+
+        return [residueAtomButtonList[atom] for atom in residueAtomButtonList.keys()]
+
+    def _updateChainLayout(self):
+
+        # needs more work to allow DNA/RNA molecules
+        if self.molTypePulldown.currentText() == PROTEIN_MOLECULE:
+            # group atoms in useful categories based on usage
+            atomButtonList = self._getAtomButtonList()
+
+        elif self.molTypePulldown.currentText() == DNA_MOLECULE:
+            # testing DNA/RNA buttonlist
+            atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
+
+        elif self.molTypePulldown.currentText() == RNA_MOLECULE:
+            # testing DNA/RNA buttonlist
+            atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
+
+        # Activate button for Carbons
+        if not self.cCheckBox.isChecked():
+            [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+
+        if not self.hCheckBox.isChecked():
+            [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
+
+        if not self.nCheckBox.isChecked():
+            [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+
+        if not self.otherCheckBox.isChecked():
+            for atomList in atomButtonList:
+                [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
+                 and not atom.startswith('H') \
+                 and not atom.startswith('N')]
+
+        # rowCount = self.pickAndAssignWidget.layout().rowCount()
+        # colCount = self.pickAndAssignWidget.layout().columnCount()
+        #
+        # for r in range(1, rowCount):
+        #     for m in range(colCount):
+        #         item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        #         if item:
+        #             if item.widget():
+        #                 item.widget().hide()
+        #         self.pickAndAssignWidget.layout().removeItem(item)
+
+        rows = 0
+        cols = 0
+        if self.current.nmrResidue:
+            self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            if self.current.nmrResidue.residueType == '':
+                self.buttons = {}
+                for ii, atomList in enumerate(atomButtonList):
+
+                    for jj, atom in enumerate(atomList):
+                        self.buttons[atom] = []
+                        offset = self.offsetSelector.currentText()
+                        btext = self.atomLabel(atom, offset)
+                        button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(rows, jj), hAlign='t', )
+                        # callback=partial(self.assignSelected, offset, atom))
+                        button._atomName = atom
+                        button._offSet = offset
+                        button.setMinimumSize(BUTTON_MINX, BUTTON_MINY)
+                        self.buttonGroup.addButton(button)
+                        self.buttons[atom].append(button)
+
+                        cols = max(cols, jj+1)
+
+                    if atomList:
+                        rows += 1
+            else:
+                self.buttons = {}
+                if self.offsetSelector.currentText() == '-1':
+                    nmrResidue = self.current.nmrResidue.previousNmrResidue
+                elif self.offsetSelector.currentText() == '+1':
+                    nmrResidue = self.current.nmrResidue.nextNmrResidue
+                else:
+                    nmrResidue = self.current.nmrResidue
+                residueType = nmrResidue.residueType.upper()
+                atomButtonList2 = self._getAtomButtonList(residueType)
+                for ii, atomList in enumerate(atomButtonList2):
+                    for jj, atom in enumerate(atomList):
+                        self.buttons[atom] = []
+                        button = RadioButton(self.pickAndAssignWidget, text=atom, grid=(rows, jj), hAlign='t', )
+                        # callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
+                        # button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
+                        #         callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
+                        button._atomName = atom
+                        button._offSet = None
+                        self.buttonGroup.addButton(button)
+                        button.setMinimumSize(BUTTON_MINX, BUTTON_MINY)
+                        # button.setAutoExclusive(True)
+
+                        self.buttons[atom].append(button)
+
+                        cols = max(cols, jj+1)
+
+                    if atomList:
+                        rows += 1
+
+        return cols, rows
+
+    def _showMoreAtomButtons(self, buttons, moreButton):
+        if moreButton.isChecked():
+            [button.show() for button in buttons]
+        else:
+            [button.hide() for button in buttons]
+
+    def _cleanupPickAndAssignWidget(self):
+
+        layout = self.pickAndAssignWidget.layout()
+
+        for i in reversed(range(layout.count())):
+            widget = layout.takeAt(i).widget()
+            if widget is not None:
+                widget.setParent(None)
+
+        # rowCount = self.pickAndAssignWidget.layout().rowCount()
+        # colCount = self.pickAndAssignWidget.layout().columnCount()
+        #
+        # for r in range(1, rowCount):
+        #     for m in range(colCount):
+        #         item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        #         if item:
+        #             if item.widget():
+        #                 item.widget().hide()
+        #         self.pickAndAssignWidget.layout().removeItem(item)
+
+        # for r in range(layout.rowCount() - 1, -1, -1):
+        #     for c in range(layout.columnCount() - 1, -1, -1):
+        #         item = layout.itemAtPosition(r, c)
+        #         if item:
+        #             if item.widget():
+        #                 item.widget().hide()
+        #         layout.removeItem(item)
+
+    def atomLabel(self, atom, offset, showAll=False):
+        if showAll:
+            return str(atom + ' [i]' if offset == '0' else atom + ' [i' + offset + ']')
+        else:
+            return str(atom if offset == '0' else atom + ' [i' + offset + ']')
+
+    # NOT NEEDED
+    # def checkAssignedAtoms(self, nmrResidue, atoms, predictAtoms, checkMode='backbone'):
+    #   """
+    #   Check if the i-1, i, i+1 nmrAtoms for the current residue exist
+    #   :param nmrResidue:
+    #   :return foundAtoms - dict containing True for each found nmrAtom:
+    #   """
+    #   foundAtoms = {}
+    #   if checkMode == 'backbone':
+    #     # all residues are displayed so use the central mainNmrResidue
+    #     nmrResidue = self._getMainNmrResidue(nmrResidue)
+    #
+    #   # atoms = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+    #   for ii, atom in enumerate(atoms):
+    #     for jj, offset in enumerate(['-1', '0', '+1']):
+    #       bText = self.atomLabel(atom, offset)
+    #
+    #       if self._checkAssignedAtom(nmrResidue, offset, atom):
+    #         foundAtoms[bText] = True
+    #         if atom in self.buttons.keys():
+    #           for button in self.buttons[atom]:
+    #             if button.getText() == bText:
+    #
+    #               # colour the button if the atom exists
+    #               if bText in predictAtoms:
+    #                 score = predictAtoms[bText]
+    #
+    #                 if score >= 85:
+    #                   button.setStyleSheet('background-color: mediumseagreen')
+    #                 elif 50 < score < 85:
+    #                   button.setStyleSheet('background-color: lightsalmon')
+    #                 if score < 50:
+    #                   button.setStyleSheet('background-color: mediumvioletred')
+    #
+    #               # else: # Users don't need to know/ or be notified here that the nmrAtom exist in the selected nmrResidue.
+    #               #   button.setStyleSheet('background-color: cornflowerblue')
+    #
+    #
+    #   return foundAtoms
+
+    def _getNmrResidue(self, nmrChain, sequenceCode: typing.Union[int, str] = None,
+                       residueType: str = None) -> typing.Optional[NmrResidue]:
+        partialId = '%s.%s.' % (nmrChain.id, str(sequenceCode).translate(Pid.remapSeparators))
+        ll = self.project.getObjectsByPartialId(className='NmrResidue', idStartsWith=partialId)
+        if ll:
+            return ll[0]
+        else:
+            return nmrChain.fetchNmrResidue(sequenceCode)
+
+    def _getCorrectResidue(self, nmrResidue, offset: str, atomType: str):
+        name = atomType
+        r = None
+        if offset == '-1' and '-1' not in nmrResidue.sequenceCode:
+            r = nmrResidue.previousNmrResidue
+            if not r:
+                r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '-1')
+        elif offset == '+1' and '+1' not in nmrResidue.sequenceCode:
+            r = nmrResidue.nextNmrResidue
+            if not r:
+                r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '+1')
+        else:
+            r = nmrResidue
+
+        return r
+
+    # NOT NEEDED
+    # def _checkAssignedAtom(self, nmrResidue, offset:int, atomType:str):
+    #   '''
+    #   This checks only if an NMRAtom exists not if is assigned to a peak!
+    #   :param nmrResidue:
+    #   :param offset:
+    #   :param atomType:
+    #   :return:
+    #   '''
+    #   r = self._getCorrectResidue(nmrResidue=nmrResidue, offset=offset, atomType=atomType)
+    #   if r:
+    #     atom = r.getNmrAtom(atomType.translate(Pid.remapSeparators))
+    #     if atom and not atom.isDeleted:
+    #       return r
+    #     else:
+    #       return None
+    #   else:
+    #     return None
+
+    # def _getMainNmrResidue(self, nmrResidue):
+    #   if nmrResidue:
+    #     if nmrResidue.relativeOffset and nmrResidue.relativeOffset != 0:
+    #       return nmrResidue.mainNmrResidue
+    #
+    #   return nmrResidue
+
+    def _assignDimension(self):
+        """
+        update the peak assignment and create a event to update the module
+        """
+        pass
+
+    def deassignAtomFromSelectedPeaks(self, peaks, nmrAtom):
+
+        if not peaks: return
+        if not nmrAtom: return
+
+        newAssignedAtoms = ()
+        for peak in peaks:
+            for subTuple in peak.assignedNmrAtoms:
+                a = tuple(None if na is nmrAtom else na for na in subTuple)
+                newAssignedAtoms += (a,)
+
+            peak.assignedNmrAtoms = newAssignedAtoms
+
+    # def assignSelected(self,offset:int, atomType:str):
+    #   """
+    #   Takes a position either -1, 0 or +1 and an atom type, fetches an NmrAtom with name corresponding
+    #   to the atom type and the position and assigns it to correct dimension of current.peaks
+    #   """
+    #
+    #   if not self.current.nmrResidue or not self.current.peaks:
+    #     return
+    #
+    #   assignResidue = self._getMainNmrResidue(self.current.nmrResidue)
+    #
+    #   self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
+    #   try:
+    #     name = atomType
+    #
+    #     # search for and create the nmrResidue if it doesn't exists
+    #     if offset == '-1' and '-1' not in assignResidue.sequenceCode:
+    #       r = assignResidue.previousNmrResidue
+    #       if not r:
+    #         r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode+'-1')
+    #     elif offset == '+1' and '+1' not in assignResidue.sequenceCode:
+    #       r = assignResidue.nextNmrResidue
+    #       if not r:
+    #         r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode + '+1')
+    #     else:
+    #       r = assignResidue
+    #
+    #     if not button.isChecked():
+    #       # means we are unchecking. Therefore Needs to deassign that atom to the selected peak:
+    #        nmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
+    #        if nmrAtom:
+    #          self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
+    #     else:
+    #       nmrAtom = r.fetchNmrAtom(name=name)
+    #       _assignNmrAtomsToPeaks(strip=self.current.strip, nmrAtoms=[nmrAtom], peaks=self.current.peaks)
+    #
+    #
+    #   except Exception as es:
+    #     showWarning(str(self.windowTitle()), str(es))
+    #   finally:
+    #     # self.project._endCommandEchoBlock()
+    #     self.application._endCommandBlock()
+    #     # self._updateWidget()
+    #     # self._returnButtonsToNormal()
+    # self._predictAssignments(self.current.peaks)
+
+    def _returnButtonsToNormal(self):
+        """
+        Returns all buttons in Atom Selector to original colours and style.
+        """
+        for buttons in self.buttons.values():
+            for button in buttons:
+                button.setStyleSheet(
+                        """Dock QRadioButton { background-color: %s }
+                           Dock QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white'))
+
+    def _predictAssignmentsCallBack(self, data):
+        peaks = data[Notifier.VALUE]
+
+        self._predictAssignments(peaks)
+        self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+        self._updateWidget()
+
+    def _predictAssignments(self, peaks: typing.List[Peak]):
+        """
+        Predicts atom type for selected peaks and highlights the relevant buttons with confidence of
+        that assignment prediction, green is very confident, orange is less confident.
+        """
+        self._returnButtonsToNormal()
+        if self.current.nmrResidue is None or len(peaks) == 0:
+            self._pickAndAssignWidgetHide()
+            return
+
+        # make sure that the widget is visible
+        self._pickAndAssignWidgetShow()
+        # make sure that you have buttons!
+        if len(self.buttonGroup.buttons()) == 0:
+            return
+
+        # check if peaks coincide
+        for dim in range(peaks[0].peakList.spectrum.dimensionCount):
+            if not peaksAreOnLine(peaks, dim):
+                logger.debug('dimension %s: peaksAreonLine=False' % dim)
+                return
+
+        types = set(peak.peakList.spectrum.experimentType for peak in peaks)
+        anyInterOnlyExperiments = any(isInterOnlyExpt(x) for x in types)
+
+        logger.debug('peaks=%s' % (peaks,))
+        logger.debug('types=%s, anyInterOnlyExperiments=%s' % (types, anyInterOnlyExperiments))
+
+        peak = peaks[0]
+        peakListViews = [peakListView for peakListView in self.project.peakListViews if
+                         peakListView.peakList == peak.peakList]
+
+        #TODO: AtomSelector crashes if there is nothing in the view
+        if peakListViews:
+            spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
+            isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
+
+            # backbone
+            if self.radioButton1.isChecked():
+                predictedAtomTypes = [
+                    getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True)
+                    for ccpCode in CCP_CODES]
+                refinedPreds = [(type[0][0][1], type[0][1]) for type in predictedAtomTypes if len(type) > 0]
+                atomPredictions = set()
+                for atomPred, score in refinedPreds:
+                    if score > 90:
+                        atomPredictions.add(atomPred)
+
+                # list containing those atoms that exist - used for colouring in 'checkAssignedAtoms'
+                foundPredictList = {}
+                for atomPred in atomPredictions:
+                    if atomPred == 'CB' and self.buttons['CB']:
+                        if anyInterOnlyExperiments:
+                            self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
+                            foundPredictList[self.atomLabel('CB', '-1')] = 100
+                        else:
+                            self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
+                            self.buttons['CB'][1].setStyleSheet('background-color: mediumseagreen')
+                            foundPredictList[self.atomLabel('CB', '-1')] = 100
+                            foundPredictList[self.atomLabel('CB', '0')] = 100
+                    if atomPred == 'CA' and self.buttons['CA']:
+                        if anyInterOnlyExperiments:
+                            self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
+                            foundPredictList[self.atomLabel('CA', '-1')] = 100
+                        else:
+                            self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
+                            self.buttons['CA'][1].setStyleSheet('background-color: mediumseagreen')
+                            foundPredictList[self.atomLabel('CA', '-1')] = 100
+                            foundPredictList[self.atomLabel('CA', '0')] = 100
+
+                # new routine to colour any existing atoms
+                # foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, ATOM_TYPES,
+                #                                      foundPredictList, 'backbone')
+
+            # sidechain is checked
+            elif self.radioButton2.isChecked():
+                foundPredictList = {}
+
+                if self.current.nmrResidue.residueType == '':
+                    # In this case, we loop over all CCP_CODES (i.e. residue types)
+                    predictedAtomTypes = []
+                    for residueType in CCP_CODES:
+                        for type, score in getNmrAtomPrediction(residueType, peak.position[spectrumIndices[1]],
+                                                                isotopeCode):
+                            if len(type) > 0 and score > 50:
+                                predictedAtomTypes.append((type, score))
+
+                else:
+                    if self.offsetSelector.currentText() == '-1':
+                        nmrResidue = self.current.nmrResidue.previousNmrResidue
+                    elif self.offsetSelector.currentText() == '+1':
+                        nmrResidue = self.current.nmrResidue.nextNmrResidue
+                    else:
+                        nmrResidue = self.current.nmrResidue
+                    predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(),
+                                                              peak.position[spectrumIndices[1]], isotopeCode)
+
+                # print('>predictAtomTypes>', predictedAtomTypes)
+                # find the maximum of each atomType
+                predictedDict = {}
+                for type, score in predictedAtomTypes:
+                    if type[1] not in predictedDict:
+                        predictedDict[type[1]] = (type[0], score)
+                    else:
+                        if score > predictedDict[type[1]][1]:
+                            predictedDict[type[1]] = (type[0], score)
+                # print ('>>>predictedDict', predictedDict)
+
+                for atomDictType in predictedDict.keys():
+                    bText = self.atomLabel(atomDictType, '0')
+                    for atomType, buttons in self.buttons.items():  # get the correct button list
+                        if atomDictType == atomType:
+                            for button in buttons:
+                                if bText == button.getText():
+                                    # print('>type[1], atomType, button>', atomDictType, bText)
+                                    foundPredictList[self.atomLabel(atomDictType, '0')] = score
+
+                                    if score >= 85:
+                                        button.setStyleSheet('background-color: green')
+                                    elif 50 < score < 85:
+                                        button.setStyleSheet('background-color: orange')
+                                    if score < 50:
+                                        button.setStyleSheet('background-color: red')
+
+                # new routine to colour any existing atoms
+                # atomButtonList = self._getAtomButtonList()
+                # atomButtonList = [x for i in atomButtonList for x in i]
+                # foundAtoms = self.checkAssignedAtoms(self.current.nmrResidue, atomButtonList,
+                #                                      foundPredictList, 'sideChain')
+
+    def _changeMoleculeType(self, data):
+        """
+        change the  available atomList depending on the moleculeType
+        :param data - str from pullDown:
+        """
+        pass
+
+    def getResidueTypes(self, moleculeType: str = 'protein'):
+        """
+        return a list of residue types assiciated with the moleculeType
+        :param moleculeType - str ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
+        :return list of str:
+        """
+        if moleculeType in MOLECULE_TYPES:
+            if moleculeType == 'protein':
+                return [atomName for atomName in PROTEIN_ATOM_NAMES.keys()]
+        else:
+            return None
 
 
 DNA_ATOMS = """
@@ -1131,104 +1236,105 @@ U          P        P        149         -5.30         1.58      -2.99       1.7
 """
 
 DNA_ATOM_NAMES = {
-  'DT': ['H3', 'H6', 'H7', 'H71', 'H72', 'H73', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
-         'C2', 'C4', 'C5', 'C6', 'C7', "C1'", "C2'", "C3'", "C4'", "C5'",
-         'N1', 'N3',
-         'P'],
-  'DC': ['H41', 'H42', 'H5', 'H6', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
-         'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
-         'N1', 'N3', 'N4',
-         'P'],
-  'DA': ['H2', 'H61', 'H62', 'H8', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
-         'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
-         'N1', 'N3', 'N6', 'N7', 'N9', 'P'],
-  'DG': ['H1', 'H21', 'H22', 'H8', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
-         'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
-         'N1', 'N2', 'N7', 'N9',
-         'P']
+    'DT': ['H3', 'H6', 'H7', 'H71', 'H72', 'H73', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+           'C2', 'C4', 'C5', 'C6', 'C7', "C1'", "C2'", "C3'", "C4'", "C5'",
+           'N1', 'N3',
+           'P'],
+    'DC': ['H41', 'H42', 'H5', 'H6', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+           'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
+           'N1', 'N3', 'N4',
+           'P'],
+    'DA': ['H2', 'H61', 'H62', 'H8', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+           'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+           'N1', 'N3', 'N6', 'N7', 'N9', 'P'],
+    'DG': ['H1', 'H21', 'H22', 'H8', "H1'", "H2'", "H2''", "H3'", "H4'", "H5'", "H5''",
+           'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+           'N1', 'N2', 'N7', 'N9',
+           'P']
 }
 RNA_ATOM_NAMES = {
-  'G': ['H1', 'H21', 'H22', 'H8', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
-        'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
-        'N1', 'N2', 'N3', 'N7', 'N9',
-        'P'],
-  'U': ['H3', 'H5', 'H6', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
-        'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
-        'N1', 'N3', 'O4',
-        'P'],
-  'A': ['H2', 'H61', 'H62', 'H8', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
-        'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
-        'N1', 'N3', 'N6', 'N7', 'N9',
-        'P'],
-  'C': ['H41', 'H42', 'H5', 'H6', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
-        'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
-        'N1', 'N3', 'N4',
-        'P']
+    'G': ['H1', 'H21', 'H22', 'H8', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+          'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+          'N1', 'N2', 'N3', 'N7', 'N9',
+          'P'],
+    'U': ['H3', 'H5', 'H6', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+          'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
+          'N1', 'N3', 'O4',
+          'P'],
+    'A': ['H2', 'H61', 'H62', 'H8', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+          'C2', 'C4', 'C5', 'C6', 'C8', "C1'", "C2'", "C3'", "C4'", "C5'",
+          'N1', 'N3', 'N6', 'N7', 'N9',
+          'P'],
+    'C': ['H41', 'H42', 'H5', 'H6', "H1'", "HO2'", "H2'", "H3'", "H4'", "H5'", "H5''",
+          'C2', 'C4', 'C5', 'C6', "C1'", "C2'", "C3'", "C4'", "C5'",
+          'N1', 'N3', 'N4',
+          'P']
 }
 
 ALL_DNARNA_ATOMS_SORTED = OrderedDict([
-  ('O', ["HO2'"]),
-  ('1', ["C1'", 'H1', "H1'", 'N1']),
-  ('2', ['C2', "C2'", 'H2', "H2'", "H2''", 'H21', 'H22', 'N2']),
-  ('3', ["C3'", 'H3', "H3'", 'N3']),
-  ('4', ['C4', "C4'", "H4'", 'H41', 'H42', 'N4', 'O4']),
-  ('5', ['C5', "C5'", 'H5', "H5'", "H5''"]),
-  ('6', ['C6', 'H6', 'H61', 'H62', 'N6']),
-  ('7', ['C7', 'H7', 'H71', 'H72', 'H73', 'N7']),
-  ('8', ['C8', 'H8']),
-  ('9', ['N9']),
-  ('P', ['P'])
+    ('O', ["HO2'"]),
+    ('1', ["C1'", 'H1', "H1'", 'N1']),
+    ('2', ['C2', "C2'", 'H2', "H2'", "H2''", 'H21', 'H22', 'N2']),
+    ('3', ["C3'", 'H3', "H3'", 'N3']),
+    ('4', ['C4', "C4'", "H4'", 'H41', 'H42', 'N4', 'O4']),
+    ('5', ['C5', "C5'", 'H5', "H5'", "H5''"]),
+    ('6', ['C6', 'H6', 'H61', 'H62', 'N6']),
+    ('7', ['C7', 'H7', 'H71', 'H72', 'H73', 'N7']),
+    ('8', ['C8', 'H8']),
+    ('9', ['N9']),
+    ('P', ['P'])
 ])
 
 if __name__ == '__main__':
-  from ccpn.ui.gui.widgets.Application import TestApplication
-  from ccpn.ui.gui.widgets.TextEditor import TextEditor
-  app = TestApplication()
+    from ccpn.ui.gui.widgets.Application import TestApplication
+    from ccpn.ui.gui.widgets.TextEditor import TextEditor
 
-  popup = AtomSelectorModule()
 
-  textBox = TextEditor(popup.mainWidget, grid=(3,0), gridSpan=(1,1))
+    app = TestApplication()
 
-  all_atoms = dict()
-  for atom in ['O', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'P']:
-    all_atoms[atom] = []
+    popup = AtomSelectorModule()
 
-  atomList = [DNA_ATOMS, RNA_ATOMS]
-  startAtoms = ['DA', 'DC', 'DG', 'DT', 'A', 'G', 'C', 'U']
+    textBox = TextEditor(popup.mainWidget, grid=(3, 0), gridSpan=(1, 1))
 
-  for atomText in atomList:
-    atoms = {}
-    atomText = atomText.split('\n')
-    for line in atomText:
-      ll = line.split()
-      if ll:
-        if ll[0] in startAtoms:
-          if ll[0] in atoms.keys():
-            atoms[ll[0]].append(ll[1])
-          else:
-            atoms[ll[0]] = [ll[1]]
+    all_atoms = dict()
+    for atom in ['O', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'P']:
+        all_atoms[atom] = []
 
-          if ll[1] != 'P' and ll[1] not in all_atoms[ll[1][1]]:
-            all_atoms[ll[1][1]].append(ll[1])
-            all_atoms[ll[1][1]].sort()
+    atomList = [DNA_ATOMS, RNA_ATOMS]
+    startAtoms = ['DA', 'DC', 'DG', 'DT', 'A', 'G', 'C', 'U']
 
-    textBox.append(str(atoms))
-  all_atoms['P'] = ['P']
-  textBox.append(str(all_atoms))
+    for atomText in atomList:
+        atoms = {}
+        atomText = atomText.split('\n')
+        for line in atomText:
+            ll = line.split()
+            if ll:
+                if ll[0] in startAtoms:
+                    if ll[0] in atoms.keys():
+                        atoms[ll[0]].append(ll[1])
+                    else:
+                        atoms[ll[0]] = [ll[1]]
 
-  popup.currentNmrResidueLabel.setText('NmrResidue here')
+                    if ll[1] != 'P' and ll[1] not in all_atoms[ll[1][1]]:
+                        all_atoms[ll[1][1]].append(ll[1])
+                        all_atoms[ll[1][1]].sort()
 
-  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT'))
-  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DC'))
-  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DA'))
-  print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DG'))
+        textBox.append(str(atoms))
+    all_atoms['P'] = ['P']
+    textBox.append(str(all_atoms))
 
-  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G'))
-  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'U'))
-  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'A'))
-  print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'C'))
+    popup.currentNmrResidueLabel.setText('NmrResidue here')
 
-  popup.show()
-  popup.raise_()
-  app.start()
+    print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT'))
+    print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DC'))
+    print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DA'))
+    print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DG'))
 
+    print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G'))
+    print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'U'))
+    print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'A'))
+    print(popup._getDnaRnaButtonList(RNA_ATOM_NAMES, 'C'))
+
+    popup.show()
+    popup.raise_()
+    app.start()
