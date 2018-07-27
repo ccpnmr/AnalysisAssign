@@ -538,7 +538,7 @@ class AtomSelectorModule(CcpnModule):
         atomButtonList = [alphaAtoms, betaAtoms, gammaAtoms, moreGammaAtoms, deltaAtoms, moreDeltaAtoms,
                           epsilonAtoms, moreEpsilonAtoms, zetaAtoms, etaAtoms, moreEtaAtoms]
 
-        if residueType:
+        if residueType and residueType in PROTEIN_ATOM_NAMES:
             residueAtoms = PROTEIN_ATOM_NAMES[residueType]
             residueAlphas = [atom for atom in alphaAtoms if atom in residueAtoms]
             residueBetas = [atom for atom in betaAtoms if atom in residueAtoms]
