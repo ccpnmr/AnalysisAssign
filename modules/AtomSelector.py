@@ -183,6 +183,12 @@ class AtomSelectorModule(CcpnModule):
         self.atomOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
                                         callback=self._toggleBox, grid=(resRow, 1))
 
+        # add spacer to stop columns changing width
+        resRow += 1
+        Spacer(self._residueFrame, 2, 2,
+               QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum,
+               grid=(resRow, 2), gridSpan=(1, 1))
+
         self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomOptions.radioButtons
         self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
 
