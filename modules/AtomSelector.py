@@ -88,6 +88,15 @@ RNA_MOLECULE = 'RNA'
 BUTTON_MINX = 70
 BUTTON_MINY = 24
 
+DEFAULT_BUTTON = """QRadioButton { background-color: %s }
+                   QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white')
+GREEN_BUTTON = """QRadioButton { background-color: %s }
+                   QRadioButton::hover { background-color: %s}""" % ('mediumseagreen', 'palegreen')
+ORANGE_BUTTON = """QRadioButton { background-color: %s }
+                   QRadioButton::hover { background-color: %s}""" % ('orange', 'gold')
+RED_BUTTON = """QRadioButton { background-color: %s }
+                   QRadioButton::hover { background-color: %s}""" % ('tomato', 'lightpink')
+
 
 class AtomSelectorModule(CcpnModule):
     """
@@ -134,7 +143,7 @@ class AtomSelectorModule(CcpnModule):
                                            callback=self._offsetPullDownCallback)
         self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
-        # # modifier for atomType
+        # # modifier for atomType - moved to main frame below
         # row += 1
         # self.atomTypeLabel = Label(self._ASwidget, 'Atom Type', grid=(row, 0))
         # self.atomOptions = RadioButtons(self._ASwidget, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
@@ -249,7 +258,8 @@ class AtomSelectorModule(CcpnModule):
         self._nmrAtomNotifier = Notifier(self.project,
                                          [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
                                          NmrAtom.__name__,
-                                         self._nmrResidueCallBack)
+                                         self._nmrResidueCallBack,
+                                            onceOnly=True)
         self._peakChangeNotifier = Notifier(self.project,
                                             [Notifier.CHANGE],
                                             Peak.__name__,
@@ -258,11 +268,13 @@ class AtomSelectorModule(CcpnModule):
         self._peakNotifier = Notifier(self.current,
                                       [Notifier.CURRENT],
                                       Peak._pluralLinkName,
-                                      self._predictAssignmentsCallBack)
+                                      self._predictAssignmentsCallBack,
+                                            onceOnly=True)
         self._nmrResidueNotifier = Notifier(self.current,
                                             [Notifier.CURRENT],
                                             NmrResidue._pluralLinkName,
-                                            self._nmrResidueCallBack)
+                                            self._nmrResidueCallBack,
+                                            onceOnly=True)
 
     def _unRegisterNotifiers(self):
         """
@@ -408,7 +420,7 @@ class AtomSelectorModule(CcpnModule):
             buttonsToCheck.append(list(counts))
 
         buttonsToCheck = makeIterableList(buttonsToCheck)
-        if len(buttonsToCheck) == len(peaks):
+        if len(buttonsToCheck) >= len(peaks):
             for b in currentDisplayedButtons:
                 if b in buttonsToCheck:
                     b.setChecked(True)
@@ -852,17 +864,20 @@ class AtomSelectorModule(CcpnModule):
         """
         Returns all buttons in Atom Selector to original colours and style.
         """
-        for buttons in self.buttons.values():
-            for button in buttons:
-                button.setStyleSheet(
-                        """Dock QRadioButton { background-color: %s }
-                           Dock QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white'))
+        # for buttons in self.buttons.values():
+        #     for button in buttons:
+        #         print(button.text())
+        #         button.setStyleSheet(
+        #                 """QRadioButton { background-color: %s }
+        #                    QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white'))
+
+        self.pickAndAssignWidget.setStyleSheet(DEFAULT_BUTTON)
 
     def _predictAssignmentsCallBack(self, data):
         peaks = data[Notifier.VALUE]
 
         self._predictAssignments(peaks)
-        self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+        # self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
         self._updateWidget()
 
     def _predictAssignments(self, peaks: typing.List[Peak]):
@@ -918,20 +933,20 @@ class AtomSelectorModule(CcpnModule):
                 for atomPred in atomPredictions:
                     if atomPred == 'CB' and self.buttons['CB']:
                         if anyInterOnlyExperiments:
-                            self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
+                            self.buttons['CB'][0].setStyleSheet(GREEN_BUTTON)
                             foundPredictList[self.atomLabel('CB', '-1')] = 100
                         else:
-                            self.buttons['CB'][0].setStyleSheet('background-color: mediumseagreen')
-                            self.buttons['CB'][1].setStyleSheet('background-color: mediumseagreen')
+                            self.buttons['CB'][0].setStyleSheet(GREEN_BUTTON)
+                            self.buttons['CB'][1].setStyleSheet(GREEN_BUTTON)
                             foundPredictList[self.atomLabel('CB', '-1')] = 100
                             foundPredictList[self.atomLabel('CB', '0')] = 100
                     if atomPred == 'CA' and self.buttons['CA']:
                         if anyInterOnlyExperiments:
-                            self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
+                            self.buttons['CA'][0].setStyleSheet(GREEN_BUTTON)
                             foundPredictList[self.atomLabel('CA', '-1')] = 100
                         else:
-                            self.buttons['CA'][0].setStyleSheet('background-color: mediumseagreen')
-                            self.buttons['CA'][1].setStyleSheet('background-color: mediumseagreen')
+                            self.buttons['CA'][0].setStyleSheet(GREEN_BUTTON)
+                            self.buttons['CA'][1].setStyleSheet(GREEN_BUTTON)
                             foundPredictList[self.atomLabel('CA', '-1')] = 100
                             foundPredictList[self.atomLabel('CA', '0')] = 100
 
@@ -983,11 +998,11 @@ class AtomSelectorModule(CcpnModule):
                                     foundPredictList[self.atomLabel(atomDictType, '0')] = score
 
                                     if score >= 85:
-                                        button.setStyleSheet('background-color: green')
+                                        button.setStyleSheet(GREEN_BUTTON)
                                     elif 50 < score < 85:
-                                        button.setStyleSheet('background-color: orange')
+                                        button.setStyleSheet(ORANGE_BUTTON)
                                     if score < 50:
-                                        button.setStyleSheet('background-color: red')
+                                        button.setStyleSheet(RED_BUTTON)
 
                 # new routine to colour any existing atoms
                 # atomButtonList = self._getAtomButtonList()
