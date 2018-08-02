@@ -444,25 +444,28 @@ class SequenceGraphModule(CcpnModule):
     self.refreshCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                   labelText='Auto refresh NmrChain:',
                                                   checked=True,
-                                                  fixedWidths=(colwidth, 30),
+                                                  fixedWidths=(colwidth, 15),
+                                                  orientation='right', hAlign='left',
                                                   tipText='Update display when current.nmrChain changes',
-                                                  grid=(0, 1), gridSpan=(1,1))
+                                                  grid=(0, 1), gridSpan=(1, 1))
 
     self.sequenceCheckBox = CheckBoxCompoundWidget(self._MWwidget,
-                                                      labelText='Show Sequence:',
-                                                      checked=True,
-                                                      fixedWidths=(colwidth, 30),
-                                                      tipText='Show chain sequences',
-                                                      callback=self._toggleSequence,
-                                                      grid=(0, 2), gridSpan=(1,1))
+                                                   labelText='Show Sequence:',
+                                                   checked=True,
+                                                   fixedWidths=(colwidth, 15),
+                                                   orientation='right', hAlign='left',
+                                                   tipText='Show chain sequences',
+                                                   callback=self._toggleSequence,
+                                                   grid=(0, 2), gridSpan=(1, 1))
 
     self.nmrResiduesCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                       labelText='Show all NmrResidues:',
                                                       checked=True,
-                                                      fixedWidths=(colwidth, 30),
+                                                      fixedWidths=(colwidth, 15),
+                                                      orientation='right', hAlign='left',
                                                       tipText='Show all the NmrResidues in the NmrChain',
                                                       callback=self._updateShownAssignments,
-                                                      grid=(0, 3), gridSpan=(1,1))
+                                                      grid=(0, 3), gridSpan=(1, 1))
 
     row = 0
     self.assignmentsCheckBox = CheckBoxCompoundWidget(self._SGwidget,
