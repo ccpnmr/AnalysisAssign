@@ -116,38 +116,40 @@ class PeakAssigner(CcpnModule):
         self.current = mainWindow.application.current
 
         # settings
-        doubleToleranceCheckboxLabel = Label(self.settingsWidget, text="Double Tolerances ", grid=(0, 0))
         self.doubleToleranceCheckbox = CheckBox(self.settingsWidget, checked=False,
                                                 callback=self._updateInterface,
-                                                grid=(0, 1))
+                                                grid=(0, 0))
+        doubleToleranceCheckboxLabel = Label(self.settingsWidget, text="Double Tolerances ", grid=(0, 1))
         Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
                grid=(0, 2), gridSpan=(1, 1))
 
-        intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0, 3))
+        #
         self.intraCheckbox = CheckBox(self.settingsWidget, checked=False,
                                       callback=self._updateInterface,
-                                      grid=(0, 4))
+                                      grid=(0, 3))
+        intraCheckboxLabel = Label(self.settingsWidget, text="Only Intra-residual ", grid=(0, 4))
         Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
                grid=(0, 5), gridSpan=(1, 1))
 
-        multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0, 6))
+        #
         self.multiCheckbox = CheckBox(self.settingsWidget, checked=True,
                                       callback=self._updateInterface,
-                                      grid=(0, 7))
+                                      grid=(0, 6))
+        multiCheckboxLabel = Label(self.settingsWidget, text="Allow Multiple Peaks ", grid=(0, 7))
         Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
                grid=(0, 8), gridSpan=(1, 1))
 
-        expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0, 9))
-        self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
-                                    callback=self._updateInterface,
-                                    grid=(0, 10))
-        Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-               grid=(0, 11), gridSpan=(1, 1))
+        # expCheckBoxLabel = Label(self.settingsWidget, "Filter By Experiment", grid=(0, 10))
+        # self.expCheckBox = CheckBox(self.settingsWidget, checked=True,
+        #                             callback=self._updateInterface,
+        #                             grid=(0, 9))
+        # Spacer(self.settingsWidget, 10, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
+        #        grid=(0, 11), gridSpan=(1, 1))
 
-        allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0, 12))
         self.allChainCheckBoxLabel = CheckBox(self.settingsWidget, checked=False,
                                               callback=self._updateInterface,
-                                              grid=(0, 13))
+                                              grid=(0, 12))
+        allChainCheckBoxLabel = Label(self.settingsWidget, "Peak Selection from Table", grid=(0, 13))
 
         self._spacer = Spacer(self.settingsWidget, 5, 5,
                               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
@@ -167,6 +169,7 @@ class PeakAssigner(CcpnModule):
                                grid=(1, 0),
                                hPolicy='expanding', vPolicy='expanding')
         self.axisTables = []
+        self.axisDivergeLabels = []
         self.NDims = 0
         self.currentAtoms = None
 
@@ -239,12 +242,21 @@ class PeakAssigner(CcpnModule):
                                                                 parent=self.axisFrame,
                                                                 mainWindow=self.mainWindow,
                                                                 grid=(addNew, 0), gridSpan=(1, 1)))
+
+                    # make a small label that appears when there is nothing to display
+                    self.tempFrame = Frame(self.axisFrame, setLayout=True, grid=(addNew, 0))
+                    self.tempDivider = HLine(self.tempFrame, grid=(0, 0), gridSpan=(1, 3), colour=getColours()[DIVIDER], height=15)
+                    self.tempLabel = Label(self.tempFrame, text='', grid=(1,0))
+                    self.axisDivergeLabels.append([self.tempFrame, self.tempDivider, self.tempLabel])
+
                 for showNew in range(self.NDims, Ndimensions):
                     self.axisTables[showNew].show()
+                    self.axisDivergeLabels[showNew][0].hide()
 
             elif Ndimensions < len(self.axisTables):
                 for delOld in range(Ndimensions, len(self.axisTables)):
                     self.axisTables[delOld].hide()
+                    self.axisDivergeLabels[delOld][0].hide()
             self.NDims = Ndimensions
 
             # and enable the frame
@@ -283,6 +295,7 @@ class PeakAssigner(CcpnModule):
         for dim, nmrAtoms in zip(range(Ndimensions),
                                  nmrAtomsForTables):
             self.axisTables[dim].show()
+            self.axisDivergeLabels[dim][0].hide()
 
             ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
             self.nmrAtoms = list(sorted(set.intersection(*ll)))  # was intersection
@@ -299,12 +312,14 @@ class PeakAssigner(CcpnModule):
                 # hide as this is not a valid table
                 if not self.nmrAtoms:
                     self.axisTables[dim].hide()
+                    self.axisDivergeLabels[dim][0].show()
 
             positions = [peak.position[dim] for peak in self.current.peaks]
             avgPos = round(sum(positions) / len(positions), 3)
             axisCode = self.current.peak.peakList.spectrum.axisCodes[dim]
             text = '%s: %.3f' % (axisCode, avgPos)
             self.axisTables[dim].axisLabel.setText(text)
+            self.axisDivergeLabels[dim][2].setText(axisCode+': peaks diverge')
 
             self.axisTables[dim].buttonList.setButtonEnabled('Delete', False)
             self.axisTables[dim].buttonList.setButtonEnabled('Deassign', False)

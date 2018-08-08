@@ -519,8 +519,10 @@ class SequenceGraphModule(CcpnModule):
       textAll = [ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
     else:
       textAll = [ALL]
+
+    row += 1
     self.displaysWidget = ListCompoundWidget(self._SGwidget,
-                                             grid=(4,0), gridSpan=(1,2),
+                                             grid=(row,0), gridSpan=(1,2),
                                              vAlign='top', stretch=(0,0), hAlign='left',
                                              vPolicy='minimal',
                                              fixedWidths=(colwidth, colwidth, colwidth),
@@ -535,7 +537,7 @@ class SequenceGraphModule(CcpnModule):
 
     self._spacer = Spacer(self.settingsWidget, 5, 5,
                          QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-                         grid=(4,2), gridSpan=(1,1))
+                         grid=(row,2), gridSpan=(1,1))
 
     self._SGwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
     self._MWwidget.setMinimumWidth(self._SGwidget.sizeHint().width())

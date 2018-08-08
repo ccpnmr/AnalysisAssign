@@ -53,7 +53,7 @@ class Assign(Framework):
     self.addApplicationMenuSpec(menuSpec)
 
     viewMenuItems = [ ("Sequence Graph", self.showSequenceGraph, [('shortcut', 'sg')]),
-                      ("Atom Selector", self.showAtomSelector, [('shortcut', 'as')]),
+                      ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'as')]),
                       ()
                     ]
     self.addApplicationMenuItems('View', viewMenuItems, position=9)
@@ -202,15 +202,15 @@ class Assign(Framework):
 
   def showAtomSelector(self, position: str = 'bottom', relativeTo: CcpnModule = None, nmrAtom=None):
     """Displays Atom Selector."""
-    from ccpn.AnalysisAssign.modules.AtomSelector import AtomSelectorModule
+    from ccpn.AnalysisAssign.modules.NmrAtomAssigner import NmrAtomAssignerModule
 
     mainWindow = self.ui.mainWindow
     # FIXME:ED - sometimes crashes
     if not relativeTo:
       relativeTo = mainWindow.moduleArea  # ejb
-    self.atomSelectorModule = AtomSelectorModule(mainWindow=mainWindow, nmrAtom=nmrAtom)
-    mainWindow.moduleArea.addModule(self.atomSelectorModule, position=position, relativeTo=relativeTo)
+    self.nmrAtomAssigner = NmrAtomAssignerModule(mainWindow=mainWindow, nmrAtom=nmrAtom)
+    mainWindow.moduleArea.addModule(self.nmrAtomAssigner, position=position, relativeTo=relativeTo)
     mainWindow.pythonConsole.writeConsoleCommand("application.showAtomSelector()")
     getLogger().info("application.showAtomSelector()")
-    return self.atomSelectorModule
+    return self.nmrAtomAssigner
 

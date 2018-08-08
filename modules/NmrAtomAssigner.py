@@ -98,19 +98,19 @@ RED_BUTTON = """QRadioButton { background-color: %s }
                    QRadioButton::hover { background-color: %s}""" % ('tomato', 'lightpink')
 
 
-class AtomSelectorModule(CcpnModule):
+class NmrAtomAssignerModule(CcpnModule):
     """
     Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
     to peak dimensions
     Responds to current.nmrResidue and current.peaks
     """
-    className = 'AtomSelectorModule'
+    className = 'NmrAtomAssignerModule'
 
     includeSettingsWidget = True
     maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
     settingsPosition = 'top'
 
-    def __init__(self, mainWindow=None, name='Atom Selector', nmrAtom=None):
+    def __init__(self, mainWindow=None, name='NmrAtom Assigner', nmrAtom=None):
         CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
 
         # Derive application, project, and current from mainWindow
@@ -179,7 +179,7 @@ class AtomSelectorModule(CcpnModule):
 
         # modifier for atomType
         resRow += 1
-        self.atomTypeLabel = Label(self._residueFrame, 'Atom Type', grid=(resRow, 0))
+        self.atomTypeLabel = Label(self._residueFrame, 'Axis Code', grid=(resRow, 0))
         self.atomOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
                                         callback=self._toggleBox, grid=(resRow, 1))
 
@@ -297,7 +297,7 @@ class AtomSelectorModule(CcpnModule):
 
     def _closeModule(self):
         self._unRegisterNotifiers()
-        super(AtomSelectorModule, self)._closeModule()
+        super(NmrAtomAssignerModule, self)._closeModule()
 
     def _createButtonsCallback(self):
         self._updateWidget()
@@ -1313,7 +1313,7 @@ if __name__ == '__main__':
 
     app = TestApplication()
 
-    popup = AtomSelectorModule()
+    popup = NmrAtomAssignerModule()
 
     textBox = TextEditor(popup.mainWidget, grid=(3, 0), gridSpan=(1, 1))
 
