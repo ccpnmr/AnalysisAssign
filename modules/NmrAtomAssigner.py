@@ -921,6 +921,11 @@ class NmrAtomAssignerModule(CcpnModule):
         #TODO: AtomSelector crashes if there is nothing in the view
         if peakListViews:
             spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
+
+            # for the 1D case, this is (0, None)
+            if spectrumIndices[1] is None:
+                return
+
             isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
 
             # backbone
