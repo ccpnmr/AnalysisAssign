@@ -241,6 +241,8 @@ class AssignmentInspectorModule(CcpnModule):
     # install the event filter to handle maximising from floated dock
     self.installMaximiseEventHandler(self._maximise, self._closeModule)
 
+    self._registerNotifiers()
+
   def _fillDisplayWidget(self):
     list = ['> select-to-add <'] + [ALL] + [display.pid for display in self.mainWindow.spectrumDisplays]
     self.displaysWidget.pulldownList.setData(texts=list)
@@ -295,6 +297,20 @@ class AssignmentInspectorModule(CcpnModule):
   #   if self._peakNotifier:
   #     self._peakNotifier.unRegister()
 
+  def _registerNotifiers(self):
+      """Set up the notifiers
+      """
+      self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current,
+                                                               [Notifier.CURRENT],
+                                                               targetName=NmrResidue._pluralLinkName,
+                                                               callback=self._highlightNmrResidues)
+
+  def _unRegisterNotifiers(self):
+      """Clean up the notifiers
+      """
+      if self._selectOnTableCurrentNmrResiduesNotifier is not None:
+          self._selectOnTableCurrentNmrResiduesNotifier.unRegister()
+
   def _closeModule(self):
     """
     CCPN-INTERNAL: used to close the module
@@ -303,6 +319,7 @@ class AssignmentInspectorModule(CcpnModule):
       self._selectCurrentNmrAtomsNotifier.unRegister()
     self.assignedPeaksTable._close()
     self.chemicalShiftTable._close()
+    self._unRegisterNotifiers()
     super(AssignmentInspectorModule, self)._closeModule()
 
   def close(self):
@@ -334,7 +351,6 @@ class AssignmentInspectorModule(CcpnModule):
     """
     Notifier Callback for selecting a row in the table
     """
-    # TODO:ED select the nmrResidue and populate the assignment table
     objList = data[CallBack.OBJECT]
 
     if objList:
@@ -388,6 +404,25 @@ class AssignmentInspectorModule(CcpnModule):
                                         setNmrResidueLabel=False)
       finally:
           self.application._endCommandBlock()
+
+  def _highlightNmrResidues(self, data):
+      """
+      Notifier Callback for highlighting all NmrAtoms in the table
+      """
+      objList = data[CallBack.OBJECT]
+
+      if self.chemicalShiftTable._dataFrameObject:
+          chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
+          # peaks = self.assignedPeaksTable._dataFrameObject._objects
+
+          residues = set(objList.nmrResidues)       #        set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
+          highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+          # print ('>>>', highlightList)
+
+          self.chemicalShiftTable._highLightObjs(highlightList)
+
+          # will respond to selection of nmrAtom in sequenceGraph
+          self.assignedPeaksTable._updateModuleCallback({'value': list(residues)})
 
   def _highlightNmrAtoms(self, data):
     """
@@ -506,7 +541,7 @@ class AssignmentInspectorTable(QuickTable):
 
     self._peakList = None
     # update if current.nmrResidue is defined
-    if self.application.current.nmrResidue is not None:
+    if self.application.current.nmrResidue is not None and self.application.current.chemicalShiftList is not None:
       self._updateModuleCallback({ 'value': [self.application.current.nmrResidue] })
 
     # set the required table notifiers

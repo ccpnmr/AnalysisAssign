@@ -119,13 +119,28 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     if self.nmrAtom is not None:
       self.current.nmrAtom = self.nmrAtom
       self.current.nmrResidue = self.nmrAtom.nmrResidue
+      event.accept()
 
   def mouseReleaseEvent(self, event):
     """
     CCPN INTERNAL - re-implementation of mouse press event
     """
-    #print('>>release Event')
-    pass
+    if event.button() == QtCore.Qt.RightButton:
+      self._raiseContextMenu(event)               # ejb - moved the context menu to button release
+      event.accept()
+
+  def _raiseContextMenu(self, event:QtGui.QMouseEvent):
+    """
+    Creates and raises a context menu enabling items to be disconnected
+    """
+    from ccpn.ui.gui.widgets.Menu import Menu
+    from functools import partial
+
+    contextMenu = Menu('', event.widget(), isFloatWidget=True)
+    contextMenu.addAction('deassign all Peaks', partial(self._deassignAllPeaksFromNmrAtom))
+    cursor = QtGui.QCursor()
+    contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
+    contextMenu.exec()
 
   def addConnectedList(self, connectedAtom):
     keyVal = str(connectedAtom.nmrAtom.pid)
@@ -289,20 +304,38 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     Creates and raises a context menu enabling items to be disconnected
     """
     from ccpn.ui.gui.widgets.Menu import Menu
-    contextMenu = Menu('', event.widget(), isFloatWidget=True)
     from functools import partial
 
-    contextMenu.addAction(self.parent.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
-    contextMenu.addAction(self.parent.disconnectIcon, 'disconnect nmrResidue', partial(self._disconnectNmrResidue))
-    contextMenu.addAction(self.parent.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
-    contextMenu.addSeparator()
-    contextMenu.addAction('disconnect all nmrResidues', partial(self._disconnectAllNmrResidues))
-    if self.nmrResidue.residue:
-      contextMenu.addSeparator()
-      contextMenu.addAction('deassign nmrChain', partial(self._deassignNmrChain))
-    contextMenu.addSeparator()
-    contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
     cursor = QtGui.QCursor()
+    contextMenu = Menu('', event.widget(), isFloatWidget=True)
+
+    # widget = event.widget()
+    pressed = self.parent.scene.mouseGrabberItem()
+    # # pressed = self.parent.scene.itemAt(event.scenePos(), deviceTransform)
+    print('>>>', pressed, type(pressed))
+
+    if isinstance(pressed, GuiNmrResidue):
+      contextMenu.addAction(self.parent.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
+      contextMenu.addAction(self.parent.disconnectIcon, 'disconnect nmrResidue', partial(self._disconnectNmrResidue))
+      contextMenu.addAction(self.parent.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
+      contextMenu.addSeparator()
+      contextMenu.addAction('disconnect all nmrResidues', partial(self._disconnectAllNmrResidues))
+      if self.nmrResidue.residue:
+        contextMenu.addSeparator()
+        contextMenu.addAction('deassign nmrChain', partial(self._deassignNmrChain))
+
+      contextMenu.addSeparator()
+      contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
+
+    elif isinstance(pressed, AssignmentLine):
+      contextMenu.addAction('deassign Peak', partial(self._deassignPeak, pressed._peak))
+      cursor = QtGui.QCursor()
+      contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
+      contextMenu.exec()
+
+    else:
+      return
+
     contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
     contextMenu.exec()
 
@@ -324,6 +357,9 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   def _deassignNmrChain(self):
     self.parent.deassignNmrChain(selectedNmrResidue=self.nmrResidue)
 
+  def _deassignPeak(self, peak=None):
+    self.parent.deassignPeak(selectedPeak=peak)
+
   def _showNmrResidue(self):
     self.parent.navigateToNmrResidue(selectedNmrResidue=self.nmrResidue)
 
@@ -344,6 +380,7 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
     self.setPen(self.pen)
     self.setLine(x1, y1, x2, y2)
     self._peak = peak
+    self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
 
 class SequenceGraphModule(CcpnModule):
   """
@@ -430,7 +467,7 @@ class SequenceGraphModule(CcpnModule):
                              grid=(0, 0), vAlign='top', hAlign='left')
     self.residueCount = 0
 
-    colwidth = 140
+    colwidth = 175
     self._MWwidget = Widget(self.mainWidget, setLayout=True,
                              grid=(0, 0), vAlign='top', hAlign='left')
     # self._MWwidget = Widget(self.splitter, setLayout=True,
@@ -478,7 +515,7 @@ class SequenceGraphModule(CcpnModule):
 
     row += 1
     self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self._SGwidget,
-                                                      labelText='Show peak assignments as tree:',
+                                                      labelText='Tree view:',
                                                       checked=False,
                                                       fixedWidths=(colwidth, 30),
                                                       tipText='Show peak assignments as a tree below the main backbone',
@@ -945,6 +982,35 @@ class SequenceGraphModule(CcpnModule):
           if guiNmrResidueGroup.nmrResidue is nr:
             guiNmrResidueGroup.nmrResidueLabel._update()
 
+  def deassignPeak(self, selectedPeak=None):
+    print('>>>_deassignAllPeaksFromNmrAtom')
+
+    if selectedPeak:
+
+      self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom')
+      try:
+
+        selectedPeak.assignedNmrAtoms = ()
+
+        # for peak in selectedNmrAtom.assignedPeaks:
+        #
+        #   allAtoms = list(peak.dimensionNmrAtoms)
+        #   for dim in range(len(peak.dimensionNmrAtoms)):
+        #     dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+        #     if selectedNmrAtom in dimNmrAtoms:
+        #       dimNmrAtoms.remove(selectedNmrAtom)
+        #
+        #       # allAtoms = list(peak.dimensionNmrAtoms)
+        #       allAtoms[dim] = dimNmrAtoms
+        #
+        #   peak.dimensionNmrAtoms = allAtoms
+
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
+
+      finally:
+        self.project._endCommandEchoBlock()
+
   def clearAllItems(self):
     """
     Removes all displayed residues in the sequence graph and resets items count to zero.
@@ -974,6 +1040,8 @@ class SequenceGraphModule(CcpnModule):
     self.scrollContents.setGeometry(QtCore.QRect(0, 0, 300, 400))
     self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     self._sequenceGraphScrollArea.setWidget(self.scrollContents)
+
+    self.scrollContents.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
   def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -1043,29 +1111,50 @@ class SequenceGraphModule(CcpnModule):
     Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
     creates a graphical representation of a residue in the assigner
     """
+    guiResidueGroup = GuiNmrResidueGroup(self, nmrResidue, atoms['CA'], 0)#atoms['H'].x())
+    self.guiNmrResidues[nmrResidue] = guiResidueGroup
+    self.scene.addItem(guiResidueGroup)
 
+    # add the atoms to the group
     for item in atoms.values():
-      self.scene.addItem(item)
+      guiResidueGroup.addToGroup(item)
 
+    # modify the group
     nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
     if "CB" in list(atoms.keys()):
-      self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
+      self._addConnectingLineToGroup(guiResidueGroup, atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
     if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
-      self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+      self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
     if nmrResidue.residueType != 'PRO':
-        self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+        self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
     else:
-      self.scene.removeItem(atoms['H'])
-    # if not 'CB' in nmrAtoms:
-    #   self.scene.removeItem(atoms['CB'])
-    #   self.scene.removeItem(cbLine)
+      guiResidueGroup.removeFromGroup(atoms['H'])
 
-    self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
-    self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
-    self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
-    self.nmrResidueLabel.setPlainText(nmrResidue.id)
-    # self.guiNmrResidues.append(self.nmrResidueLabel)
-    self.scene.addItem(self.nmrResidueLabel)
+    self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
+    self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
+
+    # for item in atoms.values():
+    #   self.scene.addItem(item)
+    #
+    # nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
+    # if "CB" in list(atoms.keys()):
+    #   self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
+    # if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
+    #   self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+    # if nmrResidue.residueType != 'PRO':
+    #     self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
+    # else:
+    #   self.scene.removeItem(atoms['H'])
+    # # if not 'CB' in nmrAtoms:
+    # #   self.scene.removeItem(atoms['CB'])
+    # #   self.scene.removeItem(cbLine)
+    #
+    # self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
+    # self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
+    # self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
+    # self.nmrResidueLabel.setPlainText(nmrResidue.id)
+    # # self.guiNmrResidues.append(self.nmrResidueLabel)
+    # self.scene.addItem(self.nmrResidueLabel)
 
   # def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
   #   residue = {}
