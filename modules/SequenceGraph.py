@@ -314,7 +314,12 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     # # pressed = self.parent.scene.itemAt(event.scenePos(), deviceTransform)
     print('>>>', pressed, type(pressed))
 
-    if isinstance(pressed, GuiNmrResidue):
+    if self.parent.selectedLine:
+      thisLine = self.parent.selectedLine
+      contextMenu.addAction('deassign Peak: %s' % str(thisLine._peak.id), partial(self._deassignPeak, thisLine._peak))
+      cursor = QtGui.QCursor()
+
+    elif isinstance(pressed, GuiNmrResidue):
       contextMenu.addAction(self.parent.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
       contextMenu.addAction(self.parent.disconnectIcon, 'disconnect nmrResidue', partial(self._disconnectNmrResidue))
       contextMenu.addAction(self.parent.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
@@ -327,11 +332,11 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
       contextMenu.addSeparator()
       contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
 
-    elif isinstance(pressed, AssignmentLine):
-      contextMenu.addAction('deassign Peak', partial(self._deassignPeak, pressed._peak))
-      cursor = QtGui.QCursor()
-      contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
-      contextMenu.exec()
+    # elif isinstance(pressed, AssignmentLine):
+    #   contextMenu.addAction('deassign Peak', partial(self._deassignPeak, pressed._peak))
+    #   cursor = QtGui.QCursor()
+    #   contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
+    #   contextMenu.exec()
 
     else:
       return
@@ -368,19 +373,35 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
   """
   Object to create lines between GuiNmrAtoms with specific style, width, colour and displacement.
   """
-  def __init__(self, x1, y1, x2, y2, colour, width, style=None, peak=None):
+  def __init__(self, x1, y1, x2, y2, colour, width, parent=None, style=None, peak=None, atom1=None, atom2=None):
     QtWidgets.QGraphicsLineItem.__init__(self)
+
+    # set the pen colour and style
     self.pen = QtGui.QPen()
     self.pen.setColor(QtGui.QColor(colour))
     self.pen.setCosmetic(True)
     self.pen.setWidth(width)
-    ###if style and style == 'dash':
+
     if style == 'dash':
       self.pen.setStyle(QtCore.Qt.DotLine)
     self.setPen(self.pen)
     self.setLine(x1, y1, x2, y2)
+    self._parent=parent
+
+    # store the peak and the guiNmrAtoms that the line connects
     self._peak = peak
-    self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
+    self.atom1 = atom1
+    self.atom2 = atom2
+
+    # enable hovering so the current line can be set
+    self.setAcceptedMouseButtons(QtCore.Qt.RightButton)
+    self.setAcceptHoverEvents(True)
+
+  def hoverEnterEvent(self, event: 'QGraphicsSceneHoverEvent'):
+    self._parent.selectedLine = self
+
+  def hoverLeaveEvent(self, event: 'QGraphicsSceneHoverEvent'):
+    self._parent.selectedLine = None
 
 class SequenceGraphModule(CcpnModule):
   """
@@ -421,6 +442,7 @@ class SequenceGraphModule(CcpnModule):
     self.guiNmrResidueLabels = []
     self.guiNmrAtomDict = {}
     self.ghostList = []
+    self.selectedLine = None
 
     self.splitter = Splitter(QtCore.Qt.Vertical)
     self._sequenceModuleFrame = Frame(self.splitter, setLayout=True)
@@ -1041,7 +1063,7 @@ class SequenceGraphModule(CcpnModule):
     self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
     self._sequenceGraphScrollArea.setWidget(self.scrollContents)
 
-    self.scrollContents.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+    # self.scrollContents.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
   def _assembleResidue(self, nmrResidue:NmrResidue, atoms:typing.Dict[str, GuiNmrAtom]):
     """
@@ -1383,7 +1405,9 @@ class SequenceGraphModule(CcpnModule):
     x2 += xOff1 - kx2
     y2 += yOff2 - ky2
 
-    newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width, style, peak)
+    newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width,
+                             parent=self, style=style, peak=peak,
+                             atom1=atom1, atom2=atom2)
     self.scene.addItem(newLine)
     return newLine
 
@@ -1424,7 +1448,9 @@ class SequenceGraphModule(CcpnModule):
     x2 += xOff1 - kx2
     y2 += yOff2 - ky2
 
-    newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width, style, peak)
+    newLine = AssignmentLine(x1+offsetX, y1+offsetY, x2+offsetX, y2+offsetY, colour, width,
+                             parent=self, style=style, peak=peak,
+                             atom1=atom1, atom2=atom2)
     group.addToGroup(newLine)
     return newLine
 
