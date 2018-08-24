@@ -309,15 +309,24 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     cursor = QtGui.QCursor()
     contextMenu = Menu('', event.widget(), isFloatWidget=True)
 
-    # widget = event.widget()
+    # # widget = event.widget()
     pressed = self.parent.scene.mouseGrabberItem()
-    # # pressed = self.parent.scene.itemAt(event.scenePos(), deviceTransform)
-    print('>>>', pressed, type(pressed))
+    # # # pressed = self.parent.scene.itemAt(event.scenePos(), deviceTransform)
+    # print('>>>', pressed, type(pressed))
 
     if self.parent.selectedLine:
       thisLine = self.parent.selectedLine
-      contextMenu.addAction('deassign Peak: %s' % str(thisLine._peak.id), partial(self._deassignPeak, thisLine._peak))
-      cursor = QtGui.QCursor()
+      contextMenu.addAction('deassign nmrAtoms from Peak: %s' % str(thisLine._peak.id))
+      contextMenu.addSeparator()
+      if thisLine._peak:
+        for nmrAtomList in thisLine._peak.assignedNmrAtoms:
+          for nmrAtom in nmrAtomList:
+            if nmrAtom:
+              contextMenu.addAction(nmrAtom.id, partial(self._deassignPeak, thisLine._peak, nmrAtom))
+
+            # contextMenu.addAction('deassign Peak: %s' % str(thisLine._peak.id), partial(self._deassignPeak, thisLine._peak,
+            #                                                                             thisLine.atom1.nmrAtom,
+            #                                                                             thisLine.atom2.nmrAtom))
 
     elif isinstance(pressed, GuiNmrResidue):
       contextMenu.addAction(self.parent.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
@@ -332,11 +341,16 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
       contextMenu.addSeparator()
       contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
 
-    # elif isinstance(pressed, AssignmentLine):
-    #   contextMenu.addAction('deassign Peak', partial(self._deassignPeak, pressed._peak))
-    #   cursor = QtGui.QCursor()
-    #   contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
-    #   contextMenu.exec()
+    elif isinstance(pressed, GuiNmrAtom):
+      contextMenu.addAction('deassign nmrAtoms from Peaks')
+      contextMenu.addSeparator()
+      for peak in pressed.nmrAtom.assignedPeaks:
+        if peak:
+          subMenu = contextMenu.addMenu(peak.id)      #, partial(self._deassignNmrAtom, pressed.nmrAtom))
+          for nmrAtomList in peak.assignedNmrAtoms:
+            for nmrAtom in nmrAtomList:
+              if nmrAtom:
+                subMenu.addAction(nmrAtom.id, partial(self._deassignPeak, peak, nmrAtom))
 
     else:
       return
@@ -362,8 +376,11 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   def _deassignNmrChain(self):
     self.parent.deassignNmrChain(selectedNmrResidue=self.nmrResidue)
 
-  def _deassignPeak(self, peak=None):
-    self.parent.deassignPeak(selectedPeak=peak)
+  def _deassignPeak(self, peak=None, nmrAtom=None):
+    self.parent.deassignPeak(selectedPeak=peak, selectedNmrAtom=nmrAtom)
+
+  def _deassignNmrAtom(self, selectedNmrAtom=None):
+    self.parent.deassignNmrAtom(selectedNmrAtom=selectedNmrAtom)
 
   def _showNmrResidue(self):
     self.parent.navigateToNmrResidue(selectedNmrResidue=self.nmrResidue)
@@ -1004,15 +1021,57 @@ class SequenceGraphModule(CcpnModule):
           if guiNmrResidueGroup.nmrResidue is nr:
             guiNmrResidueGroup.nmrResidueLabel._update()
 
-  def deassignPeak(self, selectedPeak=None):
-    print('>>>_deassignAllPeaksFromNmrAtom')
-
+  def deassignPeak(self, selectedPeak=None, selectedNmrAtom=None):
+    """Deassign the peak by removing the assigned nmrAtoms from the list
+    """
     if selectedPeak:
+
+      self.project._startCommandEchoBlock('application.peakAssigner.deassignPeak')
+      try:
+
+        newList = []
+        for atomList in selectedPeak.assignedNmrAtoms:
+          atoms = [atom for atom in list(atomList) if atom != selectedNmrAtom]
+          newList.append(tuple(atoms))
+
+        selectedPeak.assignedNmrAtoms = tuple(newList)
+
+        # atoms = list(selectedPeak.assignedNmrAtoms)
+        # if selectedNmrAtom in atoms:
+        #   atoms.remove(selectedNmrAtom)
+        #   selectedPeak.assignedNmrAtoms = atoms
+
+        # selectedPeak.assignedNmrAtoms = ()
+
+        # for peak in selectedNmrAtom.assignedPeaks:
+        #
+        #   allAtoms = list(peak.dimensionNmrAtoms)
+        #   for dim in range(len(peak.dimensionNmrAtoms)):
+        #     dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+        #     if selectedNmrAtom in dimNmrAtoms:
+        #       dimNmrAtoms.remove(selectedNmrAtom)
+        #
+        #       # allAtoms = list(peak.dimensionNmrAtoms)
+        #       allAtoms[dim] = dimNmrAtoms
+        #
+        #   peak.dimensionNmrAtoms = allAtoms
+
+      except Exception as es:
+        showWarning(str(self.windowTitle()), str(es))
+
+      finally:
+        self.project._endCommandEchoBlock()
+
+  def deassignNmrAtom(self, selectedNmrAtom=None):
+    """Rmove the selected peaks from the assignedPeaks list
+    """
+    if selectedNmrAtom:
 
       self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom')
       try:
 
-        selectedPeak.assignedNmrAtoms = ()
+        atoms = list(selectedNmrAtom.assignedPeaks)
+        # selectedPeak.assignedNmrAtoms = ()
 
         # for peak in selectedNmrAtom.assignedPeaks:
         #
