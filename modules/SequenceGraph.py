@@ -308,27 +308,27 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
 
     cursor = QtGui.QCursor()
     contextMenu = Menu('', event.widget(), isFloatWidget=True)
-
-    # # widget = event.widget()
     pressed = self.parent.scene.mouseGrabberItem()
-    # # # pressed = self.parent.scene.itemAt(event.scenePos(), deviceTransform)
-    # print('>>>', pressed, type(pressed))
 
     if self.parent.selectedLine:
       thisLine = self.parent.selectedLine
       contextMenu.addAction('deassign nmrAtoms from Peak: %s' % str(thisLine._peak.id))
       contextMenu.addSeparator()
       if thisLine._peak:
+
+        # skip if nothing conected
+        if not thisLine._peak.assignedNmrAtoms:
+          return
+
+        # add the nmrAtoms to the menu
         for nmrAtomList in thisLine._peak.assignedNmrAtoms:
           for nmrAtom in nmrAtomList:
             if nmrAtom:
               contextMenu.addAction(nmrAtom.id, partial(self._deassignPeak, thisLine._peak, nmrAtom))
 
-            # contextMenu.addAction('deassign Peak: %s' % str(thisLine._peak.id), partial(self._deassignPeak, thisLine._peak,
-            #                                                                             thisLine.atom1.nmrAtom,
-            #                                                                             thisLine.atom2.nmrAtom))
-
     elif isinstance(pressed, GuiNmrResidue):
+
+      # create the nmrResidue menu
       contextMenu.addAction(self.parent.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self._disconnectPreviousNmrResidue))
       contextMenu.addAction(self.parent.disconnectIcon, 'disconnect nmrResidue', partial(self._disconnectNmrResidue))
       contextMenu.addAction(self.parent.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self._disconnectNextNmrResidue))
@@ -342,12 +342,19 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
       contextMenu.addAction('Show nmrResidue', partial(self._showNmrResidue))
 
     elif isinstance(pressed, GuiNmrAtom):
+
+      # create the nmrAtom menu
       contextMenu.addAction('deassign nmrAtoms from Peaks')
       contextMenu.addSeparator()
-      if pressed.nmrAtom:
+      if pressed.nmrAtom and pressed.nmrAtom.assignedPeaks:
+
+        # add nmrAtoms to the menu
         for peak in pressed.nmrAtom.assignedPeaks:
-          if peak:
-            subMenu = contextMenu.addMenu(peak.id)      #, partial(self._deassignNmrAtom, pressed.nmrAtom))
+          if peak and peak.assignedNmrAtoms:
+            subMenu = contextMenu.addMenu(peak.id)
+
+            subMenu.addAction('nmrAtoms')
+            subMenu.addSeparator()
             for nmrAtomList in peak.assignedNmrAtoms:
               for nmrAtom in nmrAtomList:
                 if nmrAtom:
