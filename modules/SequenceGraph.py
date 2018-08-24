@@ -344,13 +344,14 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     elif isinstance(pressed, GuiNmrAtom):
       contextMenu.addAction('deassign nmrAtoms from Peaks')
       contextMenu.addSeparator()
-      for peak in pressed.nmrAtom.assignedPeaks:
-        if peak:
-          subMenu = contextMenu.addMenu(peak.id)      #, partial(self._deassignNmrAtom, pressed.nmrAtom))
-          for nmrAtomList in peak.assignedNmrAtoms:
-            for nmrAtom in nmrAtomList:
-              if nmrAtom:
-                subMenu.addAction(nmrAtom.id, partial(self._deassignPeak, peak, nmrAtom))
+      if pressed.nmrAtom:
+        for peak in pressed.nmrAtom.assignedPeaks:
+          if peak:
+            subMenu = contextMenu.addMenu(peak.id)      #, partial(self._deassignNmrAtom, pressed.nmrAtom))
+            for nmrAtomList in peak.assignedNmrAtoms:
+              for nmrAtom in nmrAtomList:
+                if nmrAtom:
+                  subMenu.addAction(nmrAtom.id, partial(self._deassignPeak, peak, nmrAtom))
 
     else:
       return
