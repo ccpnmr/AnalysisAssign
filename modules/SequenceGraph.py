@@ -187,6 +187,9 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
   def mouseDoubleClickEvent(self, event):
     self.nmrResidueLabel._mouseDoubleClickEvent(event)
 
+  def _raiseMenu(self, event):
+    self.nmrResidueLabel._raiseContextMenu(event)
+
 class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
   """
   Object linking residues displayed in Assigner and Nmr Residues. Contains functionality for drag and
@@ -212,10 +215,10 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
     self.parent = parent
     self.nmrResidue = nmrResidue
-    self.mousePressEvent = self._mousePressEvent
-    self.mouseMoveEvent = self._mouseMoveEvent
-    self.mouseReleaseEvent = self._mouseReleaseEvent      # ejb - new for popup menu
-    self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
+    # self.mousePressEvent = self._mousePressEvent
+    # self.mouseMoveEvent = self._mouseMoveEvent
+    # self.mouseReleaseEvent = self._mouseReleaseEvent      # ejb - new for popup menu
+    # self.mouseDoubleClickEvent = self._mouseDoubleClickEvent
     self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
   def _update(self):
@@ -299,6 +302,33 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
     else:
       super(GuiNmrResidue, self).mouseDoubleClickEvent(event)
 
+  def _raiseLineMenu(self, scene, event):
+    """
+    Creates and raises a context menu enabling items to be disconnected
+    """
+    from ccpn.ui.gui.widgets.Menu import Menu
+    from functools import partial
+
+    cursor = QtGui.QCursor()
+    contextMenu = Menu('', event.widget(), isFloatWidget=True)
+    pressed = self.scene.mouseGrabberItem()
+
+    if self.selectedLine:
+      thisLine = self.selectedLine
+      contextMenu.addAction('deassign nmrAtoms from Peak: %s' % str(thisLine._peak.id))
+      contextMenu.addSeparator()
+      if thisLine._peak:
+
+        # skip if nothing connected
+        if not thisLine._peak.assignedNmrAtoms:
+          return
+
+        # add the nmrAtoms to the menu
+        for nmrAtomList in thisLine._peak.assignedNmrAtoms:
+          for nmrAtom in nmrAtomList:
+            if nmrAtom:
+              contextMenu.addAction(nmrAtom.id, partial(self._deassignPeak, thisLine._peak, nmrAtom))
+
   def _raiseContextMenu(self, event:QtGui.QMouseEvent):
     """
     Creates and raises a context menu enabling items to be disconnected
@@ -316,7 +346,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
       contextMenu.addSeparator()
       if thisLine._peak:
 
-        # skip if nothing conected
+        # skip if nothing connected
         if not thisLine._peak.assignedNmrAtoms:
           return
 
@@ -428,6 +458,9 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
   def hoverLeaveEvent(self, event: 'QGraphicsSceneHoverEvent'):
     self._parent.selectedLine = None
 
+  def mousePressEvent(self, event: 'QGraphicsSceneMouseEvent'):
+    GuiNmrResidue._raiseContextMenu(self, event)
+
 class SequenceGraphModule(CcpnModule):
   """
   A module for the display of stretches of sequentially linked and assigned stretches of
@@ -494,22 +527,6 @@ class SequenceGraphModule(CcpnModule):
 
     self.resetScene()
 
-    # self.scene = QtWidgets.QGraphicsScene(self)
-    # self.scrollContents = QtWidgets.QGraphicsView(self.scene, self)
-    # self.scrollContents.setRenderHints(QtGui.QPainter.Antialiasing)
-    # self.scrollContents.setInteractive(True)
-    # self.scrollContents.setGeometry(QtCore.QRect(0, 0, 380, 1000))
-    # ###self.horizontalLayout2 = QtWidgets.QHBoxLayout(self.scrollContents)
-    # self.scrollContents.setAlignment(QtCore.Qt.AlignCenter)
-    # self._sequenceGraphScrollArea.setWidget(self.scrollContents)
-    # # self._sequenceGraphScrollArea.ensureWidgetVisible(self.scrollContents)
-
-    # self.mainWidget.getLayout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 6)
-    # self.mainWidget.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
-    # self._SequenceGraphFrame.layout().addWidget(self._sequenceGraphScrollArea, 2, 0, 1, 7)
-
-    #frame.addWidget(self._sequenceGraphScrollArea, 4, 0, 1, 6)
-
     self._SGwidget = Widget(self.settingsWidget, setLayout=True,
                              grid=(0, 0), vAlign='top', hAlign='left')
     self.residueCount = 0
@@ -566,8 +583,11 @@ class SequenceGraphModule(CcpnModule):
                                                       checked=False,
                                                       fixedWidths=(colwidth, 30),
                                                       tipText='Show peak assignments as a tree below the main backbone',
-                                                      callback=self._updateShownAssignments,
+                                                      callback=self._updateShowTreeAssignments,
                                                       grid=(row, 0), gridSpan=(1,1))
+
+    # add a callback that fires when the layout changes the state of the checkbox
+    self.assignmentsTreeCheckBox.checkBox.stateChanged.connect(self._checkLayoutInit)
 
     row += 1
     self.sequentialStripsWidget = CheckBoxCompoundWidget(self._SGwidget,
@@ -641,25 +661,31 @@ class SequenceGraphModule(CcpnModule):
     self.disconnectNextIcon = Icon('icons/disconnectNext')
     self.disconnectNextAction.setIcon(self.disconnectNextIcon)
 
-    self.scene.dragEnterEvent = self.dragEnterEvent
+    # self.scene.dragEnterEvent = self.dragEnterEvent
+    # self._preMouserelease = self.scene.mouseReleaseEvent
+    # self.scene.mouseReleaseEvent = self._testMouseRelease
 
     if nmrChain is not None:
       self.selectSequence(nmrChain)
-
-    # self.thisSequenceModule.setFixedHeight(100)
-    # connect to SequenceModule
-    # from ccpn.ui.gui.modules.SequenceModule import SequenceModule
-    # seqMods = [sm for sm in SequenceModule.getInstances()]
-
-    # # populate if the sequenceModule has an nmrChain attached
-    # if seqMods:
-    #   self.selectSequence(seqMods[0].nmrChain)
 
     # stop the mainWidget from squishing during a resize
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
     # install the event filter to handle maximising from floated dock
     # self.installMaximiseEventHandler(self._maximise, self._closeModule)
+
+  # def _testMouseRelease(self, event):
+  #   if event.button() == QtCore.Qt.RightButton:
+  #     print(self.scene.mouseGrabberItem())
+  #     event.accept()
+  #   self._preMouserelease(event)
+
+  def _checkLayoutInit(self):
+    """This is a hack so that the state changes when the layout loads
+    After the layout initialise, this function is removed
+    """
+    self._updateShowTreeAssignments()
+    self.assignmentsTreeCheckBox.checkBox.stateChanged.disconnect(self._checkLayoutInit)
 
   def _maximise(self):
     """
@@ -1754,6 +1780,9 @@ class SequenceGraphModule(CcpnModule):
     Navigate in selected displays to nmrResidue; skip if none defined
     """
     nmrResidue = self.current.nmrResidue
+    if not nmrResidue:
+      return
+
     logger.debug('nmrResidue=%s' % (nmrResidue.id))
 
     displays = self._getDisplays()
