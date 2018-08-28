@@ -1122,8 +1122,9 @@ class AxisAssignmentObject(Frame):
         atomNames = ['']
         if self.current.peak:
             isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[self.index]
-            atomPrefix = isotopeCode[-1]
-            atomNames.extend([atomName for atomName in ATOM_NAMES[isotopeCode]])
+            # atomPrefix = isotopeCode[-1]
+            if isotopeCode in ATOM_NAMES:
+                atomNames.extend([atomName for atomName in ATOM_NAMES[isotopeCode]])
         if nmrAtom:
             atomNames.extend([nmrAtom.name])
         self.atomTypePulldown.setData(list(set(atomNames)))
