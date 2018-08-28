@@ -48,7 +48,7 @@ class Assign(Framework):
                            (),
                            ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
                            ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
-                           ("Residue Information", self.showResidueInformation, [('shortcut', 'ri')]),
+                           # ("Residue Information", self.showResidueInformation, [('shortcut', 'ri')]),
                           ])
     self.addApplicationMenuSpec(menuSpec)
 
@@ -56,7 +56,7 @@ class Assign(Framework):
                       ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'as')]),
                       ()
                     ]
-    self.addApplicationMenuItems('View', viewMenuItems, position=9)
+    self.addApplicationMenuItems('View', viewMenuItems, position=8)
 
   # overrides superclass
   def _closeExtraWindows(self):
@@ -151,23 +151,23 @@ class Assign(Framework):
     getLogger().info("application.showAssignmentModule()")
 
 
-  def showResidueInformation(self, position: str='bottom', relativeTo:CcpnModule=None):
-    """Displays Residue Information module."""
-    from ccpn.ui.gui.modules.ResidueInformation import ResidueInformation
-    if not self.project.residues:
-      getLogger().warning('No Residues in project. Residue Information Module requires Residues in the project to launch.')
-      MessageDialog.showWarning('No Residues in project.',
-                                'Residue Information Module requires Residues in the project to launch.')
-      return
-
-    mainWindow = self.ui.mainWindow
-    #FIXME:ED - crashes sometimes opening a module
-    if not relativeTo:
-      relativeTo = mainWindow.moduleArea    # ejb
-    self.residueModule = ResidueInformation(mainWindow=mainWindow)
-    mainWindow.moduleArea.addModule(self.residueModule, position=position, relativeTo=relativeTo)
-    mainWindow.pythonConsole.writeConsoleCommand("application.showResidueInformation()")
-    getLogger().info("application.showResidueInformation()")
+  # def showResidueInformation(self, position: str='bottom', relativeTo:CcpnModule=None):
+  #   """Displays Residue Information module."""
+  #   from ccpn.ui.gui.modules.ResidueInformation import ResidueInformation
+  #   if not self.project.residues:
+  #     getLogger().warning('No Residues in project. Residue Information Module requires Residues in the project to launch.')
+  #     MessageDialog.showWarning('No Residues in project.',
+  #                               'Residue Information Module requires Residues in the project to launch.')
+  #     return
+  #
+  #   mainWindow = self.ui.mainWindow
+  #   #FIXME:ED - crashes sometimes opening a module
+  #   if not relativeTo:
+  #     relativeTo = mainWindow.moduleArea    # ejb
+  #   self.residueModule = ResidueInformation(mainWindow=mainWindow)
+  #   mainWindow.moduleArea.addModule(self.residueModule, position=position, relativeTo=relativeTo)
+  #   mainWindow.pythonConsole.writeConsoleCommand("application.showResidueInformation()")
+  #   getLogger().info("application.showResidueInformation()")
 
 
   def showAssignmentInspectorModule(self, nmrAtom=None, position: str='bottom', relativeTo:CcpnModule=None):
