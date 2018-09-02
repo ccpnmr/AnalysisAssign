@@ -1041,6 +1041,8 @@ class NmrAtomAssignerModule(CcpnModule):
             return None
 
 
+
+#TODO: clean this up to a proper place
 DNA_ATOMS = """
 Res    Name     Atom     Count        Min.        Max.       Avg.     Std Dev
 
