@@ -180,8 +180,8 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # modifier for atomCode
         resRow += 1
-        self.axisCodeLabel = Label(self._residueFrame, 'Axis Codes:', grid=(resRow, 0))
-        self.axisCodeOptions = RadioButtons(self._residueFrame, selectedInd=0, texts=['C'],
+        self.axisCodeLabel = Label(self._residueFrame, 'Atom Codes:', grid=(resRow, 0))
+        self.axisCodeOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
                                         callback=self._changeAxisCode, grid=(resRow, 1))
 
         # # modifier for atomType
@@ -366,6 +366,9 @@ class NmrAtomAssignerModule(CcpnModule):
             for code in peak.axisCodes:
                 peakCodes.add(code)
         peakCodes = sorted(list(peakCodes), key=CcpnSorting.stringSortKey)
+
+        # peakCodes = peaks[0].peakList.spectrum.spectrumDisplay.axisCodes
+        peakCodes = ['H', 'C', 'N', 'Other']
         self.axisCodeOptions.setButtons(texts=list(peakCodes), tipTexts=list(peakCodes))
 
     def _updateWidget(self):
@@ -472,6 +475,8 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _getValidAxisCode(self):
         code = self.axisCodeOptions.getSelectedText()
+        return code
+
         if code:
             for cc in code:
                 if cc.isalpha():
@@ -514,8 +519,11 @@ class NmrAtomAssignerModule(CcpnModule):
             for ii, atom in enumerate(atoms):
                 self.buttons[atom] = []
 
-                if not atom.startswith(validAxisCode):
+                if validAxisCode != 'Other' and not atom.startswith(validAxisCode):
                     continue
+                elif validAxisCode == 'Other':
+                    if atom[0] in ['H', 'C', 'N']:
+                        continue
 
                 # # skip if startswith these atomTypes
                 # if not self.cCheckBox.isChecked() and atom.startswith('C'):
@@ -640,8 +648,24 @@ class NmrAtomAssignerModule(CcpnModule):
             # testing DNA/RNA buttonlist
             atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
 
-        # add atoms for the axisCode selected
-        [self._getAtomsForButtons(atomList, self.axisCodeOptions.get()[0]) for atomList in atomButtonList]
+        # # add atoms for the axisCode selected
+        # [self._getAtomsForButtons(atomList, self.axisCodeOptions.get()[0]) for atomList in atomButtonList]
+        # Activate button for Carbons
+        validAxisCode = self._getValidAxisCode()
+        if not validAxisCode == 'C':
+            [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+
+        if not validAxisCode == 'H':
+            [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
+
+        if not validAxisCode == 'N':
+            [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+
+        if not validAxisCode == 'Other':
+            for atomList in atomButtonList:
+                [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
+                 and not atom.startswith('H') \
+                 and not atom.startswith('N')]
 
         # # Activate button for Carbons
         # if not self.cCheckBox.isChecked():

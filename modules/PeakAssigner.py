@@ -867,21 +867,22 @@ class AxisAssignmentObject(Frame):
                 try:
                     for peak in self.current.peaks:
 
-                        newList = []
-                        for atomList in peak.assignedNmrAtoms:
-                            atoms = [atom for atom in list(atomList) if atom != currentObject[0]]
-                            newList.append(tuple(atoms))
-
-                            peak.assignedNmrAtoms = tuple(newList)
-
-                        # # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
+                        # newList = []
+                        # for atomList in peak.assignedNmrAtoms:
+                        #     atoms = [atom for atom in list(atomList) if atom != currentObject[0]]
+                        #     newList.append(tuple(atoms))
                         #
-                        # dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])  # ejb - changed to list
-                        # dimNmrAtoms.remove(currentObject[0])
-                        #
-                        # allAtoms = list(peak.dimensionNmrAtoms)
-                        # allAtoms[dim] = dimNmrAtoms
-                        # peak.dimensionNmrAtoms = allAtoms
+                        #     peak.assignedNmrAtoms = tuple(newList)
+
+                        # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
+
+                        peakDimNmrAtoms = peak.dimensionNmrAtoms
+                        dimNmrAtoms = list(peakDimNmrAtoms[dim])  # ejb - changed to list
+                        dimNmrAtoms.remove(currentObject[0])
+
+                        allAtoms = list(peakDimNmrAtoms)
+                        allAtoms[dim] = dimNmrAtoms
+                        peak.dimensionNmrAtoms = allAtoms
 
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
