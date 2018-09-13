@@ -73,6 +73,7 @@ from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.core.lib.AssignmentLib import _assignNmrAtomsToPeaks
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
+from ccpn.core.lib import CcpnSorting
 
 logger = getLogger()
 
@@ -174,14 +175,20 @@ class NmrAtomAssignerModule(CcpnModule):
         resRow += 1
         self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(resRow, 0),
                                  hPolicy='minimal')
-        self.currentPeaksLabel = Label(self._residueFrame, grid=(resRow, 1),
-                                       hPolicy='minimal', hAlign='l')
+        self.currentPeaksLabel = Label(self._residueFrame, grid=(resRow, 1), gridSpan=(1, 2),
+                                       hPolicy='ignored', hAlign='l')
 
-        # modifier for atomType
+        # modifier for atomCode
         resRow += 1
-        self.atomTypeLabel = Label(self._residueFrame, 'Axis Code', grid=(resRow, 0))
-        self.atomOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
-                                        callback=self._toggleBox, grid=(resRow, 1))
+        self.axisCodeLabel = Label(self._residueFrame, 'Axis Codes:', grid=(resRow, 0))
+        self.axisCodeOptions = RadioButtons(self._residueFrame, selectedInd=0, texts=['C'],
+                                        callback=self._changeAxisCode, grid=(resRow, 1))
+
+        # # modifier for atomType
+        # resRow += 1
+        # self.atomTypeLabel = Label(self._residueFrame, 'Axis Code', grid=(resRow, 0))
+        # self.atomOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
+        #                                 callback=self._toggleBox, grid=(resRow, 1))
 
         # add spacer to stop columns changing width
         resRow += 1
@@ -189,8 +196,8 @@ class NmrAtomAssignerModule(CcpnModule):
                QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum,
                grid=(resRow, 2), gridSpan=(1, 1))
 
-        self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomOptions.radioButtons
-        self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
+        # self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomOptions.radioButtons
+        # self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
 
 
         row += 1
@@ -203,8 +210,8 @@ class NmrAtomAssignerModule(CcpnModule):
         self._pickAndAssignScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self._pickAndAssignScrollArea.setStyleSheet("""ScrollArea { border: 0px; }""")
 
-        # hide unnecessary widgets on initialise
-        self._pickAndAssignWidgetHide()
+        # # hide unnecessary widgets on initialise
+        # self._pickAndAssignWidgetHide()
 
         self.buttonGroup = QtWidgets.QButtonGroup()  #self.pickAndAssignWidget)
         self.buttonGroup.buttonClicked.connect(self._nmrAtomButtonsCallback)
@@ -303,39 +310,44 @@ class NmrAtomAssignerModule(CcpnModule):
         self._updateWidget()
         return
 
-        if self.radioButton1.isChecked():
-            self._createBackBoneButtons()
-        if self.radioButton2.isChecked():
-            self._createSideChainButtons()
+        # if self.radioButton1.isChecked():
+        #     self._createBackBoneButtons()
+        # if self.radioButton2.isChecked():
+        #     self._createSideChainButtons()
 
     def _nmrResidueCallBack(self, nmrResidues=None):
         "Callback if current.nmrResidue changes"
         if nmrResidues is not None and self.current.nmrResidue:
             self._updateWidget()
-            if self.current.peaks:
-                # self._predictAssignments(self.current.peaks)
-                self._pickAndAssignWidgetShow()
-            else:
-                self._pickAndAssignWidgetHide()
+            # if self.current.peaks:
+            #     self._pickAndAssignWidgetShow()
+            # else:
+            #     self._pickAndAssignWidgetHide()
         else:
             self._pickAndAssignWidgetHide()
             self.currentNmrResidueLabel.setText(MSG)
 
     def _pickAndAssignWidgetShow(self):
+        # if self.current.peak:
+        #     self._setPeakAxisCodes(self.current.peaks)
         self.pickAndAssignWidget.show()
-        self.atomTypeLabel.show()
-        self.atomOptions.show()
+        # self.atomTypeLabel.show()
+        # self.atomOptions.show()
+        self.axisCodeLabel.show()
+        self.axisCodeOptions.show()
 
     def _pickAndAssignWidgetHide(self):
         self.pickAndAssignWidget.hide()
-        self.atomTypeLabel.hide()
-        self.atomOptions.hide()
+        # self.atomTypeLabel.hide()
+        # self.atomOptions.hide()
+        self.axisCodeLabel.hide()
+        self.axisCodeOptions.hide()
 
     def _offsetPullDownCallback(self, tmp=None):
         "Callback if offset pullDown changes"
         if self.current.nmrResidue:
             self._updateWidget()
-            self._predictAssignments(self.current.peaks)
+            # self._predictAssignments(self.current.peaks)
 
     def _setPeaksLabel(self):
 
@@ -347,6 +359,15 @@ class NmrAtomAssignerModule(CcpnModule):
         else:
             self.currentPeaksLabel.setText(MSG)
 
+    def _setPeakAxisCodes(self, peaks):
+        peakCodes = set()
+        for peak in peaks:
+            # for code in peak.peakList.spectrum.isotopeCodes:
+            for code in peak.axisCodes:
+                peakCodes.add(code)
+        peakCodes = sorted(list(peakCodes), key=CcpnSorting.stringSortKey)
+        self.axisCodeOptions.setButtons(texts=list(peakCodes), tipTexts=list(peakCodes))
+
     def _updateWidget(self):
         "Update the widget to reflect the proper state"
         # try:
@@ -354,6 +375,10 @@ class NmrAtomAssignerModule(CcpnModule):
         self._setPeaksLabel()
         if self.current.nmrResidue is not None:
             self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            self._pickAndAssignWidgetHide()
+            if self.current.peak:
+                self._setPeakAxisCodes(self.current.peaks)
+
             if self.radioButton1.isChecked():
                 for w in self._sidechainModifiers:
                     w.hide()
@@ -363,13 +388,23 @@ class NmrAtomAssignerModule(CcpnModule):
                     w.show()
                 ii, jj = self._createSideChainButtons()
             self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+
+            # add a spacer to the radiobutton box
+            Spacer(self.pickAndAssignWidget, 3, 3,
+                   QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+                   grid=(30, 30), gridSpan=(1, 1))
+
+            if self.current.peaks:
+                self._predictHighlight(self.current.peaks)
+                self._pickAndAssignWidgetShow()
         else:
+            self._pickAndAssignWidgetHide()
             self.currentNmrResidueLabel.setText(MSG)
 
-        # add a spacer to the radiobutton box
-        Spacer(self.pickAndAssignWidget, 3, 3,
-               QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
-               grid=(30, 30), gridSpan=(1, 1))
+        # # add a spacer to the radiobutton box
+        # Spacer(self.pickAndAssignWidget, 3, 3,
+        #        QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+        #        grid=(30, 30), gridSpan=(1, 1))
 
         # except:
         #     return
@@ -435,6 +470,14 @@ class NmrAtomAssignerModule(CcpnModule):
         else:
             self._togglePressedButton()
 
+    def _getValidAxisCode(self):
+        code = self.axisCodeOptions.getSelectedText()
+        if code:
+            for cc in code:
+                if cc.isalpha():
+                    return cc.upper()
+        return ''
+
     def _createBackBoneButtons(self):
         self._cleanupPickAndAssignWidget()
         for w in self._sidechainModifiers: w.hide()
@@ -463,20 +506,28 @@ class NmrAtomAssignerModule(CcpnModule):
         if self.current.nmrResidue:
             rows = 0
             cols = 0
+            validAxisCode = self._getValidAxisCode()
+
+            if not validAxisCode:
+                return 0, 0
+
             for ii, atom in enumerate(atoms):
                 self.buttons[atom] = []
 
-                # skip if startswith these atomTypes
-                if not self.cCheckBox.isChecked() and atom.startswith('C'):
+                if not atom.startswith(validAxisCode):
                     continue
-                if not self.hCheckBox.isChecked() and atom.startswith('H'):
-                    continue
-                if not self.nCheckBox.isChecked() and atom.startswith('N'):
-                    continue
-                if not self.otherCheckBox.isChecked() and not atom.startswith('C') \
-                        and not atom.startswith('H') \
-                        and not atom.startswith('N'):
-                    continue
+
+                # # skip if startswith these atomTypes
+                # if not self.cCheckBox.isChecked() and atom.startswith('C'):
+                #     continue
+                # if not self.hCheckBox.isChecked() and atom.startswith('H'):
+                #     continue
+                # if not self.nCheckBox.isChecked() and atom.startswith('N'):
+                #     continue
+                # if not self.otherCheckBox.isChecked() and not atom.startswith('C') \
+                #         and not atom.startswith('H') \
+                #         and not atom.startswith('N'):
+                #     continue
 
                 innerCols=0
                 for jj, offset in enumerate(['-1', '0', '+1']):
@@ -495,7 +546,7 @@ class NmrAtomAssignerModule(CcpnModule):
                 rows += 1
                 cols = max(cols, innerCols)
 
-            self._predictAssignments(self.current.peaks)
+            # self._predictAssignments(self.current.peaks)
             return rows, cols
 
     def _createSideChainButtons(self):
@@ -508,8 +559,11 @@ class NmrAtomAssignerModule(CcpnModule):
         ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
 
         ii, jj = self._updateChainLayout()
-        self._predictAssignments(self.current.peaks)
+        # self._predictAssignments(self.current.peaks)
         return ii, jj
+
+    def _changeAxisCode(self):
+        self._toggleBox()
 
     def _toggleBox(self):
         if self.radioButton1.isChecked():
@@ -517,7 +571,6 @@ class NmrAtomAssignerModule(CcpnModule):
         elif self.radioButton2.isChecked():
             for w in self._sidechainModifiers: w.show()
         self._updateWidget()
-        # self._predictAssignments(self.current.peaks)
 
     def _getAtomsForButtons(self, atomList, atomName):
         [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
@@ -587,21 +640,24 @@ class NmrAtomAssignerModule(CcpnModule):
             # testing DNA/RNA buttonlist
             atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
 
-        # Activate button for Carbons
-        if not self.cCheckBox.isChecked():
-            [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+        # add atoms for the axisCode selected
+        [self._getAtomsForButtons(atomList, self.axisCodeOptions.get()[0]) for atomList in atomButtonList]
 
-        if not self.hCheckBox.isChecked():
-            [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
-
-        if not self.nCheckBox.isChecked():
-            [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
-
-        if not self.otherCheckBox.isChecked():
-            for atomList in atomButtonList:
-                [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
-                 and not atom.startswith('H') \
-                 and not atom.startswith('N')]
+        # # Activate button for Carbons
+        # if not self.cCheckBox.isChecked():
+        #     [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+        #
+        # if not self.hCheckBox.isChecked():
+        #     [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
+        #
+        # if not self.nCheckBox.isChecked():
+        #     [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+        #
+        # if not self.otherCheckBox.isChecked():
+        #     for atomList in atomButtonList:
+        #         [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
+        #          and not atom.startswith('H') \
+        #          and not atom.startswith('N')]
 
         # rowCount = self.pickAndAssignWidget.layout().rowCount()
         # colCount = self.pickAndAssignWidget.layout().columnCount()
@@ -820,84 +876,40 @@ class NmrAtomAssignerModule(CcpnModule):
 
             peak.assignedNmrAtoms = newAssignedAtoms
 
-    # def assignSelected(self,offset:int, atomType:str):
-    #   """
-    #   Takes a position either -1, 0 or +1 and an atom type, fetches an NmrAtom with name corresponding
-    #   to the atom type and the position and assigns it to correct dimension of current.peaks
-    #   """
-    #
-    #   if not self.current.nmrResidue or not self.current.peaks:
-    #     return
-    #
-    #   assignResidue = self._getMainNmrResidue(self.current.nmrResidue)
-    #
-    #   self.application._startCommandBlock('application.atomSelector.assignSelected(atomType={!r}, offset={})'.format(atomType, offset))
-    #   try:
-    #     name = atomType
-    #
-    #     # search for and create the nmrResidue if it doesn't exists
-    #     if offset == '-1' and '-1' not in assignResidue.sequenceCode:
-    #       r = assignResidue.previousNmrResidue
-    #       if not r:
-    #         r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode+'-1')
-    #     elif offset == '+1' and '+1' not in assignResidue.sequenceCode:
-    #       r = assignResidue.nextNmrResidue
-    #       if not r:
-    #         r = assignResidue.nmrChain.fetchNmrResidue(sequenceCode=assignResidue.sequenceCode + '+1')
-    #     else:
-    #       r = assignResidue
-    #
-    #     if not button.isChecked():
-    #       # means we are unchecking. Therefore Needs to deassign that atom to the selected peak:
-    #        nmrAtom = r.getNmrAtom(name.translate(Pid.remapSeparators))
-    #        if nmrAtom:
-    #          self.deassignAtomFromSelectedPeaks(self.current.peaks, nmrAtom)
-    #     else:
-    #       nmrAtom = r.fetchNmrAtom(name=name)
-    #       _assignNmrAtomsToPeaks(strip=self.current.strip, nmrAtoms=[nmrAtom], peaks=self.current.peaks)
-    #
-    #
-    #   except Exception as es:
-    #     showWarning(str(self.windowTitle()), str(es))
-    #   finally:
-    #     # self.project._endCommandEchoBlock()
-    #     self.application._endCommandBlock()
-    #     # self._updateWidget()
-    #     # self._returnButtonsToNormal()
-    # self._predictAssignments(self.current.peaks)
-
     def _returnButtonsToNormal(self):
         """
         Returns all buttons in Atom Selector to original colours and style.
         """
-        # for buttons in self.buttons.values():
-        #     for button in buttons:
-        #         print(button.text())
-        #         button.setStyleSheet(
-        #                 """QRadioButton { background-color: %s }
-        #                    QRadioButton::hover { background-color: %s}""" % ('lightgrey', 'white'))
-
         self.pickAndAssignWidget.setStyleSheet(DEFAULT_BUTTON)
 
     def _predictAssignmentsCallBack(self, data):
         peaks = data[Notifier.VALUE]
 
-        self._predictAssignments(peaks)
-        # self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
         self._updateWidget()
+        # self._predictAssignments(peaks)
 
-    def _predictAssignments(self, peaks: typing.List[Peak]):
-        """
-        Predicts atom type for selected peaks and highlights the relevant buttons with confidence of
-        that assignment prediction, green is very confident, orange is less confident.
-        """
+    # def _predictAssignments(self, peaks: typing.List[Peak]):
+    #     """
+    #     Predicts atom type for selected peaks and highlights the relevant buttons with confidence of
+    #     that assignment prediction, green is very confident, orange is less confident.
+    #     """
+    #     self._pickAndAssignWidgetHide()
+    #
+    #     if self.current.nmrResidue and self.current.peaks:
+    #         self._predictHighlight(peaks)
+    #
+    #     self._pickAndAssignWidgetShow()
+
+    def _predictHighlight(self, peaks: typing.List[Peak]):
+
         self._returnButtonsToNormal()
-        if self.current.nmrResidue is None or len(peaks) == 0:
-            self._pickAndAssignWidgetHide()
-            return
+        # if self.current.nmrResidue is None or len(peaks) == 0:
+        #     self._pickAndAssignWidgetHide()
+        #     return
+        #
+        # # make sure that the widget is visible
+        # self._pickAndAssignWidgetShow()
 
-        # make sure that the widget is visible
-        self._pickAndAssignWidgetShow()
         # make sure that you have buttons!
         if len(self.buttonGroup.buttons()) == 0:
             return
@@ -918,7 +930,6 @@ class NmrAtomAssignerModule(CcpnModule):
         peakListViews = [peakListView for peakListView in self.project.peakListViews if
                          peakListView.peakList == peak.peakList]
 
-        #TODO: AtomSelector crashes if there is nothing in the view
         if peakListViews:
             spectrumIndices = peakListViews[0].spectrumView._displayOrderSpectrumDimensionIndices
 
