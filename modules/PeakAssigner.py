@@ -87,6 +87,8 @@ allowedResidueTypes = [('', '', ''),
                        ('Unknown', 'UNK', ''),
                        ('Valine', 'VAL', 'V')]
 
+MSG = '<Not-defined. Select any to start>'
+
 
 class PeakAssigner(CcpnModule):
     """Module for assignment of nmrAtoms to the different axes of a peak.
@@ -158,7 +160,7 @@ class PeakAssigner(CcpnModule):
         # Main content widgets
         # TODO:ED check the overlapping of these widgets
         self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0, 0),
-                               text='Peak:', bold=True,
+                               text='Current Peak: '+MSG, bold=True,
                                grid=(0, 0), margins=(2, 2, 2, 2), hAlign='left', vAlign='t',
                                hPolicy='fixed', vPolicy='fixed')
         self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
@@ -230,7 +232,7 @@ class PeakAssigner(CcpnModule):
         # self._emptyAllTablesAndLists()
         if not self.current.peaks or not self._peaksAreCompatible():
             self.axisFrame.hide()
-            self.peakLabel.setText('Peak: <None>')
+            self.peakLabel.setText('Current Peak: '+MSG)
         else:
 
             Ndimensions = len(self.current.peak.position)
@@ -264,9 +266,9 @@ class PeakAssigner(CcpnModule):
             from ccpn.util.Common import makeIterableList, _truncateText
             peaksIds = ' , '.join([str(pp.id) for pp in self.current.peaks])
             if len(self.current.peaks) < 2:
-                self.peakLabel.setText('Peak: %s' % self.current.peak.id)
+                self.peakLabel.setText('Current Peak: %s' % self.current.peak.id)
             else:
-                self.peakLabel.setText('Peaks: %s' % _truncateText(peaksIds, maxWords=6))
+                self.peakLabel.setText('Current Peaks: %s' % _truncateText(peaksIds, maxWords=6))
                 self.peakLabel.setToolTip(peaksIds)
 
             self._updateNewTable()
@@ -393,7 +395,7 @@ class PeakAssigner(CcpnModule):
         """
         Quick erase of all present information in ListWidgets and ObjectTables.
         """
-        self.peakLabel.setText('Peak: <None>')
+        self.peakLabel.setText('Current Peak: '+MSG)
         for label in self.labels:
             label.setText('')
         for objectTable in self.objectTables:

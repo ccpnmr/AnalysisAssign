@@ -81,7 +81,7 @@ logger = getLogger()
 # MOLECULE_TYPES = ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
 MOLECULE_TYPES = ['protein']
 ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
-MSG = '< Not-defined. Select any to start >'
+MSG = '<Not-defined. Select any to start>'
 PROTEIN_MOLECULE = 'protein'
 DNA_MOLECULE = 'DNA'
 RNA_MOLECULE = 'RNA'
@@ -180,8 +180,8 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # modifier for atomCode
         resRow += 1
-        self.axisCodeLabel = Label(self._residueFrame, 'Atom Codes:', grid=(resRow, 0))
-        self.axisCodeOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
+        self.axisCodeLabel = Label(self._residueFrame, 'Axis Codes:', grid=(resRow, 0))
+        self.axisCodeOptions = RadioButtons(self._residueFrame, selectedInd=0, texts=['C'],
                                         callback=self._changeAxisCode, grid=(resRow, 1))
 
         # # modifier for atomType
@@ -263,9 +263,10 @@ class NmrAtomAssignerModule(CcpnModule):
     def _assignSelected(self, atomName, offSet):
         nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
         nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
-        _assignNmrAtomsToPeaks(nmrAtoms=[nmrAtom], peaks=self.current.peaks)
-        self._setCheckedButtonOfAssignedAtoms(nmrResidue,
-                                              offSet=offSet)  # this so that only assigned atoms are checked.
+        if nmrAtom:
+            self.assignNmrAtomsToPeaks(nmrAtom=nmrAtom, peaks=self.current.peaks)
+            self._setCheckedButtonOfAssignedAtoms(nmrResidue,
+                                                  offSet=offSet)  # this so that only assigned atoms are checked.
 
     def _registerNotifiers(self):
         self._nmrAtomNotifier = Notifier(self.project,
@@ -360,16 +361,148 @@ class NmrAtomAssignerModule(CcpnModule):
             self.currentPeaksLabel.setText(MSG)
 
     def _setPeakAxisCodes(self, peaks):
-        peakCodes = set()
-        for peak in peaks:
-            # for code in peak.peakList.spectrum.isotopeCodes:
-            for code in peak.axisCodes:
-                peakCodes.add(code)
-        peakCodes = sorted(list(peakCodes), key=CcpnSorting.stringSortKey)
 
-        # peakCodes = peaks[0].peakList.spectrum.spectrumDisplay.axisCodes
-        peakCodes = ['H', 'C', 'N', 'Other']
-        self.axisCodeOptions.setButtons(texts=list(peakCodes), tipTexts=list(peakCodes))
+        import difflib
+        from ccpn.util.Common import _axisCodeMapIndices, axisCodeMapping
+
+        if peaks:
+
+            maxLen = 0
+            refAxisCodes = None
+            for peak in peaks:
+                if len(peak.axisCodes) > maxLen:
+                    maxLen = len(peak.axisCodes)
+                    refAxisCodes = list(peak.axisCodes)
+
+            if not maxLen:
+                return
+
+            axisCodes = [[] for ii in range(maxLen)]
+            mappings = {}
+            # print('>>>0  ', refAxisCodes)
+
+            for peak in peaks:
+                matchAxisCodes = peak.axisCodes
+
+                mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
+                # print('>>>0  ', mapping)
+                for k, v in mapping.items():
+                    # print('>>>0  ', k, v)
+                    # if len(v) <= len(k):
+                    if v not in mappings:
+                        mappings[v] = set([k])
+                    else:
+                        mappings[v].add(k)
+
+                mapping = axisCodeMapping(matchAxisCodes, refAxisCodes)
+                for k, v in mapping.items():
+                    # if len(v) <= len(k):
+                    if v not in mappings:
+                        mappings[v] = set([k])
+                    else:
+                        mappings[v].add(k)
+
+                # print('>>>1  ', mappings)
+
+                # ('Hn', 'C', 'Nh')
+                # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
+                # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
+                # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
+                # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
+
+                self.peakIndex = {}
+                # go through the peaks
+                for peak in peaks:
+
+                    self.peakIndex[peak] = [0 for ii in range(len(peak.axisCodes))]
+
+                    # get the peak dimension axisCode, nd see if is already there
+                    for peakDim, peakAxis in enumerate(peak.axisCodes):
+
+                        if peakAxis in refAxisCodes:
+                            self.peakIndex[peak][peakDim] = refAxisCodes.index(peakAxis)
+
+                        else:
+                            # if the axisCode is not in the reference list then find the mapping from the dict
+                            # if peakAxis not in mappings:
+                            for k, v in mappings.items():
+                                if peakAxis in v:
+                                    # print('  >>>', peakAxis, k, v)
+                                    # refAxisCodes[dim] = k
+                                    self.peakIndex[peak][peakDim] = refAxisCodes.index(k)
+                            # else:
+                            #     print('>>>1a  ', peakAxis)
+                            #     # self.peakIndex[peak][peakDim] = refAxisCodes.index(peakAxis)
+
+                # print('>>>2  ', self.peakIndex)
+
+                # ll = _axisCodeMapIndices(refAxisCodes, peak.axisCodes)
+                # if not ll:
+                #     ll = _axisCodeMapIndices(peak.axisCodes, refAxisCodes)
+                #
+                # mapIndices = [ll[peak.axisCodes.index(x)] for x in refAxisCodes]
+
+                # matchAxisCodes = peak.axisCodes
+                #
+                # mappingArray = [refAxisCodes.index(axisCode) for axisCode in refAxisCodes if axisCode in matchAxisCodes]
+                # mappingArray2 = [matchAxisCodes.index(axisCode) for axisCode in refAxisCodes if axisCode in matchAxisCodes]
+                #
+                # tocsyDim = [x for x in [0, 1, 2] if x not in mappingArray2]
+                #
+                # mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
+                # mapping2 = axisCodeMapping(matchAxisCodes, refAxisCodes)
+                # print(refAxisCodes, matchAxisCodes, mapping, mapping2)
+
+                # use mapping to define dimension for assigning
+                # if axisOrder and axisOrder != displayAxisCodes:
+                #     ll = commonUtil._axisCodeMapIndices(spectrum.axisCodes, axisOrder)
+            #     mapIndices = [ll[axisOrder.index(x)] for x in displayAxisCodes]
+            # else:
+            #     # Map axes to original display setting
+            #     mapIndices = commonUtil._axisCodeMapIndices(spectrum.axisCodes, displayAxisCodes)
+            #
+            # if mapIndices is None:
+            #     getLogger().debug('Strip.displaySpectrum>>> mapIndices is None')
+            #     return
+
+        #         pass
+        #
+        #     for peak in peaks:
+        #         print('>>>  ', peak.axisCodes)
+        #         if len(peak.axisCodes) < maxLen:
+        #             continue
+        #
+        #         for dim, axis in enumerate(peak.axisCodes):
+        #             axisCodes[dim].append(axis)
+        #
+        #     print('>>>_setPeakAxisCodes', axisCodes)
+        #
+        #     for dim, axes in enumerate(axisCodes):
+        #         if axes:
+        #             thisAxis = axes[0]
+        #             for axis in axes[1:]:
+        #
+        #                 match = difflib.SequenceMatcher(thisAxis, axis)
+        #                 mm = match.get_matching_blocks()
+        #                 if mm and mm[0].a == 0 and mm[0].b == 0:
+        #                     thisAxis = thisAxis[0:mm[0].size]
+        #             axisCodes[dim] = '*'        #thisAxis
+        #         else:
+        #             axisCodes[dim] = '**'
+        #
+        #     print('>>>_setPeakAxisCodes', axisCodes)
+        #
+        # # peakCodes = set()
+        # # for peak in peaks:
+        # #     # for code in peak.peakList.spectrum.isotopeCodes:
+        # #     for code in peak.axisCodes:
+        # #         peakCodes.add(code)
+        # # peakCodes = sorted(list(peakCodes), key=CcpnSorting.stringSortKey)
+        # #
+        # # # peakCodes = peaks[0].peakList.spectrum.spectrumDisplay.axisCodes
+        # # peakCodes = ['H', 'C', 'N', 'Other']
+
+            self.axisCodeOptions.setButtons(texts=list(refAxisCodes), tipTexts=list(refAxisCodes))
 
     def _updateWidget(self):
         "Update the widget to reflect the proper state"
@@ -379,7 +512,14 @@ class NmrAtomAssignerModule(CcpnModule):
         if self.current.nmrResidue is not None:
             self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
             self._pickAndAssignWidgetHide()
-            if self.current.peak:
+
+            # dimensionalities = set([len(peak.position) for peak in self.current.peaks])
+            # if len(dimensionalities) > 1:
+            #     self.currentPeaksLabel.setText(MSG)
+            #     getLogger().warning('Not all peaks have the same number of dimensions.')
+            #     return False
+
+            if self.current.peaks:
                 self._setPeakAxisCodes(self.current.peaks)
 
             if self.radioButton1.isChecked():
@@ -473,15 +613,20 @@ class NmrAtomAssignerModule(CcpnModule):
         else:
             self._togglePressedButton()
 
-    def _getValidAxisCode(self):
+    def _getValidAxisCodeIndex(self):
+        return self.axisCodeOptions.getIndex()
+
+    def _getValidAxisCode(self, numChars=1):
+        """Get the valid axis code from the buttons, numChars is included as this may be needed for DNA/RNA
+        """
         code = self.axisCodeOptions.getSelectedText()
-        return code
+        return code[0:numChars]
 
         if code:
             for cc in code:
                 if cc.isalpha():
-                    return cc.upper()
-        return ''
+                    return cc.upper()[0]
+        return '-'
 
     def _createBackBoneButtons(self):
         self._cleanupPickAndAssignWidget()
@@ -489,7 +634,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # wb104 27 Jun 2017: changed _cleanupPickAndAssignWidget so removes widgets in reverse order
         # not sure if there was anything else leading to this cludge (and one below) though
-        # cludge: don't know why I have to do this for the button to appear: TODO: fix this
+        # cludge: don't know why I have to do this for the button to appear:
         ###_Label = Label(self, text='')
         ###self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
         self.buttons = {}
@@ -519,11 +664,14 @@ class NmrAtomAssignerModule(CcpnModule):
             for ii, atom in enumerate(atoms):
                 self.buttons[atom] = []
 
-                if validAxisCode != 'Other' and not atom.startswith(validAxisCode):
+                if not atom.startswith(validAxisCode):
                     continue
-                elif validAxisCode == 'Other':
-                    if atom[0] in ['H', 'C', 'N']:
-                        continue
+
+                # if validAxisCode != 'Other' and not atom.startswith(validAxisCode):
+                #     continue
+                # elif validAxisCode == 'Other':
+                #     if atom[0] in ['H', 'C', 'N']:
+                #         continue
 
                 # # skip if startswith these atomTypes
                 # if not self.cCheckBox.isChecked() and atom.startswith('C'):
@@ -581,7 +729,7 @@ class NmrAtomAssignerModule(CcpnModule):
         self._updateWidget()
 
     def _getAtomsForButtons(self, atomList, atomName):
-        [atomList.remove(atom) for atom in sorted(atomList) if atom[0] == atomName]
+        [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith(atomName)]
 
     def _getAtomButtonList(self, residueType=None):
 
@@ -648,24 +796,25 @@ class NmrAtomAssignerModule(CcpnModule):
             # testing DNA/RNA buttonlist
             atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
 
-        # # add atoms for the axisCode selected
-        # [self._getAtomsForButtons(atomList, self.axisCodeOptions.get()[0]) for atomList in atomButtonList]
-        # Activate button for Carbons
-        validAxisCode = self._getValidAxisCode()
-        if not validAxisCode == 'C':
-            [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+        # add atoms for the axisCode selected
+        [self._getAtomsForButtons(atomList, self._getValidAxisCode()) for atomList in atomButtonList]
 
-        if not validAxisCode == 'H':
-            [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
-
-        if not validAxisCode == 'N':
-            [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
-
-        if not validAxisCode == 'Other':
-            for atomList in atomButtonList:
-                [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
-                 and not atom.startswith('H') \
-                 and not atom.startswith('N')]
+        # # Activate button for Carbons
+        # validAxisCode = self._getValidAxisCode()
+        # if not validAxisCode == 'C':
+        #     [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+        #
+        # if not validAxisCode == 'H':
+        #     [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
+        #
+        # if not validAxisCode == 'N':
+        #     [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+        #
+        # if not validAxisCode == 'Other':
+        #     for atomList in atomButtonList:
+        #         [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
+        #          and not atom.startswith('H') \
+        #          and not atom.startswith('N')]
 
         # # Activate button for Carbons
         # if not self.cCheckBox.isChecked():
@@ -887,18 +1036,36 @@ class NmrAtomAssignerModule(CcpnModule):
         """
         pass
 
-    def deassignAtomFromSelectedPeaks(self, peaks, nmrAtom):
+    def assignNmrAtomsToPeaks(self, nmrAtom, peaks):
+        """Assign the nmrAtom to the dimension
+        """
+        if not peaks: return
+        if not nmrAtom: return
 
+        index = self._getValidAxisCodeIndex()
+        for peak in peaks:
+            for ii, axisCode in enumerate(peak.axisCodes):
+                if self.peakIndex[peak][ii] == index:
+                    peak.assignDimension(axisCode, nmrAtom)
+
+    def deassignAtomFromSelectedPeaks(self, peaks, nmrAtom):
+        """Deassign the nmrAtom from the dimension
+        """
         if not peaks: return
         if not nmrAtom: return
 
         newAssignedAtoms = ()
+        index = self._getValidAxisCodeIndex()
         for peak in peaks:
-            for subTuple in peak.assignedNmrAtoms:
-                a = tuple(None if na is nmrAtom else na for na in subTuple)
-                newAssignedAtoms += (a,)
+            for ii, axisCode in enumerate(peak.axisCodes):
+                if self.peakIndex[peak][ii] == index:
+                    peak.assignDimension(axisCode, None)
 
-            peak.assignedNmrAtoms = newAssignedAtoms
+            # for subTuple in peak.assignedNmrAtoms:
+            #     a = tuple(None if na is nmrAtom else na for na in subTuple)
+            #     newAssignedAtoms += (a,)
+            #
+            # peak.assignedNmrAtoms = newAssignedAtoms
 
     def _returnButtonsToNormal(self):
         """
