@@ -379,16 +379,11 @@ class NmrAtomAssignerModule(CcpnModule):
 
             axisCodes = [[] for ii in range(maxLen)]
             mappings = {}
-            # print('>>>0  ', refAxisCodes)
-
             for peak in peaks:
                 matchAxisCodes = peak.axisCodes
 
                 mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
-                # print('>>>0  ', mapping)
                 for k, v in mapping.items():
-                    # print('>>>0  ', k, v)
-                    # if len(v) <= len(k):
                     if v not in mappings:
                         mappings[v] = set([k])
                     else:
@@ -396,14 +391,12 @@ class NmrAtomAssignerModule(CcpnModule):
 
                 mapping = axisCodeMapping(matchAxisCodes, refAxisCodes)
                 for k, v in mapping.items():
-                    # if len(v) <= len(k):
                     if v not in mappings:
                         mappings[v] = set([k])
                     else:
                         mappings[v].add(k)
 
-                # print('>>>1  ', mappings)
-
+                # example of mappings dict
                 # ('Hn', 'C', 'Nh')
                 # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
                 # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
@@ -413,7 +406,6 @@ class NmrAtomAssignerModule(CcpnModule):
                 self.peakIndex = {}
                 # go through the peaks
                 for peak in peaks:
-
                     self.peakIndex[peak] = [0 for ii in range(len(peak.axisCodes))]
 
                     # get the peak dimension axisCode, nd see if is already there
@@ -424,83 +416,20 @@ class NmrAtomAssignerModule(CcpnModule):
 
                         else:
                             # if the axisCode is not in the reference list then find the mapping from the dict
-                            # if peakAxis not in mappings:
                             for k, v in mappings.items():
                                 if peakAxis in v:
-                                    # print('  >>>', peakAxis, k, v)
                                     # refAxisCodes[dim] = k
                                     self.peakIndex[peak][peakDim] = refAxisCodes.index(k)
-                            # else:
-                            #     print('>>>1a  ', peakAxis)
-                            #     # self.peakIndex[peak][peakDim] = refAxisCodes.index(peakAxis)
 
-                # print('>>>2  ', self.peakIndex)
-
-                # ll = _axisCodeMapIndices(refAxisCodes, peak.axisCodes)
-                # if not ll:
-                #     ll = _axisCodeMapIndices(peak.axisCodes, refAxisCodes)
-                #
-                # mapIndices = [ll[peak.axisCodes.index(x)] for x in refAxisCodes]
-
-                # matchAxisCodes = peak.axisCodes
-                #
-                # mappingArray = [refAxisCodes.index(axisCode) for axisCode in refAxisCodes if axisCode in matchAxisCodes]
-                # mappingArray2 = [matchAxisCodes.index(axisCode) for axisCode in refAxisCodes if axisCode in matchAxisCodes]
-                #
-                # tocsyDim = [x for x in [0, 1, 2] if x not in mappingArray2]
-                #
-                # mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
-                # mapping2 = axisCodeMapping(matchAxisCodes, refAxisCodes)
-                # print(refAxisCodes, matchAxisCodes, mapping, mapping2)
-
-                # use mapping to define dimension for assigning
-                # if axisOrder and axisOrder != displayAxisCodes:
-                #     ll = commonUtil._axisCodeMapIndices(spectrum.axisCodes, axisOrder)
-            #     mapIndices = [ll[axisOrder.index(x)] for x in displayAxisCodes]
-            # else:
-            #     # Map axes to original display setting
-            #     mapIndices = commonUtil._axisCodeMapIndices(spectrum.axisCodes, displayAxisCodes)
+            # peakCodes = set()
+            # for peak in peaks:
+            #     # for code in peak.peakList.spectrum.isotopeCodes:
+            #     for code in peak.axisCodes:
+            #         peakCodes.add(code)
+            # peakCodes = sorted(list(peakCodes), key=CcpnSorting.stringSortKey)
             #
-            # if mapIndices is None:
-            #     getLogger().debug('Strip.displaySpectrum>>> mapIndices is None')
-            #     return
-
-        #         pass
-        #
-        #     for peak in peaks:
-        #         print('>>>  ', peak.axisCodes)
-        #         if len(peak.axisCodes) < maxLen:
-        #             continue
-        #
-        #         for dim, axis in enumerate(peak.axisCodes):
-        #             axisCodes[dim].append(axis)
-        #
-        #     print('>>>_setPeakAxisCodes', axisCodes)
-        #
-        #     for dim, axes in enumerate(axisCodes):
-        #         if axes:
-        #             thisAxis = axes[0]
-        #             for axis in axes[1:]:
-        #
-        #                 match = difflib.SequenceMatcher(thisAxis, axis)
-        #                 mm = match.get_matching_blocks()
-        #                 if mm and mm[0].a == 0 and mm[0].b == 0:
-        #                     thisAxis = thisAxis[0:mm[0].size]
-        #             axisCodes[dim] = '*'        #thisAxis
-        #         else:
-        #             axisCodes[dim] = '**'
-        #
-        #     print('>>>_setPeakAxisCodes', axisCodes)
-        #
-        # # peakCodes = set()
-        # # for peak in peaks:
-        # #     # for code in peak.peakList.spectrum.isotopeCodes:
-        # #     for code in peak.axisCodes:
-        # #         peakCodes.add(code)
-        # # peakCodes = sorted(list(peakCodes), key=CcpnSorting.stringSortKey)
-        # #
-        # # # peakCodes = peaks[0].peakList.spectrum.spectrumDisplay.axisCodes
-        # # peakCodes = ['H', 'C', 'N', 'Other']
+            # # peakCodes = peaks[0].peakList.spectrum.spectrumDisplay.axisCodes
+            # peakCodes = ['H', 'C', 'N', 'Other']
 
             self.axisCodeOptions.setButtons(texts=list(refAxisCodes), tipTexts=list(refAxisCodes))
 
