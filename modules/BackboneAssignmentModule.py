@@ -99,7 +99,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                           fixedWidths=(colWidth0, colWidth0, None),
                                           orientation='left',
                                           labelText="Matches to show:",
-                                          texts=[str(tt) for tt in range(3,7)]
+                                          texts=[str(tt) for tt in range(1,7)]
                                           )
 
     # Match module selection
