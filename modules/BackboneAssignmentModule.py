@@ -53,6 +53,9 @@ from ccpn.ui.gui.widgets.PlaneToolbar import STRIPLABEL_CONNECTDIR, STRIPLABEL_C
                                               STRIPCONNECT_LEFT, STRIPCONNECT_RIGHT
 
 ALL = '<all>'
+MINMATCHES = 1
+MAXMATCHES = 7
+DEFAULTMATCHES = 2
 
 
 class BackboneAssignmentModule(NmrResidueTableModule):
@@ -94,12 +97,22 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Number of matches to show
     row += 1
-    self.numberOfMatchesWidget = PulldownListCompoundWidget(self._NTSwidget,
+    self.numberOfMinusMatchesWidget = PulldownListCompoundWidget(self._NTSwidget,
                                           grid=(row,col), vAlign='top', hAlign='left',
                                           fixedWidths=(colWidth0, colWidth0, None),
                                           orientation='left',
-                                          labelText="Matches to show:",
-                                          texts=[str(tt) for tt in range(1,7)]
+                                          labelText="i-1 Matches to show:",
+                                          texts=[str(tt) for tt in range(MINMATCHES,MAXMATCHES)],
+                                          default=DEFAULTMATCHES
+                                          )
+    row += 1
+    self.numberOfPlusMatchesWidget = PulldownListCompoundWidget(self._NTSwidget,
+                                          grid=(row,col), vAlign='top', hAlign='left',
+                                          fixedWidths=(colWidth0, colWidth0, None),
+                                          orientation='left',
+                                          labelText="i+1 Matches to show:",
+                                          texts=[str(tt) for tt in range(MINMATCHES,MAXMATCHES)],
+                                          default=DEFAULTMATCHES
                                           )
 
     # Match module selection
@@ -574,23 +587,40 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     # Assignment score has format {score: nmrResidue} where score is a float
     # assignMatrix[0] is a dict {score: nmrResidue} assignMatrix[1] is a concurrent list of scores
-    numberOfMatches = int(self.numberOfMatchesWidget.getText())
-    assignmentScores = sorted(list(assignMatrix.keys()))[:numberOfMatches]
+    # numberOfMatches = int(self.numberOfMatchesWidget.getText())
+    assignmentScores = sorted(list(assignMatrix.keys()))[:MAXMATCHES]
     nmrAtomPairs = []
     scoreAssignment = []
     scoreLabelling = []
 
+    matchDirection = 0
     for assignmentScore in assignmentScores:
       matchResidue = assignMatrix[assignmentScore]
       if matchResidue.sequenceCode.endswith('-1'):
         iNmrResidue = matchResidue.mainNmrResidue
+
+        # this is where the nmrResidue can be dropped in the existing nmrChain
         scoreLabelling.append('i+1')
+        matchDirection = -1
       else:
         iNmrResidue = matchResidue
         scoreLabelling.append('i-1')
+        matchDirection = +1
+
       scoreAssignment.append('%i' % int(100-min(1000*assignmentScore, 100)) + '%')
 
       nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
+
+    if matchDirection == 1:
+      numberOfMatches = int(self.numberOfPlusMatchesWidget.getText())
+    else:
+      numberOfMatches = int(self.numberOfMinusMatchesWidget.getText())
+
+    nmrAtomPairs = nmrAtomPairs[:numberOfMatches]
+    scoreAssignment = scoreAssignment[:numberOfMatches]
+    scoreLabelling = scoreLabelling[:numberOfMatches]
+
+
 
     for modulePid in self.matchWidget.getTexts():
       module = self.application.project.getByPid(modulePid)
