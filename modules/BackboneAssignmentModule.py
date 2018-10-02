@@ -301,7 +301,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     if nmrResidue.relativeOffset == -1:
       # direction = '-1'
       # iNmrResidue = nmrResidue.mainNmrResidue
-      queryShifts = [shift for shift in self.interShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
+      queryShifts = [shift for shift in self.interShifts[nmrResidue]
+                     if shift.nmrAtom.isotopeCode == '13C' and nmrResidue in self.interShifts]
       matchShifts = self.intraShifts
 
     elif nmrResidue.relativeOffset:
@@ -316,7 +317,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       # relative offset is None or 0
       # direction = '+1'
       # iNmrResidue = nmrResidue
-      queryShifts = [shift for shift in self.intraShifts[nmrResidue] if shift.nmrAtom.isotopeCode == '13C']
+      queryShifts = [shift for shift in self.intraShifts[nmrResidue]
+                     if shift.nmrAtom.isotopeCode == '13C' and nmrResidue in self.intraShifts]
       matchShifts = self.interShifts
 
     assignMatrix = getNmrResidueMatches(queryShifts, matchShifts, 'averageQScore')
