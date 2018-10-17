@@ -82,21 +82,21 @@ class PickAndAssignModule(NmrResidueTableModule):
     self.current = mainWindow.application.current
 
     # Main widget
-    self.restrictedPickButton = Button(text='Restricted\nPick', callback=self.restrictedPick
-                                       , setLayout=True, spacing=(0,0))
+    self.restrictedPickButton = Button(text='Restricted\nPick', callback=self.restrictedPick,
+                                        setLayout=True, spacing=(0,0))
     # self.restrictedPickButton.setMinimumWidth(105)
     # self.nmrResidueTable.addWidgetToTop(self.restrictedPickButton, col=2)
     self.nmrResidueTable.addWidgetToPos(self.restrictedPickButton, row=1, col=2)
 
-    self.assignSelectedButton = Button(text='Assign\nSelected', callback=self.assignSelected
-                                       , setLayout=True, spacing=(0, 0))
+    self.assignSelectedButton = Button(text='Assign\nSelected', callback=self.assignSelected,
+                                        setLayout=True, spacing=(0, 0))
     # self.assignSelectedButton.setMinimumWidth(105)
     # self.nmrResidueTable.addWidgetToTop(self.assignSelectedButton, col=3)
     self.nmrResidueTable.addWidgetToPos(self.assignSelectedButton, row=1, col=3)
 
-    self.restrictedPickAndAssignButton = Button(text='Restricted\nPick and Assign'
-                                                , setLayout=True, spacing=(0, 0)
-                                                , callback=self.restrictedPickAndAssign)
+    self.restrictedPickAndAssignButton = Button(text='Restricted\nPick and Assign',
+                                                 setLayout=True, spacing=(0, 0),
+                                                 callback=self.restrictedPickAndAssign)
 
     self.restrictedPickButton.setEnabled(False)
     self.assignSelectedButton.setEnabled(False)
@@ -155,10 +155,10 @@ class PickAndAssignModule(NmrResidueTableModule):
     """
     set up the notifiers
     """
-    self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current
-                                                 , [Notifier.CURRENT]
-                                                 , targetName=NmrResidue._pluralLinkName
-                                                 , callback=self._selectionCallback)
+    self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current,
+                                                  [Notifier.CURRENT],
+                                                  targetName=NmrResidue._pluralLinkName,
+                                                  callback=self._selectionCallback)
 
   def _unRegisterNotifiers(self):
     """
@@ -333,10 +333,10 @@ class PickAndAssignModule(NmrResidueTableModule):
           else:
             widths = ['default', 'full'] + (n-2)*['']
 
-          Strip.navigateToNmrAtomsInStrip(strip=strip
-                                          , nmrAtoms=nmrResidue.nmrAtoms
-                                          , widths=strip._getCurrentZoomRatio(strip.viewBox.viewRange())
-                                          , markPositions=(n==2))
+          Strip.navigateToNmrAtomsInStrip(strip=strip,
+                                           nmrAtoms=nmrResidue.nmrAtoms,
+                                           widths=strip._getCurrentZoomRatio(strip.viewBox.viewRange()),
+                                           markPositions=(n==2))
         self.application.current.nmrResidue = nmrResidue
     finally:
       self.application._endCommandBlock()
