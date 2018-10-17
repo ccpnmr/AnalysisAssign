@@ -362,7 +362,7 @@ class SequenceGraphModule(CcpnModule):
         self.selectedLine = None
 
         self.splitter = Splitter(QtCore.Qt.Vertical)
-        self._sequenceModuleFrame = Frame(self.splitter, setLayout=True)
+        self._sequenceModuleFrame = Frame(None, setLayout=True)
         # self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
         self.mainWidget.getLayout().addWidget(self.splitter, 1, 0)
 
@@ -381,7 +381,8 @@ class SequenceGraphModule(CcpnModule):
         self._sequenceGraphScrollArea.setMinimumHeight(80)
 
         self.splitter.addWidget(self._sequenceGraphScrollArea)
-        self.splitter.setStretchFactor(1, 5)
+        self.splitter.addWidget(self._sequenceModuleFrame)
+        self.splitter.setStretchFactor(0, 5)
         self.splitter.setChildrenCollapsible(False)
 
         self.resetScene()
