@@ -144,7 +144,7 @@ class PickAndAssignModule(NmrResidueTableModule):
 
         # these need to change whenever different spectrumDisplays are selected
         self._setAxisCodes()
-  
+
     def _registerNotifiers(self):
         """
         set up the notifiers
@@ -242,21 +242,64 @@ class PickAndAssignModule(NmrResidueTableModule):
             logger.error('Undefined nmrResidue; select one first before proceeding')
             return
 
+        currentAxisCodes = self.axisCodeOptions.getSelectedText()
+
         self.application._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
                                             nmrResidue=nmrResidue)
         try:
             peaks = []
+
+            displays = self._getDisplays()
+
+            validPeakListViews = set([plv for dp in displays
+                                  for sv in dp.strips[0].spectrumViews
+                                  for plv in sv.peakListViews
+                                  if plv.isVisible() and sv.isVisible()
+                                  ])
+
+            validPeakListViews = {}
+
+            # loop through all the selected displays/spectrumViews/peakListViews that are visible
+            for dp in displays:
+                if dp.strips:
+                    for sv in dp.strips[0].spectrumViews:
+                        for plv in sv.peakListViews:
+                            if plv.isVisible() and sv.isVisible():
+                                if plv.peakList not in validPeakListViews:
+                                    validPeakListViews[plv.peakList] = (plv,)
+                                else:
+
+                                    # skip for now, only one valid peakListView needed per peakList
+                                    # validPeakListViews[plv.peakList] += (plv,)
+                                    pass
+
+                                  # if pp.isVisible()
+                                  # and spectrumView.isVisible()
+                                  # and pp in self.parent._GLPeaks._GLLabels.keys()
+                                  # and pp.peakList.pid in self.params[GLSELECTEDPIDS]]
+
+            print('>>>', validPeakListViews)
+            return
+
             for module in self.application.project.spectrumDisplays:
                 if len(module.axisCodes) >= 2:
                     for spectrumView in module.strips[0].spectrumViews:
+
                         visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
                                                 if peakListView.isVisible()]
-                        if len(visiblePeakListViews) == 0:
-                            continue
-                        else:
-                            peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
-                                                                    axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-                            peaks = peaks + pks
+
+                        # if len(visiblePeakListViews) == 0:
+                        #     continue
+                        # else:
+                        #     peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
+                        #                                             axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
+                        #     peaks = peaks + pks
+
+                        # if len(visiblePeakListViews) == 0:
+                        #     spectrum = spectrumView.spectrum
+                        #
+                        #     axisCodes = [axis for ]
+
             self.application.current.peaks = peaks
             # update the NmrResidue table
             self.nmrResidueTable._update(nmrResidue.nmrChain)
@@ -338,7 +381,6 @@ class PickAndAssignModule(NmrResidueTableModule):
     def _changeAxisCode(self):
         pass
 
-
     def _setAxisCodes(self):
 
         import difflib
@@ -408,6 +450,12 @@ class PickAndAssignModule(NmrResidueTableModule):
 
             axisLabels = [', '.join(ax) for ax in axisLabels]
             self.axisCodeOptions.setCheckBoxes(texts=axisLabels, tipTexts=axisLabels)
+
+    def _getValidAxisCode(self, numChars=1):
+        """Get the valid axis code from the buttons, numChars is included as this may be needed for DNA/RNA
+        """
+        code = self.axisCodeOptions.getSelectedText()
+        return code[0:numChars]
 
 
 class _SpectrumRow(Frame):
