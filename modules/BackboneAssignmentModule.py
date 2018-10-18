@@ -136,9 +136,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                      callback=self._setupShiftDicts, default=0
                                                      )
     self._setupShiftDicts()
-    self._spacer = Spacer(self.settingsWidget, 5, 5
-                         , QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-                         , grid=(row+1,10), gridSpan=(1,1))
+    self._spacer = Spacer(self.settingsWidget, 5, 5,
+                         QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+                         grid=(row+1,10), gridSpan=(1,1))
 
     # for compatibility with previous implementation
     #self.moduleList = self.matchWidget.listWidget
@@ -147,7 +147,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     #self.nmrResidueTable._setWidgetHeight(48)
 
-    # TODO:ED check override of window size
     self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
   def _fillDisplayWidget(self):
