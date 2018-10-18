@@ -253,7 +253,7 @@ class PickAndAssignModule(NmrResidueTableModule):
     try:
       peaks = []
       for module in self.application.project.spectrumDisplays:
-        if len(module.axisCodes) > 2:
+        if len(module.axisCodes) >= 2:
           for spectrumView in module.strips[0].spectrumViews:
             visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
                                     if peakListView.isVisible()]
