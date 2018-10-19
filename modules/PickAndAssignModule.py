@@ -253,15 +253,7 @@ class PickAndAssignModule(NmrResidueTableModule):
                                             nmrResidue=nmrResidue)
         try:
             peaks = []
-
             displays = self._getDisplays()
-
-            validPeakListViews = set([plv for dp in displays
-                                  for sv in dp.strips[0].spectrumViews
-                                  for plv in sv.peakListViews
-                                  if plv.isVisible() and sv.isVisible()
-                                  ])
-
             validPeakListViews = {}
 
             # loop through all the selected displays/spectrumViews/peakListViews that are visible
@@ -277,11 +269,6 @@ class PickAndAssignModule(NmrResidueTableModule):
                                     # skip for now, only one valid peakListView needed per peakList
                                     # validPeakListViews[plv.peakList] += (plv,)
                                     pass
-
-                                  # if pp.isVisible()
-                                  # and spectrumView.isVisible()
-                                  # and pp in self.parent._GLPeaks._GLLabels.keys()
-                                  # and pp.peakList.pid in self.params[GLSELECTEDPIDS]]
 
             for pk, specAndView in validPeakListViews.items():
                 spectrum, peakListView = specAndView
