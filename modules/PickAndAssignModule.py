@@ -144,6 +144,10 @@ class PickAndAssignModule(NmrResidueTableModule):
 
         # these need to change whenever different spectrumDisplays are selected
         self._setAxisCodes()
+        self.axisCodeOptions.selectAll()
+
+        # just clear the 'C' - assume that this is generally the second checkBox
+        self.axisCodeOptions.clearIndex(1)
 
     def _registerNotifiers(self):
         """
@@ -243,6 +247,7 @@ class PickAndAssignModule(NmrResidueTableModule):
             return
 
         currentAxisCodes = self.axisCodeOptions.getSelectedText()
+        currentAxisCodeIndexes = self.axisCodeOptions.getSelectedIndexes()
 
         self.application._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
                                             nmrResidue=nmrResidue)
@@ -266,7 +271,7 @@ class PickAndAssignModule(NmrResidueTableModule):
                         for plv in sv.peakListViews:
                             if plv.isVisible() and sv.isVisible():
                                 if plv.peakList not in validPeakListViews:
-                                    validPeakListViews[plv.peakList] = (plv,)
+                                    validPeakListViews[plv.peakList] = (sv.spectrum, plv)
                                 else:
 
                                     # skip for now, only one valid peakListView needed per peakList
@@ -278,27 +283,34 @@ class PickAndAssignModule(NmrResidueTableModule):
                                   # and pp in self.parent._GLPeaks._GLLabels.keys()
                                   # and pp.peakList.pid in self.params[GLSELECTEDPIDS]]
 
-            print('>>>', validPeakListViews)
-            return
+            for pk, specAndView in validPeakListViews.items():
+                spectrum, peakListView = specAndView
 
-            for module in self.application.project.spectrumDisplays:
-                if len(module.axisCodes) >= 2:
-                    for spectrumView in module.strips[0].spectrumViews:
+                axisCodes = [spectrum.axisCodes[self.spectrumIndex[spectrum].index(ii)]
+                             for ii in currentAxisCodeIndexes if ii in self.spectrumIndex[spectrum] ]
 
-                        visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
-                                                if peakListView.isVisible()]
+                peakList, pks = PeakList.restrictedPick(peakListView=peakListView,
+                                                        axisCodes=axisCodes, nmrResidue=nmrResidue)
+                peaks = peaks + pks
 
-                        # if len(visiblePeakListViews) == 0:
-                        #     continue
-                        # else:
-                        #     peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
-                        #                                             axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-                        #     peaks = peaks + pks
-
-                        # if len(visiblePeakListViews) == 0:
-                        #     spectrum = spectrumView.spectrum
-                        #
-                        #     axisCodes = [axis for ]
+            # for module in self.application.project.spectrumDisplays:
+            #     if len(module.axisCodes) >= 2:
+            #         for spectrumView in module.strips[0].spectrumViews:
+            #
+            #             visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
+            #                                     if peakListView.isVisible()]
+            #
+            #             # if len(visiblePeakListViews) == 0:
+            #             #     continue
+            #             # else:
+            #             #     peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
+            #             #                                             axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
+            #             #     peaks = peaks + pks
+            #
+            #             # if len(visiblePeakListViews) == 0:
+            #             #     spectrum = spectrumView.spectrum
+            #             #
+            #             #     axisCodes = [axis for ]
 
             self.application.current.peaks = peaks
             # update the NmrResidue table
