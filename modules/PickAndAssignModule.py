@@ -230,7 +230,6 @@ class PickAndAssignModule(NmrResidueTableModule):
         finally:
             self.application._endCommandBlock()
 
-    #TODO:GEERTEN: compact the two routines
     def restrictedPick(self, nmrResidue=None):
         """
         Routine refactored in revision 9381.
@@ -325,28 +324,14 @@ class PickAndAssignModule(NmrResidueTableModule):
         self.application._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)',
                                             nmrResidue=nmrResidue)
         try:
-            peaks = []
-            for module in self.application.project.spectrumDisplays:
-                if len(module.axisCodes) > 2:
-                    for spectrumView in module.strips[0].spectrumViews:
-                        visiblePeakListViews = [peakListView for peakListView in spectrumView.peakListViews
-                                                if peakListView.isVisible()]
-                        if len(visiblePeakListViews) == 0:
-                            continue
-                        else:
-                            peakList, pks = PeakList.restrictedPick(peakListView=visiblePeakListViews[0],
-                                                                    axisCodes=module.axisCodes[0::2], nmrResidue=nmrResidue)
-                            peaks = peaks + pks
-            self.application.current.peaks = peaks
+            self.restrictedPick(nmrResidue)
 
-            if peaks:
+            # if peaks have been selected then assign them
+            if self.application.current.peaks:
                 self.assignSelected()
 
                 # notifier for other modules
                 nmrResidue._finaliseAction('change')
-
-            # update the NmrResidue table
-            # self.nmrResidueTable._update(nmrResidue.nmrChain)
 
         finally:
             self.application._endCommandBlock()
