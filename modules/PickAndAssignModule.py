@@ -55,6 +55,8 @@ from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, DoubleSp
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.util.Logging import getLogger
+from ccpn.ui.gui.guiSettings import getColours, DIVIDER
+from ccpn.ui.gui.widgets.HLine import HLine
 
 
 logger = getLogger()
@@ -102,14 +104,6 @@ class PickAndAssignModule(NmrResidueTableModule):
         self.restrictedPickAndAssignButton.setEnabled(False)
         self.nmrResidueTable.addWidgetToPos(self.restrictedPickAndAssignButton, row=1, col=4)
 
-        # modifier for atomCode
-        self.atomCodeFrame = Frame(self._NTSwidget, setLayout=True, showBorder=False, fShape='noFrame',
-                                   grid=(5, 0), gridSpan=(1, 1), vAlign='top', hAlign='left')
-        self.axisCodeLabel = Label(self.atomCodeFrame, 'Restricted Axis Codes:', grid=(0, 0))
-        self.axisCodeOptions = CheckBoxes(self.atomCodeFrame, selectedInd=0, texts=['C'],
-                                          callback=self._changeAxisCode, grid=(0, 1))
-        # self.nmrResidueTable.addWidgetToPos(self.atomCodeFrame, row=1, col=5)
-
         # self._spacer = Frame(None, setLayout=True)
         # self._spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         # self.nmrResidueTable.addWidgetToPos(self._spacer, row=1, col=6)
@@ -123,10 +117,34 @@ class PickAndAssignModule(NmrResidueTableModule):
                                     setLayout=True, showBorder=True, hPolicy='minimal',
                                     grid=(0, 1), gridSpan=(4, 1), vAlign='top', hAlign='left')
 
+        # modifier for atomCode
+        spectraRow = 0
+        self.atomCodeFrame = Frame(self._spectraWidget, setLayout=True, showBorder=False, fShape='noFrame',
+                                   grid=(spectraRow, 0), gridSpan=(1, 4), vAlign='top', hAlign='left')
+        self.axisCodeLabel = Label(self.atomCodeFrame, 'Restricted Axes:', grid=(0, 0))
+        self.axisCodeOptions = CheckBoxes(self.atomCodeFrame, selectedInd=0, texts=['C'],
+                                          callback=self._changeAxisCode, grid=(0, 1))
+        # self.nmrResidueTable.addWidgetToPos(self.atomCodeFrame, row=1, col=5)
+
+        spectraRow += 1
+        HLine(self._spectraWidget, grid=(spectraRow, 0), gridSpan=(1, 4),
+              colour=getColours()[DIVIDER], height=15)
+
+        spectraRow += 1
+        Label(self._spectraWidget, 'Spectrum', grid=(spectraRow, 0))
+        Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 1))
+        Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 2))
+        Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 3))
+        self.spectraStartRow = spectraRow + 1
+
         self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
         for row, spectrum in enumerate(self.application.project.spectra):
-            f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
-                             grid=(row + 1, 0), gridSpan=(1, 1 + len(spectrum.axisCodes)), vAlign='top')
+
+            spectraRow += 1
+            # f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
+            #                  grid=(self.spectraStartRow + row, 0), gridSpan=(1, 1 + len(spectrum.axisCodes)), vAlign='top')
+            f = _SpectrumRow(parent=self._spectraWidget, row=spectraRow, col=0, setLayout=True, spectrum=spectrum)
+
             self._spectraWidgets[spectrum.pid] = f
 
         # add a spacer in the bottom-right corner to stop everything moving
@@ -273,7 +291,7 @@ class PickAndAssignModule(NmrResidueTableModule):
                 spectrum, peakListView = specAndView
 
                 axisCodes = [spectrum.axisCodes[self.spectrumIndex[spectrum].index(ii)]
-                             for ii in currentAxisCodeIndexes if ii in self.spectrumIndex[spectrum] ]
+                             for ii in currentAxisCodeIndexes if ii in self.spectrumIndex[spectrum]]
 
                 peakList, pks = PeakList.restrictedPick(peakListView=peakListView,
                                                         axisCodes=axisCodes, nmrResidue=nmrResidue)
@@ -445,20 +463,22 @@ class PickAndAssignModule(NmrResidueTableModule):
 class _SpectrumRow(Frame):
     "Class to make a spectrum row"
 
-    def __init__(self, parent, spectrum, **kwds):
+    def __init__(self, parent, spectrum, row=0, col=0, **kwds):
         super(_SpectrumRow, self).__init__(parent, **kwds)
 
-        col = 0
-        self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1, 1), hAlign='left',
-                                               checked=True, labelText=spectrum.pid,
-                                               fixedWidths=[100, 50])
+        # col = 0
+        # self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1, 1), hAlign='left',
+        #                                        checked=True, labelText=spectrum.pid,
+        #                                        fixedWidths=[100, 50])
+
+        self.checkbox = Label(parent, spectrum.pid, grid=(row, col), gridSpan=(1, 1), hAlign='left')
 
         self.spinBoxes = []
         for ii, axisCode in enumerate(spectrum.axisCodes):
             decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
-            col += 1;
+            col += 1
             ds = DoubleSpinBoxCompoundWidget(
-                    self, grid=(0, col), gridSpan=(1, 1), hAlign='left',
+                    parent, grid=(row, col), gridSpan=(1, 1), hAlign='left',
                     fixedWidths=(30, 50),
                     labelText=axisCode,
                     value=spectrum.assignmentTolerances[ii],
