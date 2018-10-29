@@ -68,6 +68,10 @@ class PickAndAssignModule(NmrResidueTableModule):
     settingsPosition = 'top'
     settingsMinimumSizes = (500, 200)
 
+    includePeakLists = True
+    includeNmrChains = True
+    includeSpectrumTable = True
+
     def __init__(self, mainWindow, name='Pick and Assign'):
 
         super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name=name)  # ejb ='Pick And Assign')
@@ -101,50 +105,50 @@ class PickAndAssignModule(NmrResidueTableModule):
         # self.nmrResidueTable.addWidgetToPos(self._spacer, row=1, col=6)
 
         # change some of the defaults setting inherited from NmrResidueTableModule
-        self.sequentialStripsWidget.checkBox.setChecked(False)
-        self.displaysWidget.addPulldownItem(0)  # select the <all> option
+        self.nmrResidueTableSettings.sequentialStripsWidget.checkBox.setChecked(False)
+        self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)  # select the <all> option
 
-        # create row's of spectrum information
-        self._spectraWidget = Frame(parent=self.settingsWidget,
-                                    setLayout=True, showBorder=True, hPolicy='minimal',
-                                    grid=(0, 1), gridSpan=(4, 1), vAlign='top', hAlign='left')
-
-        # modifier for atomCode
-        spectraRow = 0
-        self.atomCodeFrame = Frame(self._spectraWidget, setLayout=True, showBorder=False, fShape='noFrame',
-                                   grid=(spectraRow, 0), gridSpan=(1, 4), vAlign='top', hAlign='left')
-        self.axisCodeLabel = Label(self.atomCodeFrame, 'Restricted Axes:', grid=(0, 0))
-        self.axisCodeOptions = CheckBoxes(self.atomCodeFrame, selectedInd=0, texts=['C'],
-                                          callback=self._changeAxisCode, grid=(0, 1))
-        # self.nmrResidueTable.addWidgetToPos(self.atomCodeFrame, row=1, col=5)
-
-        spectraRow += 1
-        HLine(self._spectraWidget, grid=(spectraRow, 0), gridSpan=(1, 4),
-              colour=getColours()[DIVIDER], height=15)
-
-        spectraRow += 1
-        Label(self._spectraWidget, 'Spectrum', grid=(spectraRow, 0))
-        Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 1))
-        Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 2))
-        Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 3))
-        self.spectraStartRow = spectraRow + 1
-
-        self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
-        for row, spectrum in enumerate(self.application.project.spectra):
-
-            spectraRow += 1
-            # f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
-            #                  grid=(self.spectraStartRow + row, 0), gridSpan=(1, 1 + len(spectrum.axisCodes)), vAlign='top')
-            f = _SpectrumRow(parent=self._spectraWidget, row=spectraRow, col=0, setLayout=True, spectrum=spectrum)
-
-            self._spectraWidgets[spectrum.pid] = f
-
-        # add a spacer in the bottom-right corner to stop everything moving
-        rows = self.settingsWidget.layout().rowCount()
-        cols = self.settingsWidget.layout().columnCount()
-        Spacer(self.settingsWidget, 5, 5,
-               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-               grid=(rows, cols), gridSpan=(1, 1))
+        # # create row's of spectrum information
+        # self._spectraWidget = Frame(parent=self.settingsWidget,
+        #                             setLayout=True, showBorder=True, hPolicy='minimal',
+        #                             grid=(0, 1), gridSpan=(4, 1), vAlign='top', hAlign='left')
+        #
+        # # modifier for atomCode
+        # spectraRow = 0
+        # self.atomCodeFrame = Frame(self._spectraWidget, setLayout=True, showBorder=False, fShape='noFrame',
+        #                            grid=(spectraRow, 0), gridSpan=(1, 4), vAlign='top', hAlign='left')
+        # self.axisCodeLabel = Label(self.atomCodeFrame, 'Restricted Axes:', grid=(0, 0))
+        # self.axisCodeOptions = CheckBoxes(self.atomCodeFrame, selectedInd=0, texts=['C'],
+        #                                   callback=self._changeAxisCode, grid=(0, 1))
+        # # self.nmrResidueTable.addWidgetToPos(self.atomCodeFrame, row=1, col=5)
+        #
+        # spectraRow += 1
+        # HLine(self._spectraWidget, grid=(spectraRow, 0), gridSpan=(1, 4),
+        #       colour=getColours()[DIVIDER], height=15)
+        #
+        # spectraRow += 1
+        # Label(self._spectraWidget, 'Spectrum', grid=(spectraRow, 0))
+        # Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 1))
+        # Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 2))
+        # Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 3))
+        # self.spectraStartRow = spectraRow + 1
+        #
+        # self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
+        # for row, spectrum in enumerate(self.application.project.spectra):
+        #
+        #     spectraRow += 1
+        #     # f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
+        #     #                  grid=(self.spectraStartRow + row, 0), gridSpan=(1, 1 + len(spectrum.axisCodes)), vAlign='top')
+        #     f = _SpectrumRow(parent=self._spectraWidget, row=spectraRow, col=0, setLayout=True, spectrum=spectrum)
+        #
+        #     self._spectraWidgets[spectrum.pid] = f
+        #
+        # # add a spacer in the bottom-right corner to stop everything moving
+        # rows = self.settingsWidget.layout().rowCount()
+        # cols = self.settingsWidget.layout().columnCount()
+        # Spacer(self.settingsWidget, 5, 5,
+        #        QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+        #        grid=(rows, cols), gridSpan=(1, 1))
 
         self.nmrResidueTable._setWidgetHeight(45)
 
@@ -152,12 +156,12 @@ class PickAndAssignModule(NmrResidueTableModule):
         self._selectOnTableCurrentNmrResiduesNotifier = None
         self._registerNotifiers()
 
-        # these need to change whenever different spectrumDisplays are selected
-        self._setAxisCodes()
-        self.axisCodeOptions.selectAll()
+        # # these need to change whenever different spectrumDisplays are selected
+        # self._setAxisCodes()
+        self.nmrResidueTableSettings.axisCodeOptions.selectAll()
 
         # just clear the 'C' - assume that this is generally the second checkBox
-        self.axisCodeOptions.clearIndex(1)
+        self.nmrResidueTableSettings.axisCodeOptions.clearIndex(1)
 
     def _registerNotifiers(self):
         """
@@ -255,8 +259,8 @@ class PickAndAssignModule(NmrResidueTableModule):
             logger.error('Undefined nmrResidue; select one first before proceeding')
             return
 
-        currentAxisCodes = self.axisCodeOptions.getSelectedText()
-        currentAxisCodeIndexes = self.axisCodeOptions.getSelectedIndexes()
+        currentAxisCodes = self.nmrResidueTableSettings.axisCodeOptions.getSelectedText()
+        currentAxisCodeIndexes = self.nmrResidueTableSettings.axisCodeOptions.getSelectedIndexes()
 
         self.application._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
                                             nmrResidue=nmrResidue)
@@ -282,8 +286,8 @@ class PickAndAssignModule(NmrResidueTableModule):
             for pk, specAndView in validPeakListViews.items():
                 spectrum, peakListView = specAndView
 
-                axisCodes = [spectrum.axisCodes[self.spectrumIndex[spectrum].index(ii)]
-                             for ii in currentAxisCodeIndexes if ii in self.spectrumIndex[spectrum]]
+                axisCodes = [spectrum.axisCodes[self.nmrResidueTableSettings.spectrumIndex[spectrum].index(ii)]
+                             for ii in currentAxisCodeIndexes if ii in self.nmrResidueTableSettings.spectrumIndex[spectrum]]
 
                 peakList, pks = PeakList.restrictedPick(peakListView=peakListView,
                                                         axisCodes=axisCodes, nmrResidue=nmrResidue)
@@ -372,83 +376,83 @@ class PickAndAssignModule(NmrResidueTableModule):
         finally:
             self.application._endCommandBlock()
 
-    def _changeAxisCode(self):
-        pass
+    # def _changeAxisCode(self):
+    #     pass
 
-    def _setAxisCodes(self):
+    # def _setAxisCodes(self):
+    #
+    #     from ccpn.util.Common import _axisCodeMapIndices, axisCodeMapping
+    #
+    #     spectra = self.application.project.spectra
+    #
+    #     if spectra:
+    #
+    #         maxLen = 0
+    #         refAxisCodes = None
+    #         for spectrum in spectra:
+    #             if len(spectrum.axisCodes) > maxLen:
+    #                 maxLen = len(spectrum.axisCodes)
+    #                 refAxisCodes = list(spectrum.axisCodes)
+    #
+    #         if not maxLen:
+    #             return
+    #
+    #         axisCodes = [[] for ii in range(maxLen)]
+    #         axisLabels = [set() for ii in range(maxLen)]
+    #
+    #         mappings = {}
+    #         for spectrum in spectra:
+    #             matchAxisCodes = spectrum.axisCodes
+    #
+    #             mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
+    #             for k, v in mapping.items():
+    #                 if v not in mappings:
+    #                     mappings[v] = set([k])
+    #                 else:
+    #                     mappings[v].add(k)
+    #
+    #             mapping = axisCodeMapping(matchAxisCodes, refAxisCodes)
+    #             for k, v in mapping.items():
+    #                 if v not in mappings:
+    #                     mappings[v] = set([k])
+    #                 else:
+    #                     mappings[v].add(k)
+    #
+    #         # example of mappings dict
+    #         # ('Hn', 'C', 'Nh')
+    #         # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
+    #         # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
+    #         # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
+    #         # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
+    #
+    #         self.spectrumIndex = {}
+    #         # go through the spectra again
+    #         for spectrum in spectra:
+    #             self.spectrumIndex[spectrum] = [0 for ii in range(len(spectrum.axisCodes))]
+    #
+    #             # get the spectrum dimension axisCode, nd see if is already there
+    #             for spectrumDim, spectrumAxis in enumerate(spectrum.axisCodes):
+    #
+    #                 if spectrumAxis in refAxisCodes:
+    #                     self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(spectrumAxis)
+    #                     axisLabels[self.spectrumIndex[spectrum][spectrumDim]].add(spectrumAxis)
+    #
+    #                 else:
+    #                     # if the axisCode is not in the reference list then find the mapping from the dict
+    #                     for k, v in mappings.items():
+    #                         if spectrumAxis in v:
+    #                             # refAxisCodes[dim] = k
+    #                             self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(k)
+    #                             axisLabels[refAxisCodes.index(k)].add(spectrumAxis)
+    #
+    #         axisLabels = [', '.join(ax) for ax in axisLabels]
+    #         self.axisCodeOptions.setCheckBoxes(texts=axisLabels, tipTexts=axisLabels)
 
-        from ccpn.util.Common import _axisCodeMapIndices, axisCodeMapping
-
-        spectra = self.application.project.spectra
-
-        if spectra:
-
-            maxLen = 0
-            refAxisCodes = None
-            for spectrum in spectra:
-                if len(spectrum.axisCodes) > maxLen:
-                    maxLen = len(spectrum.axisCodes)
-                    refAxisCodes = list(spectrum.axisCodes)
-
-            if not maxLen:
-                return
-
-            axisCodes = [[] for ii in range(maxLen)]
-            axisLabels = [set() for ii in range(maxLen)]
-
-            mappings = {}
-            for spectrum in spectra:
-                matchAxisCodes = spectrum.axisCodes
-
-                mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
-                for k, v in mapping.items():
-                    if v not in mappings:
-                        mappings[v] = set([k])
-                    else:
-                        mappings[v].add(k)
-
-                mapping = axisCodeMapping(matchAxisCodes, refAxisCodes)
-                for k, v in mapping.items():
-                    if v not in mappings:
-                        mappings[v] = set([k])
-                    else:
-                        mappings[v].add(k)
-
-            # example of mappings dict
-            # ('Hn', 'C', 'Nh')
-            # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
-            # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
-            # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
-            # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
-
-            self.spectrumIndex = {}
-            # go through the spectra again
-            for spectrum in spectra:
-                self.spectrumIndex[spectrum] = [0 for ii in range(len(spectrum.axisCodes))]
-
-                # get the spectrum dimension axisCode, nd see if is already there
-                for spectrumDim, spectrumAxis in enumerate(spectrum.axisCodes):
-
-                    if spectrumAxis in refAxisCodes:
-                        self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(spectrumAxis)
-                        axisLabels[self.spectrumIndex[spectrum][spectrumDim]].add(spectrumAxis)
-
-                    else:
-                        # if the axisCode is not in the reference list then find the mapping from the dict
-                        for k, v in mappings.items():
-                            if spectrumAxis in v:
-                                # refAxisCodes[dim] = k
-                                self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(k)
-                                axisLabels[refAxisCodes.index(k)].add(spectrumAxis)
-
-            axisLabels = [', '.join(ax) for ax in axisLabels]
-            self.axisCodeOptions.setCheckBoxes(texts=axisLabels, tipTexts=axisLabels)
-
-    def _getValidAxisCode(self, numChars=1):
-        """Get the valid axis code from the buttons, numChars is included as this may be needed for DNA/RNA
-        """
-        code = self.axisCodeOptions.getSelectedText()
-        return code[0:numChars]
+    # def _getValidAxisCode(self, numChars=1):
+    #     """Get the valid axis code from the buttons, numChars is included as this may be needed for DNA/RNA
+    #     """
+    #     code = self.axisCodeOptions.getSelectedText()
+    #     return code[0:numChars]
 
 
 class _SpectrumRow(Frame):
