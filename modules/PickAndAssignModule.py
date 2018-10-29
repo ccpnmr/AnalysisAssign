@@ -68,8 +68,8 @@ class PickAndAssignModule(NmrResidueTableModule):
     settingsPosition = 'top'
     settingsMinimumSizes = (500, 200)
 
-    includePeakLists = True
-    includeNmrChains = True
+    includePeakLists = False
+    includeNmrChains = False
     includeSpectrumTable = True
 
     def __init__(self, mainWindow, name='Pick and Assign'):
@@ -160,8 +160,11 @@ class PickAndAssignModule(NmrResidueTableModule):
         # self._setAxisCodes()
         self.nmrResidueTableSettings.axisCodeOptions.selectAll()
 
-        # just clear the 'C' - assume that this is generally the second checkBox
-        self.nmrResidueTableSettings.axisCodeOptions.clearIndex(1)
+        # just clear the first 'C' - assume that this is generally the second checkBox
+        for ii, box in enumerate(self.nmrResidueTableSettings.axisCodeOptions.checkBoxes):
+            if box.text().upper().startswith('C'):
+                self.nmrResidueTableSettings.axisCodeOptions.clearIndex(ii)
+                break
 
     def _registerNotifiers(self):
         """
