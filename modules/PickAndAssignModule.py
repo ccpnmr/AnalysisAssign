@@ -37,19 +37,11 @@ from PyQt5 import QtGui, QtWidgets
 
 from ccpn.ui.gui.lib import PeakList
 from ccpn.ui.gui.lib import Strip
-from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.modules.NmrResidueTable import NmrResidueTable, NmrResidueTableModule
-from ccpn.ui.gui.widgets.Base import Base
 from ccpn.ui.gui.widgets.Button import Button
 from ccpn.ui.gui.widgets.Spacer import Spacer
-from ccpn.ui.gui.widgets.ButtonList import ButtonList
 from ccpn.ui.gui.widgets.CheckBoxes import CheckBoxes
-from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
-from ccpn.ui.gui.widgets.DoubleSpinbox import DoubleSpinbox
 from ccpn.ui.gui.widgets.Label import Label
-from ccpn.ui.gui.widgets.ListWidget import ListWidget
-from ccpn.ui.gui.widgets.PulldownList import PulldownList
-from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, DoubleSpinBoxCompoundWidget
 from ccpn.core.lib.Notifiers import Notifier
@@ -385,7 +377,6 @@ class PickAndAssignModule(NmrResidueTableModule):
 
     def _setAxisCodes(self):
 
-        import difflib
         from ccpn.util.Common import _axisCodeMapIndices, axisCodeMapping
 
         spectra = self.application.project.spectra
@@ -423,32 +414,32 @@ class PickAndAssignModule(NmrResidueTableModule):
                     else:
                         mappings[v].add(k)
 
-                # example of mappings dict
-                # ('Hn', 'C', 'Nh')
-                # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
-                # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
-                # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
-                # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
+            # example of mappings dict
+            # ('Hn', 'C', 'Nh')
+            # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
+            # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
+            # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
+            # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
 
-                self.spectrumIndex = {}
-                # go through the spectra
-                for spectrum in spectra:
-                    self.spectrumIndex[spectrum] = [0 for ii in range(len(spectrum.axisCodes))]
+            self.spectrumIndex = {}
+            # go through the spectra again
+            for spectrum in spectra:
+                self.spectrumIndex[spectrum] = [0 for ii in range(len(spectrum.axisCodes))]
 
-                    # get the spectrum dimension axisCode, nd see if is already there
-                    for spectrumDim, spectrumAxis in enumerate(spectrum.axisCodes):
+                # get the spectrum dimension axisCode, nd see if is already there
+                for spectrumDim, spectrumAxis in enumerate(spectrum.axisCodes):
 
-                        if spectrumAxis in refAxisCodes:
-                            self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(spectrumAxis)
-                            axisLabels[self.spectrumIndex[spectrum][spectrumDim]].add(spectrumAxis)
+                    if spectrumAxis in refAxisCodes:
+                        self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(spectrumAxis)
+                        axisLabels[self.spectrumIndex[spectrum][spectrumDim]].add(spectrumAxis)
 
-                        else:
-                            # if the axisCode is not in the reference list then find the mapping from the dict
-                            for k, v in mappings.items():
-                                if spectrumAxis in v:
-                                    # refAxisCodes[dim] = k
-                                    self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(k)
-                                    axisLabels[refAxisCodes.index(k)].add(spectrumAxis)
+                    else:
+                        # if the axisCode is not in the reference list then find the mapping from the dict
+                        for k, v in mappings.items():
+                            if spectrumAxis in v:
+                                # refAxisCodes[dim] = k
+                                self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(k)
+                                axisLabels[refAxisCodes.index(k)].add(spectrumAxis)
 
             axisLabels = [', '.join(ax) for ax in axisLabels]
             self.axisCodeOptions.setCheckBoxes(texts=axisLabels, tipTexts=axisLabels)
