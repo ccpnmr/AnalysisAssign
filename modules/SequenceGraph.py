@@ -877,7 +877,7 @@ class SequenceGraphModule(CcpnModule):
     def _resetNmrResiduePidForAssigner(self, data):  #nmrResidue, oldPid:str):
         """Reset pid for NmrResidue and all offset NmrResidues"""
         nmrResidue = data['object']
-        # print ('>>>_resetNmrResiduePidForAssigner')
+
         nmrChainPid = self.nmrChainPulldown.getText()
         if self.project.getByPid(nmrChainPid):
 
@@ -1239,7 +1239,6 @@ class SequenceGraphModule(CcpnModule):
         ###if self.current.nmrChain is not None:
         ###  self.setNmrChainDisplay(self.current.nmrChain.pid)
 
-        # print ('>>>update')
         nmrChainPid = self.nmrChainPulldown.getText()
         if nmrChainPid:
             self.setNmrChainDisplay(nmrChainPid)
