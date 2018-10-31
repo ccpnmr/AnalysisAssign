@@ -211,11 +211,15 @@ class BackboneAssignmentModule(NmrResidueTableModule):
       for display in displays:
         if len(display.strips) > 0:
 
-          # if contains hsqc then keep zoom
+          # if contains 2D's (e.g. a hsqc) then keep zoom
           if display.spectrumViews[0].spectrum.dimensionCount <= 2:
             newWidths = []    #_getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
           else:
-            newWidths = ['full']*len(display.strips[0].axisCodes)
+            # set the width in case of nD (n>2)
+            _widths = {'H':0.3, 'C': 1.0, 'N': 1.0}
+            _ac = display.strips[0].axisCodes[0]
+            _w = _widths.setdefault(_ac[0], 1.0)
+            newWidths = [_w, 'full']
 
           strips = navigateToNmrResidueInDisplay(nr, display, stripIndex=0,
                                       widths=newWidths,
