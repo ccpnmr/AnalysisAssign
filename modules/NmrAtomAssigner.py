@@ -7,9 +7,12 @@ made flexible in the settings tab). Options other than 'protein' are not yet imp
 
 Original by SS
 First rework by GWV
+Reworked by EJB
 """
 
-#TODO:GEERTEN Needs complete refactoring:
+#TODO Needs cleanup
+
+
 """
 - buttons are destroyed (!?) and create with every refresh; 
 - atom type prediction in sidechain mode (when type of nmrResidue is not yet known) gives
@@ -66,10 +69,14 @@ from ccpn.ui.gui.widgets.RadioButtons import RadioButtons
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.Frame import Frame
+from ccpn.ui.gui.widgets.MessageDialog import showWarning
+
+from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
+from ccpn.ui.gui.widgets.DropBase import DropBase
+
 from ccpn.util.Common import makeIterableList, _truncateText
 from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 from ccpn.util.Logging import getLogger
-from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.core.lib.AssignmentLib import _assignNmrAtomsToPeaks
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
@@ -236,6 +243,17 @@ class NmrAtomAssignerModule(CcpnModule):
         self._updateWidget()
         # self._predictAssignments(self.current.peaks)
 
+    def _handleNmrResidue(self, dataDict):
+        """drop event handler to accept NmrResidue pids
+        """
+        #print("NmrAtomAssigner.dropEvent>>>", dataDict, type(dataDict))
+        pids = dataDict.get(DropBase.PIDS)
+        if pids:
+            objs = [self.project.getByPid(pid) for pid in pids]
+            nmrResidues = [obj for obj in objs if (not obj is None) and isinstance(obj, NmrResidue)]
+            if nmrResidues:
+                self.current.nmrResidues = nmrResidues
+
     def _togglePressedButton(self, pressedButton=None):
         '''Ensures only a button at the time is checked, yet allows to uncheck a radio button. If pressedButton is None: unchecks all'''
         for button in self.buttonGroup.buttons():
@@ -282,6 +300,7 @@ class NmrAtomAssignerModule(CcpnModule):
                                                   offSet=offSet)  # this so that only assigned atoms are checked.
 
     def _registerNotifiers(self):
+        """Register notifiers for the module"""
         self._nmrAtomNotifier = Notifier(self.project,
                                          [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
                                          NmrAtom.__name__,
@@ -302,19 +321,20 @@ class NmrAtomAssignerModule(CcpnModule):
                                             NmrResidue._pluralLinkName,
                                             self._nmrResidueCallBack,
                                             onceOnly=True)
+        self._dropEventNotifier = GuiNotifier(self.mainWidget,
+                                           [GuiNotifier.DROPEVENT], [DropBase.PIDS],
+                                           self._handleNmrResidue)
+
+        # keep a list of all notifiers for easy un-registering
+        self._notifiers = [
+            self._nmrAtomNotifier, self._peakChangeNotifier, self._peakNotifier,
+            self._nmrResidueNotifier, self._dropEventNotifier
+        ]
 
     def _unRegisterNotifiers(self):
-        """
-        clean up the notifiers
-        """
-        if self._peakNotifier is not None:
-            self._peakNotifier.unRegister()
-        if self._peakChangeNotifier is not None:
-            self._peakChangeNotifier.unRegister()
-        if self._nmrResidueNotifier is not None:
-            self._nmrResidueNotifier.unRegister()
-        if self._nmrAtomNotifier is not None:
-            self._nmrAtomNotifier.unRegister()
+        """clean up the notifiers"""
+        for n in self._notifiers:
+            n.unRegister()
 
     def _closeModule(self):
         self._unRegisterNotifiers()
@@ -324,32 +344,17 @@ class NmrAtomAssignerModule(CcpnModule):
         self._updateWidget()
         return
 
-        # if self.radioButton1.isChecked():
-        #     self._createBackBoneButtons()
-        # if self.radioButton2.isChecked():
-        #     self._createSideChainButtons()
-
     def _nmrResidueCallBack(self, nmrResidues=None):
         "Callback if current.nmrResidue changes"
         if nmrResidues is not None and self.current.nmrResidue:
             self._updateWidget()
-            # if self.current.peaks:
-            #     self._pickAndAssignWidgetShow()
-            # else:
-            #     self._pickAndAssignWidgetHide()
         else:
             self._pickAndAssignWidgetHide()
             self.currentNmrResidueLabel.setText(MSG)
 
     def _pickAndAssignWidgetShow(self):
-        # if self.current.peak:
-        #     self._setPeakAxisCodes(self.current.peaks)
         self.pickAndAssignWidget.show()
         self._showSelectionButtons()
-        # self.atomTypeLabel.show()
-        # self.atomTypeOptions.show()
-        # self.axisCodeLabel.show()
-        # self.axisCodeOptions.show()
 
     def _pickAndAssignWidgetHide(self):
         self.pickAndAssignWidget.hide()
