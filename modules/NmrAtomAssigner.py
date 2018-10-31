@@ -111,7 +111,7 @@ class NmrAtomAssignerModule(CcpnModule):
     """
     Module to be used with PickAndAssignModule for prediction of nmrAtom names and assignment of nmrAtoms
     to peak dimensions
-    Responds to current.nmrResidue and current.peaks
+    Responds to current.nmrResidue and current.peaks; accepts nmrResidue pid drops
     """
     className = 'NmrAtomAssignerModule'
 
