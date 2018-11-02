@@ -11,8 +11,6 @@ Reworked by EJB
 """
 
 #TODO Needs cleanup
-
-
 """
 - buttons are destroyed (!?) and create with every refresh; 
 - atom type prediction in sidechain mode (when type of nmrResidue is not yet known) gives
@@ -70,6 +68,7 @@ from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
+from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrResiduePulldown, NmrChainPulldown
 
 from ccpn.ui.gui.lib.GuiNotifier import GuiNotifier
 from ccpn.ui.gui.widgets.DropBase import DropBase
@@ -181,10 +180,19 @@ class NmrAtomAssignerModule(CcpnModule):
         self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
 
         resRow = 0
-        self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(resRow, 0),
-                                      hPolicy='minimal')
-        self.currentNmrResidueLabel = Label(self._residueFrame, grid=(resRow, 1),
-                                            hPolicy='minimal', hAlign='l')
+        # self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(resRow, 0),
+        #                               hPolicy='minimal')
+        # self.currentNmrResidueLabel = Label(self._residueFrame, grid=(resRow, 1),
+        #                                     hPolicy='minimal', hAlign='l')
+
+        self._nmrChain = NmrChainPulldown(self._residueFrame, project=self.project,
+                                              labelText='NmrChain:',
+                                              setCurrent=False,
+                                              grid=(resRow, 0), hPolicy='minimal', minimumWidths=None)
+        self._nmrResidue = NmrResiduePulldown(self._residueFrame, project=self.project,
+                                              labelText='Current NmrResidue:', useIds=False,
+                                              setCurrent=True, followCurrent=True,
+                                              grid=(resRow, 1), hPolicy='minimal', minimumWidths=None)
 
         resRow += 1
         self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(resRow, 0),
@@ -243,6 +251,47 @@ class NmrAtomAssignerModule(CcpnModule):
         self._updateWidget()
         # self._predictAssignments(self.current.peaks)
 
+    def _registerNotifiers(self):
+        """Register notifiers for the module"""
+        self._nmrAtomNotifier = Notifier(self.project,
+                                         [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                         NmrAtom.className,
+                                         callback=self._nmrResidueCallBack,
+                                         onceOnly=True)
+        self._peakChangeNotifier = Notifier(self.project,
+                                            [Notifier.CHANGE],
+                                            Peak.className,
+                                            callback=self._nmrResidueCallBack,
+                                            onceOnly=True)
+        self._peakNotifier = Notifier(self.current,
+                                      [Notifier.CURRENT],
+                                      Peak._pluralLinkName,
+                                      callback=self._predictAssignmentsCallBack,
+                                      onceOnly=True)
+        self._nmrResidueNotifier = Notifier(self.current,
+                                            [Notifier.CURRENT],
+                                            NmrResidue._pluralLinkName,
+                                            callback=self._nmrResidueCallBack,
+                                            onceOnly=True)
+        self._dropEventNotifier = GuiNotifier(self.mainWidget,
+                                             [GuiNotifier.DROPEVENT], [DropBase.PIDS],
+                                              callback=self._handleNmrResidue)
+
+        # keep a list of all notifiers for easy un-registering
+        self._notifiers = [
+            self._nmrAtomNotifier, self._peakChangeNotifier, self._peakNotifier,
+            self._nmrResidueNotifier, self._dropEventNotifier
+        ]
+
+    def _unRegisterNotifiers(self):
+        """clean up the notifiers"""
+        for n in self._notifiers:
+            n.unRegister()
+
+    def _closeModule(self):
+        self._unRegisterNotifiers()
+        super(NmrAtomAssignerModule, self)._closeModule()
+
     def _handleNmrResidue(self, dataDict):
         """drop event handler to accept NmrResidue pids
         """
@@ -299,47 +348,6 @@ class NmrAtomAssignerModule(CcpnModule):
             self._setCheckedButtonOfAssignedAtoms(nmrResidue,
                                                   offSet=offSet)  # this so that only assigned atoms are checked.
 
-    def _registerNotifiers(self):
-        """Register notifiers for the module"""
-        self._nmrAtomNotifier = Notifier(self.project,
-                                         [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
-                                         NmrAtom.__name__,
-                                         self._nmrResidueCallBack,
-                                         onceOnly=True)
-        self._peakChangeNotifier = Notifier(self.project,
-                                            [Notifier.CHANGE],
-                                            Peak.__name__,
-                                            self._nmrResidueCallBack,
-                                            onceOnly=True)
-        self._peakNotifier = Notifier(self.current,
-                                      [Notifier.CURRENT],
-                                      Peak._pluralLinkName,
-                                      self._predictAssignmentsCallBack,
-                                      onceOnly=True)
-        self._nmrResidueNotifier = Notifier(self.current,
-                                            [Notifier.CURRENT],
-                                            NmrResidue._pluralLinkName,
-                                            self._nmrResidueCallBack,
-                                            onceOnly=True)
-        self._dropEventNotifier = GuiNotifier(self.mainWidget,
-                                           [GuiNotifier.DROPEVENT], [DropBase.PIDS],
-                                           self._handleNmrResidue)
-
-        # keep a list of all notifiers for easy un-registering
-        self._notifiers = [
-            self._nmrAtomNotifier, self._peakChangeNotifier, self._peakNotifier,
-            self._nmrResidueNotifier, self._dropEventNotifier
-        ]
-
-    def _unRegisterNotifiers(self):
-        """clean up the notifiers"""
-        for n in self._notifiers:
-            n.unRegister()
-
-    def _closeModule(self):
-        self._unRegisterNotifiers()
-        super(NmrAtomAssignerModule, self)._closeModule()
-
     def _createButtonsCallback(self):
         self._updateWidget()
         return
@@ -350,7 +358,8 @@ class NmrAtomAssignerModule(CcpnModule):
             self._updateWidget()
         else:
             self._pickAndAssignWidgetHide()
-            self.currentNmrResidueLabel.setText(MSG)
+            # self.currentNmrResidueLabel.setText(MSG)
+            self._nmrResidue.select(MSG)
 
     def _pickAndAssignWidgetShow(self):
         self.pickAndAssignWidget.show()
@@ -467,7 +476,8 @@ class NmrAtomAssignerModule(CcpnModule):
         ii = jj = 0
         self._setPeaksLabel()
         if self.current.nmrResidue is not None:
-            self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            # self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            self._nmrResidue.select(self.current.nmrResidue.pid)
             self._pickAndAssignWidgetHide()
 
             # dimensionalities = set([len(peak.position) for peak in self.current.peaks])
@@ -499,7 +509,9 @@ class NmrAtomAssignerModule(CcpnModule):
                 self._pickAndAssignWidgetShow()
         else:
             self._pickAndAssignWidgetHide()
-            self.currentNmrResidueLabel.setText(MSG)
+            # self.currentNmrResidueLabel.setText(MSG)
+            self._nmrResidue.select(MSG)
+
 
         # # add a spacer to the radiobutton box
         # Spacer(self.pickAndAssignWidget, 3, 3,
@@ -841,7 +853,8 @@ class NmrAtomAssignerModule(CcpnModule):
         rows = 0
         cols = 0
         if self.current.nmrResidue:
-            self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            # self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+            self._nmrResidue.select(self.current.nmrResidue.pid)
             if self.current.nmrResidue.residueType == '':
                 self.buttons = {}
                 for ii, atomList in enumerate(atomButtonList):
@@ -1567,7 +1580,7 @@ if __name__ == '__main__':
     all_atoms['P'] = ['P']
     textBox.append(str(all_atoms))
 
-    popup.currentNmrResidueLabel.setText('NmrResidue here')
+    popup._nmrResidue.setText('NmrResidue here')
 
     print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT'))
     print(popup._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DC'))
