@@ -185,14 +185,18 @@ class NmrAtomAssignerModule(CcpnModule):
         # self.currentNmrResidueLabel = Label(self._residueFrame, grid=(resRow, 1),
         #                                     hPolicy='minimal', hAlign='l')
 
+        # _nmrChain needs defining before _nmrResidue, as its filterFunction depends on the presence of the former
+        # f = Frame(self._residueFrame, grid=(resRow,0), gridSpan=(1,2))
         self._nmrChain = NmrChainPulldown(self._residueFrame, project=self.project,
-                                              labelText='NmrChain:',
-                                              setCurrent=False,
-                                              grid=(resRow, 0), hPolicy='minimal', minimumWidths=None)
+                                          labelText='Filter by NmrChain:', default=0, showSelectName=True,
+                                          setCurrent=False,
+                                          callback = self._nmrChainCallback,
+                                          grid=(resRow, 1), hPolicy='minimal', minimumWidths=None)
         self._nmrResidue = NmrResiduePulldown(self._residueFrame, project=self.project,
-                                              labelText='Current NmrResidue:', useIds=False,
+                                              labelText='Current NmrResidue:', useIds=False, showSelectName=False,
                                               setCurrent=True, followCurrent=True,
-                                              grid=(resRow, 1), hPolicy='minimal', minimumWidths=None)
+                                              filterFunction=self._filterResidues,
+                                              grid=(resRow, 0), hPolicy='minimal', minimumWidths=None)
 
         resRow += 1
         self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(resRow, 0),
@@ -287,10 +291,43 @@ class NmrAtomAssignerModule(CcpnModule):
         """clean up the notifiers"""
         for n in self._notifiers:
             n.unRegister()
+        self._nmrResidue.unRegister()
+        self._nmrChain.unRegister()
 
     def _closeModule(self):
         self._unRegisterNotifiers()
         super(NmrAtomAssignerModule, self)._closeModule()
+
+    #================================================================================================================
+    # callbacks and functionalities
+    #================================================================================================================
+
+    def _filterResidues(self, pids):
+        "Filter function for the resdidue pulldown"
+
+        # first time hack, as during initialising this routine is called to populate
+        # the pulldown; however _nmrResidue is not yet defined then
+        if not hasattr(self, '_nmrResidue'): return pids
+
+        nmrChain = self._nmrChain.getSelectedObject()
+        #print('>>> filtering pids on:', nmrChain)
+
+        def _isOk(pid):
+            if nmrChain is None:
+                # No filtering
+                return True
+            nmrResidue = self._nmrResidue.value2object(pid)
+            if nmrResidue is not None and nmrResidue.nmrChain == nmrChain:
+                # nmrResidue is part of the filtered nmrChain
+                return True
+            return False
+
+        pids = [pid for pid in pids if _isOk(pid)]
+        return pids
+
+    def _nmrChainCallback(self, value):
+        "Callback for the NmrChain selection"
+        self._nmrResidue.update()
 
     def _handleNmrResidue(self, dataDict):
         """drop event handler to accept NmrResidue pids
