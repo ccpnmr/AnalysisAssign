@@ -119,7 +119,8 @@ class NmrAtomAssignerModule(CcpnModule):
     settingsPosition = 'top'
 
     def __init__(self, mainWindow=None, name='NmrAtom Assigner', nmrAtom=None):
-        CcpnModule.__init__(self, mainWindow=mainWindow, name=name)
+
+        super().__init__(mainWindow=mainWindow, name=name)
 
         # Derive application, project, and current from mainWindow
         self.mainWindow = mainWindow
@@ -127,7 +128,6 @@ class NmrAtomAssignerModule(CcpnModule):
             self.application = mainWindow.application
             self.project = mainWindow.application.project
             self.current = mainWindow.application.current
-            self._registerNotifiers()
 
         # Settings Widget
         self._ASwidget = Widget(self.settingsWidget, setLayout=True,
@@ -177,7 +177,8 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # add widgets to the main widget area
         row = 0
-        self._residueFrame = Frame(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
+        self._residueFrame = Frame(self.mainWidget, setLayout=True, acceptDrops=True,
+                                   grid=(row, 0), gridSpan=(1, 1))
 
         resRow = 0
         # self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(resRow, 0),
@@ -252,6 +253,7 @@ class NmrAtomAssignerModule(CcpnModule):
         # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
         self.buttons = {}
+        self._registerNotifiers()
         self._updateWidget()
         # self._predictAssignments(self.current.peaks)
 
@@ -277,7 +279,7 @@ class NmrAtomAssignerModule(CcpnModule):
                                             NmrResidue._pluralLinkName,
                                             callback=self._nmrResidueCallBack,
                                             onceOnly=True)
-        self._dropEventNotifier = GuiNotifier(self.mainWidget,
+        self._dropEventNotifier = GuiNotifier(self,
                                              [GuiNotifier.DROPEVENT], [DropBase.PIDS],
                                               callback=self._handleNmrResidue)
 
