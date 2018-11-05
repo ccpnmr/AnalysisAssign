@@ -258,7 +258,8 @@ class NmrAtomAssignerModule(CcpnModule):
         # self._predictAssignments(self.current.peaks)
 
     def _registerNotifiers(self):
-        """Register notifiers for the module"""
+        """Register notifiers for the module
+        """
         self._nmrAtomNotifier = Notifier(self.project,
                                          [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
                                          NmrAtom.className,
@@ -290,7 +291,8 @@ class NmrAtomAssignerModule(CcpnModule):
         ]
 
     def _unRegisterNotifiers(self):
-        """clean up the notifiers"""
+        """clean up the notifiers
+        """
         for n in self._notifiers:
             n.unRegister()
         self._nmrResidue.unRegister()
