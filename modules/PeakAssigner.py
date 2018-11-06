@@ -621,7 +621,7 @@ class AxisAssignmentObject(Frame):
 
         # initialise axis information
         self.index = index
-        self.parent = parentModule
+        self._parent = parentModule
         self.dataFrameAssigned = None
         self.dataFrameAlternatives = None
         self.lastTableSelected = None
@@ -736,7 +736,7 @@ class AxisAssignmentObject(Frame):
                     newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
                     axisCode = peak.peakList.spectrum.axisCodes[dim]
                     peak.assignDimension(axisCode, newAssignments)
-            self.parent._updateInterface()
+            self._parent._updateInterface()
 
             # highlight on the table and populate the pulldowns
             self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
@@ -822,7 +822,7 @@ class AxisAssignmentObject(Frame):
                     # nmrResidue._finaliseAction('change')
 
                 # self._updateInterface()
-                self.parent._updateInterface()
+                self._parent._updateInterface()
                 self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
                 self._updateAssignmentWidget(0, nmrAtom)
 
@@ -896,7 +896,7 @@ class AxisAssignmentObject(Frame):
                     # nmrResidue._finaliseAction('change')
 
                 # self._updateInterface()
-                self.parent._updateInterface()
+                self._parent._updateInterface()
                 self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
                 nextAtom = self.tables[1].getSelectedObjects()
                 if nextAtom:
@@ -945,7 +945,7 @@ class AxisAssignmentObject(Frame):
         #                 # nmrResidue._finaliseAction('change')
         #
         #             # self._updateInterface()
-        #             self.parent._updateInterface()
+        #             self._parent._updateInterface()
         #             self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
         #             nextAtom = self.tables[1].getSelectedObjects()
         #             if nextAtom:
@@ -1008,7 +1008,7 @@ class AxisAssignmentObject(Frame):
             sequenceCode = nmrAtom.nmrResidue.sequenceCode
             residueType = nmrAtom.nmrResidue.residueType
 
-            if not self.parent.allChainCheckBoxLabel.isChecked():
+            if not self._parent.allChainCheckBoxLabel.isChecked():
                 self._setChains()
                 # chains = ['']
                 # chains.extend([chain.id for chain in self.project.nmrChains])

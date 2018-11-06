@@ -154,7 +154,7 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
         self.project = self.mainWindow.project
         self.current = self.mainWindow.application.current
         self.nmrResidue = nmrResidue
-        self.parent = parent
+        self._parent = parent
         self.setPos(QtCore.QPointF(pos, 0.0))
 
         self.nmrResidueLabel = GuiNmrResidue(parent, nmrResidue, caAtom)
@@ -193,7 +193,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
         self.setPos(caAtom.x() - caAtom.boundingRect().width() / 2, caAtom.y() + 30)
         ###self.setFlags(QtWidgets.QGraphicsItem.ItemIsSelectable | self.flags())
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable)
-        self.parent = parent
+        self._parent = parent
         self.nmrResidue = nmrResidue
         # self.mousePressEvent = self._mousePressEvent
         # self.mouseMoveEvent = self._mouseMoveEvent
@@ -251,7 +251,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
 
     def _mouseDoubleClickEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            self.parent.showNmrResidue(self)
+            self.parent().showNmrResidue(self)
             event.accept()
         else:
             super(GuiNmrResidue, self).mouseDoubleClickEvent(event)
