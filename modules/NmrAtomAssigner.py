@@ -280,7 +280,7 @@ class NmrAtomAssignerModule(CcpnModule):
                                             NmrResidue._pluralLinkName,
                                             callback=self._nmrResidueCallBack,
                                             onceOnly=True)
-        self._dropEventNotifier = GuiNotifier(self,
+        self._dropEventNotifier = GuiNotifier(self.mainWidget,
                                              [GuiNotifier.DROPEVENT], [DropBase.PIDS],
                                               callback=self._handleNmrResidue)
 
