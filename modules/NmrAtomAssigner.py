@@ -273,7 +273,7 @@ class NmrAtomAssignerModule(CcpnModule):
         self._peakNotifier = Notifier(self.current,
                                       [Notifier.CURRENT],
                                       Peak._pluralLinkName,
-                                      callback=self._predictAssignmentsCallBack,
+                                      callback=self._peaksCallback,
                                       onceOnly=True)
         self._nmrResidueNotifier = Notifier(self.current,
                                             [Notifier.CURRENT],
@@ -300,14 +300,16 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _closeModule(self):
         self._unRegisterNotifiers()
-        super(NmrAtomAssignerModule, self)._closeModule()
+        super()._closeModule()
 
     #================================================================================================================
     # callbacks and functionalities
     #================================================================================================================
 
     def _filterResidues(self, pids):
-        "Filter function for the resdidue pulldown"
+        """Filter function for the resdidue pulldown
+        Add any nmrResidue defined by selected peaks at the top of the list
+        """
 
         # first time hack, as during initialising this routine is called to populate
         # the pulldown; however _nmrResidue is not yet defined then
@@ -315,6 +317,16 @@ class NmrAtomAssignerModule(CcpnModule):
 
         nmrChain = self._nmrChain.getSelectedObject()
         #print('>>> filtering pids on:', nmrChain)
+
+        # For selected peaks: get the pids of nmrResidues of assigned nmrAtoms
+        newPids = []
+        for peak in self.current.peaks:
+            for assignment in peak.assignments:
+                for nmrAtom in assignment:
+                    if nmrAtom:
+                        newPids.append(nmrAtom.nmrResidue.pid)
+        newPids = list(set(newPids))
+        newPids.sort()
 
         def _isOk(pid):
             if nmrChain is None:
@@ -326,8 +338,8 @@ class NmrAtomAssignerModule(CcpnModule):
                 return True
             return False
 
-        pids = [pid for pid in pids if _isOk(pid)]
-        return pids
+        newPids = newPids + [pid for pid in pids if _isOk(pid)]
+        return newPids
 
     def _nmrChainCallback(self, value):
         "Callback for the NmrChain selection"
@@ -1141,11 +1153,11 @@ class NmrAtomAssignerModule(CcpnModule):
         """
         self.pickAndAssignWidget.setStyleSheet(DEFAULT_BUTTON)
 
-    def _predictAssignmentsCallBack(self, data):
+    def _peaksCallback(self, data):
+        "Callback for the peaks notifier"
         peaks = data[Notifier.VALUE]
-
-        self._updateWidget()
-        # self._predictAssignments(peaks)
+        self._setPeaksLabel()
+        self._nmrResidue.update()
 
     # def _predictAssignments(self, peaks: typing.List[Peak]):
     #     """

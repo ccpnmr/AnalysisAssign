@@ -75,7 +75,8 @@ class AssignmentInspectorModule(CcpnModule):
 
     def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
         # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
-        CcpnModule.__init__(self, mainWindow=mainWindow, name=name)  # ejb
+        # CcpnModule.__init__(self, mainWindow=mainWindow, name=name)  # ejb
+        super().__init__(mainWindow=mainWindow, name=name)  # gwv
 
         # Derive application, project, and current from mainWindow
         self.mainWindow = mainWindow
@@ -90,9 +91,12 @@ class AssignmentInspectorModule(CcpnModule):
 
         # settings window
 
-        self.splitter = Splitter(QtCore.Qt.Vertical)
+        # self.splitter = Splitter(self.mainWidget, QtCore.Qt.Vertical)
+        self.splitter = Splitter(self.mainWidget, horizontal=False)
         self._chemicalShiftFrame = Frame(self.splitter, setLayout=True)
         self._assignmentFrame = Frame(self.splitter, setLayout=True)
+        # self._chemicalShiftFrame = Frame(self.mainWidget, setLayout=True, grid=(0,0))
+        # self._assignmentFrame = Frame(self.mainWidget, setLayout=True, grid=(1,0))
         self.mainWidget.getLayout().addWidget(self.splitter)
 
         self._AIwidget = Widget(self.settingsWidget, setLayout=True,
@@ -144,84 +148,10 @@ class AssignmentInspectorModule(CcpnModule):
                 checked=True
                 )
 
-        # # main window
-        # # Frame-1: NmrAtoms
-        # width = 130
-        # self.frame1 = Frame(None, grid=(0,0), **policies, fShape='styledPanel', fShadow='plain', setLayout=True) # ejb
-        # self.frame1.setFixedWidth(width)
-        # self.nmrAtomLabel = Label(self.frame1, 'NmrAtom(s):', bold=True,
-        #                           grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2,5,2,5])
-        #
-        # self.attachedNmrAtomsList = ListWidget(self.frame1,
-        #                                        callback=self._updatePeakTableCallback, contextMenu=False,
-        #                                        grid=(1, 0), gridSpan=(1, 1), **policies
-        #                                        )
-        # self.attachedNmrAtomsList.setFixedWidth(width-2)
-        #
-        # self.frame1.hide()
-        #
-        # # Frame-2: peaks
-        # self.frame2 = Frame(self._assignmentFrame, grid=(0,0), gridSpan=(1,1), setLayout=True) # ejb
-        # self.peaksLabel = Label(self.frame2, 'Peaks assigned to NmrAtom(s):', bold=True,
-        #                         grid=(0, 0), gridSpan=(1, 1), margins=[2,5,2,5])
-        #
-        # self.peaksLabel.setFixedHeight(24)
-        # # initialise the currently attached dataFrame
-        # self._hiddenColumns = ['Pid']
-        # self.dataFrameObject = None
-        #
-        # # self.assignedPeaksTable = ObjectTable(self.frame2, self.getColumns(),
-        # #                                       selectionCallback=self._setCurrentPeak,
-        # #                                       actionCallback=self._navigateToPeak,
-        # #                                       objects=[], autoResize=True,
-        # #                                       grid=(1, 0), gridSpan=(1, 5), **policies
-        # #                                       )
-        #
-        # self.assignedPeaksTable = QuickTable(parent=self._assignmentFrame,
-        #                                      mainWindow=self.mainWindow,
-        #                                      dataFrameObject=None,
-        #                                      setLayout=True,
-        #                                      autoResize=True, multiSelect=True,
-        #                                      selectionCallback=self._setCurrentPeak,
-        #                                      actionCallback=self._navigateToPeak,
-        #                                      grid=(1, 0), gridSpan=(1, 1),
-        #                                      enableDelete=False, enableSearch=False,
-        #                                      **policies)
-        #
-        # # self._assignmentFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
-        # #self.attachedNmrAtomsList.setFixedHeight(200)
-        # #self.assignedPeaksTable.setFixedHeight(200)
-        #
-        # # self._registerNotifiers()
-        #
-        # self.assignedPeaksTable._peakList = None
-        # # update if current.nmrResidue is defined
-        # if self.application.current.nmrResidue is not None:
-        #   self._updateModuleCallback([self.application.current.nmrResidue])
-        #
-        # # set the required table notifiers
-        # self.assignedPeaksTable.setTableNotifiers(tableClass=None,
-        #                        rowClass=Peak,
-        #                        cellClassNames=None,
-        #                        tableName='peakList', rowName='peak',
-        #                        changeFunc=self._refreshTable,
-        #                        className=self.attributeName,
-        #                        updateFunc=self._refreshTable,
-        #                        tableSelection='_peakList',
-        #                        pullDownWidget=None,     #self.ncWidget
-        #                        callBackClass=NmrResidue,
-        #                        selectCurrentCallBack=self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
-
         # main window
-        self.chemicalShiftTable = ChemicalShiftTable(parent=self._chemicalShiftFrame,
-                                                     mainWindow=self.mainWindow,
-                                                     moduleParent=self,
-                                                     setLayout=True,
-                                                     actionCallback=self._actionCallback,
-                                                     selectionCallback=self._selectionCallback,
-                                                     grid=(0, 0),
-                                                     hiddenColumns=['Pid', 'Shift list peaks', 'All peaks'])
 
+        # AssignedPeaksTable need to be intialised before chemicalShiftTable, as the callback of the latter requires
+        # the former to be present
         self.assignedPeaksTable = AssignmentInspectorTable(parent=self._assignmentFrame,
                                                            mainWindow=self.mainWindow,
                                                            moduleParent=self,
@@ -230,6 +160,14 @@ class AssignmentInspectorModule(CcpnModule):
                                                            actionCallback=self._navigateToPeak,
                                                            grid=(0, 0),
                                                            hiddenColumns=['Pid'])
+        self.chemicalShiftTable = ChemicalShiftTable(parent=self._chemicalShiftFrame,
+                                                     mainWindow=self.mainWindow,
+                                                     moduleParent=self,
+                                                     setLayout=True,
+                                                     actionCallback=self._actionCallback,
+                                                     selectionCallback=self._selectionCallback,
+                                                     grid=(0, 0),
+                                                     hiddenColumns=['Pid', 'Shift list peaks', 'All peaks'])
 
         self._selectCurrentNmrAtomsNotifier = Notifier(self.current, [Notifier.CURRENT], targetName=NmrAtom._pluralLinkName,
                                                        callback=self._highlightNmrAtoms)

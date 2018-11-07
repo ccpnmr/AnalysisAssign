@@ -361,7 +361,7 @@ class SequenceGraphModule(CcpnModule):
         self.ghostList = []
         self.selectedLine = None
 
-        self.splitter = Splitter(QtCore.Qt.Vertical)
+        self.splitter = Splitter(self.mainWidget, horizontal=False)
         self._sequenceModuleFrame = Frame(None, setLayout=True)
         # self._SequenceGraphFrame = Frame(self.splitter, setLayout=True)
         self.mainWidget.getLayout().addWidget(self.splitter, 1, 0)
