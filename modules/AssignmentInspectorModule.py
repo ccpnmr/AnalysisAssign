@@ -422,6 +422,8 @@ class AssignmentInspectorTable(QuickTable):
             self.project = None
             self.current = None
 
+        self.moduleParent = moduleParent
+
         self.sampledDims = {}  #GWV: not sure what this is supposed to do
         self.ids = []  # list of currently displayed NmrAtom ids + <all>
 
@@ -493,7 +495,8 @@ class AssignmentInspectorTable(QuickTable):
                                tableSelection='_peakList',
                                pullDownWidget=None,  #self.ncWidget
                                callBackClass=NmrResidue,
-                               selectCurrentCallBack=None)  #self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
+                               selectCurrentCallBack=None,
+                               moduleParent=self.moduleParent)  #self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
 
     def _updateModuleCallback(self, data: dict):
         """
