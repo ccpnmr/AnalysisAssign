@@ -58,6 +58,8 @@ from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpnmodel.ccpncore.lib.Constants import defaultNmrChainCode
 from ccpn.core.lib.Notifiers import Notifier
+from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
+from ccpn.ui.gui.widgets.Widget import Widget
 
 
 logger = getLogger()
@@ -157,16 +159,26 @@ class PeakAssigner(CcpnModule):
                               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
                               grid=(1, 14), gridSpan=(1, 1))
 
-        # Main content widgets
-        # TODO:ED check the overlapping of these widgets
-        self.peakLabel = Label(parent=self.mainWidget, setLayout=True, spacing=(0, 0),
+        # Main content widgets, create an expanding scroll area
+        self._axisFrameScrollArea = ScrollArea(parent=self.mainWidget,
+                               grid=(1, 0),
+                               hPolicy='expanding', vPolicy='expanding')
+        self.axisFrameWidget = Widget(parent=None, acceptDrops=True)
+
+        # put a container widget into the scroll area
+        self._axisFrameScrollArea.setWidget(self.axisFrameWidget)
+        self.axisFrameWidget.setGridLayout()
+        self._axisFrameScrollArea.setWidgetResizable(True)
+
+        # put a label and axisFrame into the axisFrameWidget, this will be wrapped in scroll bars
+        self.peakLabel = Label(parent=self.axisFrameWidget, setLayout=True, spacing=(0, 0),
                                text='Current Peak: '+MSG, bold=True,
                                grid=(0, 0), margins=(2, 2, 2, 2), hAlign='left', vAlign='t',
                                hPolicy='fixed', vPolicy='fixed')
         self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
         self.peakLabel.setFixedHeight(20)
 
-        self.axisFrame = Frame(parent=self.mainWidget, setLayout=True, spacing=(0, 0),
+        self.axisFrame = Frame(parent=self.axisFrameWidget, setLayout=True, spacing=(0, 0),
                                showBorder=False, fShape='noFrame',
                                grid=(1, 0),
                                hPolicy='expanding', vPolicy='expanding')
@@ -190,6 +202,9 @@ class PeakAssigner(CcpnModule):
         self._settingsScrollArea.setMaximumHeight(35)
         self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         self.closeModule = self._closeModule
+
+        # self.peakLabel.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        # self.axisFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
         # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
