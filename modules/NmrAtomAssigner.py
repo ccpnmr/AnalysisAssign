@@ -176,9 +176,10 @@ class NmrAtomAssignerModule(CcpnModule):
         for w in self._sidechainModifiers:  w.hide()
 
         # add widgets to the main widget area
-        row = 0
-        self._residueFrame = Frame(self.mainWidget, setLayout=True, acceptDrops=True,
-                                   grid=(row, 0), gridSpan=(1, 1))
+        self._pickAndAssignScrollArea = ScrollArea(self.mainWidget, setLayout=True, grid=(0, 0), gridSpan=(1, 1))
+        self._pickAndAssignScrollArea.setWidgetResizable(True)
+
+        self._residueFrame = Frame(self.mainWidget, setLayout=True, acceptDrops=True, showBorder=False)
 
         resRow = 0
         # self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(resRow, 0),
@@ -188,52 +189,66 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # _nmrChain needs defining before _nmrResidue, as its filterFunction depends on the presence of the former
         # f = Frame(self._residueFrame, grid=(resRow,0), gridSpan=(1,2))
-        self._nmrChain = NmrChainPulldown(self._residueFrame, project=self.project,
+        self._chainFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0), gridSpan=(1,3))
+        self._nmrChain = NmrChainPulldown(self._chainFrame, project=self.project,
                                           labelText='Filter by NmrChain:', default=0, showSelectName=True,
                                           setCurrent=False,
                                           callback = self._nmrChainCallback,
-                                          grid=(resRow, 1), hPolicy='minimal', minimumWidths=None)
-        self._nmrResidue = NmrResiduePulldown(self._residueFrame, project=self.project,
+                                          grid=(0, 1), hPolicy='minimal', minimumWidths=None)
+        self._nmrResidue = NmrResiduePulldown(self._chainFrame, project=self.project,
                                               labelText='Current NmrResidue:', useIds=False, showSelectName=False,
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
-                                              grid=(resRow, 0), hPolicy='minimal', minimumWidths=None)
+                                              grid=(0, 0), hPolicy='minimal', minimumWidths=None)
+        Spacer(self._chainFrame, 2, 2,
+               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
+               grid=(0, 2), gridSpan=(1, 1))
 
         resRow += 1
-        self._peaksLabel = Label(self._residueFrame, 'Current Peak(s):', grid=(resRow, 0),
+        labRow = 0
+        self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0), gridSpan=(1,3))
+        self._peaksLabel = Label(self._labelFrame, 'Current Peak(s):', grid=(labRow, 0),
                                  hPolicy='minimal')
-        self.currentPeaksLabel = Label(self._residueFrame, grid=(resRow, 1), gridSpan=(1, 2),
-                                       hPolicy='ignored', hAlign='l')
+        self.currentPeaksLabel = Label(self._labelFrame, grid=(labRow, 1), gridSpan=(1,2), hPolicy='minimal', hAlign='l')
 
         # modifier for atomCode
-        resRow += 1
-        self.axisCodeLabel = Label(self._residueFrame, 'Axis Codes:', grid=(resRow, 0))
-        self.axisCodeOptions = RadioButtons(self._residueFrame, selectedInd=0, texts=['C'],
-                                            callback=self._changeAxisCode, grid=(resRow, 1))
+        labRow += 1
+        self.axisCodeLabel = Label(self._labelFrame, 'Axis Codes:', grid=(labRow, 0))
+        self.axisCodeOptions = RadioButtons(self._labelFrame, selectedInd=0, texts=['C'],
+                                            callback=self._changeAxisCode, grid=(labRow, 1))
 
-        # # modifier for atomType
-        self.atomTypeLabel = Label(self._residueFrame, 'Atom Types', grid=(resRow, 0))
-        self.atomTypeOptions = RadioButtons(self._residueFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
-                                            callback=self._changeAtomType, grid=(resRow, 1))
+        # modifier for atomType
+        labRow += 1
+        self.atomTypeLabel = Label(self._labelFrame, 'Atom Types', grid=(labRow, 0))
+        self.atomTypeOptions = RadioButtons(self._labelFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
+                                            callback=self._changeAtomType, grid=(labRow, 1))
+        Spacer(self._labelFrame, 2, 2,
+               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
+               grid=(labRow, 2), gridSpan=(1, 1))
+
+        resRow += 1
+        self.pickAndAssignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0))
+        self._pickAndAssignScrollArea.setWidget(self._residueFrame)
 
         # add spacer to stop columns changing width
         resRow += 1
         Spacer(self._residueFrame, 2, 2,
-               QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Minimum,
-               grid=(resRow, 2), gridSpan=(1, 1))
+               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+               grid=(resRow, 4), gridSpan=(1, 1))
 
         # self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomTypeOptions.radioButtons
         # self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
 
-        row += 1
-        self._pickAndAssignScrollArea = ScrollArea(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
-        self._pickAndAssignScrollArea.setWidgetResizable(True)
+        # row += 1
+        # self._pickAndAssignScrollArea = ScrollArea(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
+        # self._pickAndAssignScrollArea.setWidgetResizable(True)
 
-        self.pickAndAssignWidget = Frame(self.mainWidget, setLayout=True, showBorder=False)
-        self._pickAndAssignScrollArea.setWidget(self.pickAndAssignWidget)
-        self.pickAndAssignWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self._pickAndAssignScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self._pickAndAssignScrollArea.setStyleSheet("""ScrollArea { border: 0px; }""")
+        # resRow += 1
+        # self.pickAndAssignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0))
+        # self._pickAndAssignScrollArea.setWidget(self._residueFrame)
+        # self.pickAndAssignWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        # self._pickAndAssignScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        # self._pickAndAssignScrollArea.setStyleSheet("""ScrollArea { border: 0px; }""")
 
         # # hide unnecessary widgets on initialise
         # self._pickAndAssignWidgetHide()
