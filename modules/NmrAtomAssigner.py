@@ -189,11 +189,11 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # _nmrChain needs defining before _nmrResidue, as its filterFunction depends on the presence of the former
         # f = Frame(self._residueFrame, grid=(resRow,0), gridSpan=(1,2))
-        self._chainFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0), gridSpan=(1,3))
+        self._chainFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
         self._nmrChain = NmrChainPulldown(self._chainFrame, project=self.project,
                                           labelText='Filter by NmrChain:', default=0, showSelectName=True,
                                           setCurrent=False,
-                                          callback = self._nmrChainCallback,
+                                          callback=self._nmrChainCallback,
                                           grid=(0, 1), hPolicy='minimal', minimumWidths=None)
         self._nmrResidue = NmrResiduePulldown(self._chainFrame, project=self.project,
                                               labelText='Current NmrResidue:', useIds=False, showSelectName=False,
@@ -206,10 +206,10 @@ class NmrAtomAssignerModule(CcpnModule):
 
         resRow += 1
         labRow = 0
-        self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0), gridSpan=(1,3))
+        self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
         self._peaksLabel = Label(self._labelFrame, 'Current Peak(s):', grid=(labRow, 0),
                                  hPolicy='minimal')
-        self.currentPeaksLabel = Label(self._labelFrame, grid=(labRow, 1), gridSpan=(1,2), hPolicy='minimal', hAlign='l')
+        self.currentPeaksLabel = Label(self._labelFrame, grid=(labRow, 1), gridSpan=(1, 2), hPolicy='minimal', hAlign='l')
 
         # modifier for atomCode
         labRow += 1
@@ -227,7 +227,7 @@ class NmrAtomAssignerModule(CcpnModule):
                grid=(labRow, 2), gridSpan=(1, 1))
 
         resRow += 1
-        self.pickAndAssignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0))
+        self.pickAndAssignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0))
         self._pickAndAssignScrollArea.setWidget(self._residueFrame)
 
         # add spacer to stop columns changing width
@@ -296,14 +296,14 @@ class NmrAtomAssignerModule(CcpnModule):
                                             callback=self._nmrResidueCallBack,
                                             onceOnly=True)
         self._dropEventNotifier = GuiNotifier(self.mainWidget,
-                                             [GuiNotifier.DROPEVENT], [DropBase.PIDS],
+                                              [GuiNotifier.DROPEVENT], [DropBase.PIDS],
                                               callback=self._handleNmrResidue)
 
         # keep a list of all notifiers for easy un-registering
         self._notifiers = [
             self._nmrAtomNotifier, self._peakChangeNotifier, self._peakNotifier,
             self._nmrResidueNotifier, self._dropEventNotifier
-        ]
+            ]
 
     def _unRegisterNotifiers(self):
         """clean up the notifiers
@@ -385,7 +385,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         with undoBlock(self.application):
 
-        # self.application._startCommandBlock('application.atomSelector._nmrAtomButtonsCallback(%s)' % pressedButton)
+            # self.application._startCommandBlock('application.atomSelector._nmrAtomButtonsCallback(%s)' % pressedButton)
             try:
                 if pressedButton.isChecked():
                     self._assignSelected(atomName=pressedButton._atomName, offSet=pressedButton._offSet)
@@ -579,7 +579,6 @@ class NmrAtomAssignerModule(CcpnModule):
             self._pickAndAssignWidgetHide()
             # self.currentNmrResidueLabel.setText(MSG)
             self._nmrResidue.select(MSG)
-
 
         # # add a spacer to the radiobutton box
         # Spacer(self.pickAndAssignWidget, 3, 3,
@@ -1145,7 +1144,6 @@ class NmrAtomAssignerModule(CcpnModule):
                 peakDimNmrAtoms = list(peak.dimensionNmrAtoms)
                 for dim, dimNmrAtoms in enumerate(peakDimNmrAtoms):
                     if nmrAtom in dimNmrAtoms:
-
                         dimNmrAtoms = list(dimNmrAtoms)
                         dimNmrAtoms.remove(nmrAtom)
 
@@ -1336,7 +1334,6 @@ class NmrAtomAssignerModule(CcpnModule):
                 return [atomName for atomName in PROTEIN_ATOM_NAMES.keys()]
         else:
             return None
-
 
 
 #TODO: clean this up to a proper place
