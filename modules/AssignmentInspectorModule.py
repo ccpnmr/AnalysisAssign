@@ -205,36 +205,6 @@ class AssignmentInspectorModule(CcpnModule):
         """
         self._refreshTable()
 
-    # def _registerNotifiers(self):
-    #   # self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
-    #   # self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
-    #   # self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
-    #
-    #   self._updateNotifier = Notifier(self.current
-    #                                   , triggers=[Notifier.CURRENT]
-    #                                   , targetName='nmrResidues'
-    #                                   , callback=self._updateModuleCallback)
-    #   self._nmrAtomNotifier = Notifier(self.project
-    #                                    , triggers=[Notifier.CHANGE]
-    #                                    , targetName='NmrAtom'
-    #                                    , callback=self._refreshTable)
-    #   self._peakNotifier = Notifier(self.project
-    #                                 , triggers=[Notifier.CHANGE]
-    #                                 , targetName='Peak'
-    #                                 , callback=self._refreshTable)
-    #
-    # def _unRegisterNotifiers(self):
-    #   # self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
-    #   # self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
-    #   # self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
-    #
-    #   if self._updateNotifier:
-    #     self._updateNotifier.unRegister()
-    #   if self._nmrAtomNotifier:
-    #     self._nmrAtomNotifier.unRegister()
-    #   if self._peakNotifier:
-    #     self._peakNotifier.unRegister()
-
     def _registerNotifiers(self):
         """Set up the notifiers
         """
@@ -383,16 +353,16 @@ class AssignmentInspectorModule(CcpnModule):
 
         return
 
-        if objList:
-            residues = [cs.nmrAtom.nmrResidue for cs in objList]
-
-            if residues:
-                self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
-                self.current.nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
-
-                self.assignedPeaksTable._updateModuleCallback({'value': residues})
-
-        getLogger().debug('AssignmentInspector>>> highlight nmrAtoms', objList)
+        # if objList:
+        #     residues = [cs.nmrAtom.nmrResidue for cs in objList]
+        #
+        #     if residues:
+        #         self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
+        #         self.current.nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
+        #
+        #         self.assignedPeaksTable._updateModuleCallback({'value': residues})
+        #
+        # getLogger().debug('AssignmentInspector>>> highlight nmrAtoms', objList)
 
 
 class AssignmentInspectorTable(QuickTable):
@@ -598,20 +568,20 @@ class AssignmentInspectorTable(QuickTable):
 
     def getColumns(self):
         "get columns for initialisation of table"
-        columns = ColumnClass([('Peak', lambda pk: pk.id, '', None)
-                                  , ('Pid', lambda pk: pk.pid, 'Pid of peak', None)
-                                  , ('_object', lambda pk: pk, 'Object', None)
-                                  , ('serial', lambda pk: pk.serial, '', None)])
+        columns = ColumnClass([('Peak', lambda pk: pk.id, '', None),
+                               ('Pid', lambda pk: pk.pid, 'Pid of peak', None),
+                               ('_object', lambda pk: pk, 'Object', None),
+                               ('serial', lambda pk: pk.serial, '', None)])
         tipTexts = []
         # get the maxmimum number of dimensions from all spectra in the project
         numDim = max([sp.dimensionCount for sp in self.application.project.spectra] + [1])
 
         for i in range(numDim):
             j = i + 1
-            c = Column('Assign F%d' % j
-                       , lambda pk, dim=i: getPeakAnnotation(pk, dim)
-                       , 'NmrAtom assignments of peak in dimension %d' % j
-                       , None)
+            c = Column('Assign F%d' % j,
+                       lambda pk, dim=i: getPeakAnnotation(pk, dim),
+                       'NmrAtom assignments of peak in dimension %d' % j,
+                       None)
             columns._columns.append(c)
 
             # columns.append(c)
@@ -628,10 +598,10 @@ class AssignmentInspectorTable(QuickTable):
                 tipText = 'Peak position in dimension %d' % j
                 unit = 'ppm'
 
-            c = Column(text
-                       , lambda pk, dim=i, unit=unit: getPeakPosition(pk, dim, unit)
-                       , tipText
-                       , None)
+            c = Column(text,
+                       lambda pk, dim=i, unit=unit: getPeakPosition(pk, dim, unit),
+                       tipText,
+                       None)
             columns._columns.append(c)
 
             # columns.append(c)
