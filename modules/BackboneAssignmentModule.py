@@ -195,6 +195,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self.application._startCommandBlock(
                 'BackboneAssignmentModule.navigateToNmrResidue(project.getByPid(%r))' % nmrResidue.pid)
         try:
+
             # optionally clear the marks
             if self.nmrResidueTableSettings.autoClearMarksWidget.checkBox.isChecked():
                 self.mainWindow.clearMarks()
