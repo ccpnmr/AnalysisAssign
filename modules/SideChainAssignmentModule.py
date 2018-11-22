@@ -1,3 +1,4 @@
+from ccpn.core.lib.Notifiers import Notifier
 from ccpn.util import Common
 from ccpn.AnalysisAssign.modules.PickAndAssignModule import PickAndAssignModule
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot, makeStripPlotFromSingles
@@ -15,6 +16,8 @@ class SideChainAssignmentModule(PickAndAssignModule):
     self.project = mainWindow.application.project
     self.current = mainWindow.application.current
 
+    self._notifier = None
+
     # self.refreshButton.show()             # ejb - not working
     # self.refreshButton.setCallback(self._startAssignment)
     # self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
@@ -27,10 +30,13 @@ class SideChainAssignmentModule(PickAndAssignModule):
     in the spectrum selection widget.
     """
     if self.spectrumSelectionWidget.refreshBox.isChecked():
-      self.__adminsterNotifiers()
-    elif not self.spectrumSelectionWidget.refreshBox.isChecked():
-      self.__unRegisterNotifiers()
-
+      if self._notifier is not None: self._notifier.unRegister()
+      self._notifier = self.registerNotifier(self.project,
+                                [Notifier.RENAME, Notifier.CREATE, Notifier.CHANGE, Notifier.DELETE],
+                                targetName='NmrAtom', callback=self._updateModules,
+                                )
+    else:
+      if self._notifier is not None: self._notifier.unRegister()
 
   def _updateModules(self, nmrAtom):
     """
@@ -42,18 +48,17 @@ class SideChainAssignmentModule(PickAndAssignModule):
     else:
       self._startAssignment()
 
-
-  def __unRegisterNotifiers(self):
-    self.project.unRegisterNotifier('NmrAtom', 'rename', self._updateModules)
-    self.project.unRegisterNotifier('NmrAtom', 'create', self._updateModules)
-    self.project.unRegisterNotifier('NmrAtom', 'modify', self._updateModules)
-    self.project.unRegisterNotifier('NmrAtom', 'delete', self._updateModules)
-
-  def __adminsterNotifiers(self):
-    self.project.registerNotifier('NmrAtom', 'rename', self._updateModules)
-    self.project.registerNotifier('NmrAtom', 'create', self._updateModules)
-    self.project.registerNotifier('NmrAtom', 'modify', self._updateModules)
-    self.project.registerNotifier('NmrAtom', 'delete', self._updateModules)
+  # def __unRegisterNotifiers(self):
+  #   self.project.unRegisterNotifier('NmrAtom', 'rename', self._updateModules)
+  #   self.project.unRegisterNotifier('NmrAtom', 'create', self._updateModules)
+  #   self.project.unRegisterNotifier('NmrAtom', 'modify', self._updateModules)
+  #   self.project.unRegisterNotifier('NmrAtom', 'delete', self._updateModules)
+  #
+  # def __adminsterNotifiers(self):
+  #   self.project.registerNotifier('NmrAtom', 'rename', self._updateModules)
+  #   self.project.registerNotifier('NmrAtom', 'create', self._updateModules)
+  #   self.project.registerNotifier('NmrAtom', 'modify', self._updateModules)
+  #   self.project.registerNotifier('NmrAtom', 'delete', self._updateModules)
 
   def _closeModule(self):
     # Fixme 'SideChainAssignmentModule' object has no attribute 'spectrumSelectionWidget'
