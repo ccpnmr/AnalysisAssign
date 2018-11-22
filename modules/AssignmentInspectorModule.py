@@ -162,7 +162,7 @@ class AssignmentInspectorModule(CcpnModule):
                                                            hiddenColumns=['Pid'])
         self.chemicalShiftTable = ChemicalShiftTable(parent=self._chemicalShiftFrame,
                                                      mainWindow=self.mainWindow,
-                                                     moduleParent=self,
+                                                     moduleParent=self.assignedPeaksTable,  # just to give a unique id
                                                      setLayout=True,
                                                      actionCallback=self._actionCallback,
                                                      selectionCallback=self._selectionCallback,
