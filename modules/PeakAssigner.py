@@ -452,6 +452,9 @@ class PeakAssigner(CcpnModule):
         CCPN-INTERNAL: used to close the module
         """
         self._unRegisterNotifiers()
+        for axisTable in self.axisTables:
+            axisTable._close()
+        self.axisTables = None
         super()._closeModule()
 
     def close(self):
@@ -557,7 +560,7 @@ class AxisAssignmentObject(Frame):
                                          tableSelection=None,
                                          pullDownWidget=None,
                                          callBackClass=NmrAtom,
-                                         moduleParent=self)
+                                         moduleParent=self.tables)      # just to give a unique id
 
         # add a spacer to pad out the middle
         Spacer(self, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding,
@@ -660,7 +663,9 @@ class AxisAssignmentObject(Frame):
         self._setDefaultPulldowns()
 
     def _close(self):
-        pass
+        self.tables[0]._close()
+        self.tables[1]._close()
+        self.tables = None
 
     def _assignDeassignNmrAtom(self, tableNum: int, data):
         """
