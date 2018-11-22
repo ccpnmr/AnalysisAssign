@@ -205,49 +205,11 @@ class AssignmentInspectorModule(CcpnModule):
         """
         self._refreshTable()
 
-    # def _registerNotifiers(self):
-    #   # self.application.current.registerNotify(self._updateModuleCallback, 'nmrResidues')
-    #   # self.project.registerNotifier('NmrAtom', 'change', self._refreshTable)   # just refresh the table
-    #   # self.project.registerNotifier('Peak', 'change', self._refreshTable, onceOnly=True)
-    #
-    #   self._updateNotifier = Notifier(self.current
-    #                                   , triggers=[Notifier.CURRENT]
-    #                                   , targetName='nmrResidues'
-    #                                   , callback=self._updateModuleCallback)
-    #   self._nmrAtomNotifier = Notifier(self.project
-    #                                    , triggers=[Notifier.CHANGE]
-    #                                    , targetName='NmrAtom'
-    #                                    , callback=self._refreshTable)
-    #   self._peakNotifier = Notifier(self.project
-    #                                 , triggers=[Notifier.CHANGE]
-    #                                 , targetName='Peak'
-    #                                 , callback=self._refreshTable)
-    #
-    # def _unRegisterNotifiers(self):
-    #   # self.application.current.unRegisterNotify(self._updateModuleCallback, 'nmrResidues')
-    #   # self.project.unregisterNotifier('NmrAtom', 'change', self.assignedPeaksTable.update)   # just refresh the table
-    #   # self.project.unRegisterNotifier('Peak', 'change', self.assignedPeaksTable.update)
-    #
-    #   if self._updateNotifier:
-    #     self._updateNotifier.unRegister()
-    #   if self._nmrAtomNotifier:
-    #     self._nmrAtomNotifier.unRegister()
-    #   if self._peakNotifier:
-    #     self._peakNotifier.unRegister()
-
     def _registerNotifiers(self):
         """Set up the notifiers
         """
-        self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current,
-                                                                 [Notifier.CURRENT],
-                                                                 targetName=NmrResidue._pluralLinkName,
-                                                                 callback=self._highlightNmrResidues)
-
-    def _unRegisterNotifiers(self):
-        """Clean up the notifiers
-        """
-        if self._selectOnTableCurrentNmrResiduesNotifier is not None:
-            self._selectOnTableCurrentNmrResiduesNotifier.unRegister()
+        self.registerNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
+                              callback=self._highlightNmrResidues, debug=False)
 
     def _closeModule(self):
         """
@@ -257,8 +219,7 @@ class AssignmentInspectorModule(CcpnModule):
             self._selectCurrentNmrAtomsNotifier.unRegister()
         self.assignedPeaksTable._close()
         self.chemicalShiftTable._close()
-        self._unRegisterNotifiers()
-        super(AssignmentInspectorModule, self)._closeModule()
+        super()._closeModule()
 
     def close(self):
         """
