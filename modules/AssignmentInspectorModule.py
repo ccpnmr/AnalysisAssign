@@ -228,7 +228,7 @@ class AssignmentInspectorModule(CcpnModule):
         self.assignedPeaksTable._close()
         self.chemicalShiftTable._close()
         self._unRegisterNotifiers()
-        super(AssignmentInspectorModule, self)._closeModule()
+        super()._closeModule()
 
     def close(self):
         """
@@ -392,7 +392,7 @@ class AssignmentInspectorTable(QuickTable):
             self.project = None
             self.current = None
 
-        self.moduleParent = moduleParent
+        # self.moduleParent = moduleParent
 
         self.sampledDims = {}  #GWV: not sure what this is supposed to do
         self.ids = []  # list of currently displayed NmrAtom ids + <all>
@@ -432,7 +432,7 @@ class AssignmentInspectorTable(QuickTable):
         #                                       grid=(1, 0), gridSpan=(1, 5), **policies
         #                                       )
 
-        QuickTable.__init__(self, parent=parent,
+        super().__init__(parent=parent,
                             mainWindow=self.mainWindow,
                             dataFrameObject=None,
                             setLayout=True,
@@ -442,6 +442,7 @@ class AssignmentInspectorTable(QuickTable):
                             grid=(3, 0), gridSpan=(1, 6),
                             enableDelete=False, enableSearch=False
                             )
+        self.moduleParent = moduleParent
 
         # self._assignmentFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         #self.attachedNmrAtomsList.setFixedHeight(200)
@@ -466,7 +467,7 @@ class AssignmentInspectorTable(QuickTable):
                                pullDownWidget=None,  #self.ncWidget
                                callBackClass=NmrResidue,
                                selectCurrentCallBack=None,
-                               moduleParent=self.moduleParent)  #self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
+                               moduleParent=moduleParent)  #self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
 
     def _updateModuleCallback(self, data: dict):
         """

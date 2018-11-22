@@ -777,7 +777,7 @@ class SequenceGraphModule(CcpnModule):
         """
         self._unRegisterNotifiers()
         self.thisSequenceModule.close()
-        super(SequenceGraphModule, self)._closeModule()
+        super()._closeModule()
 
     def close(self):
         """

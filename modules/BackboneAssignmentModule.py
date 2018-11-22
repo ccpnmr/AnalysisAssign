@@ -667,7 +667,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         for notifier in self._stripNotifiers:
             notifier.unRegister()
         self._stripNotifiers = []
-        super(BackboneAssignmentModule, self)._closeModule()
+        super()._closeModule()
 
 
 def nmrAtomsFromResidue(nmrResidue):
