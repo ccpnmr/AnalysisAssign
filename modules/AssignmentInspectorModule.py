@@ -208,16 +208,8 @@ class AssignmentInspectorModule(CcpnModule):
     def _registerNotifiers(self):
         """Set up the notifiers
         """
-        self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current,
-                                                                 [Notifier.CURRENT],
-                                                                 targetName=NmrResidue._pluralLinkName,
-                                                                 callback=self._highlightNmrResidues)
-
-    def _unRegisterNotifiers(self):
-        """Clean up the notifiers
-        """
-        if self._selectOnTableCurrentNmrResiduesNotifier is not None:
-            self._selectOnTableCurrentNmrResiduesNotifier.unRegister()
+        self.registerNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
+                              callback=self._highlightNmrResidues, debug=False)
 
     def _closeModule(self):
         """
@@ -227,8 +219,7 @@ class AssignmentInspectorModule(CcpnModule):
             self._selectCurrentNmrAtomsNotifier.unRegister()
         self.assignedPeaksTable._close()
         self.chemicalShiftTable._close()
-        self._unRegisterNotifiers()
-        super(AssignmentInspectorModule, self)._closeModule()
+        super()._closeModule()
 
     def close(self):
         """
