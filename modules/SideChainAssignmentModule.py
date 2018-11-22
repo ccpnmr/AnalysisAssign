@@ -58,8 +58,8 @@ class SideChainAssignmentModule(PickAndAssignModule):
   def _closeModule(self):
     # Fixme 'SideChainAssignmentModule' object has no attribute 'spectrumSelectionWidget'
     # if self.spectrumSelectionWidget.refreshBox.isChecked():
-    #   self.__unRegisterNotifiers()
-    super(SideChainAssignmentModule, self)._closeModule()
+    self.__unRegisterNotifiers()
+    super()._closeModule()
 
   def _startAssignment(self):
     self.mainWindow.clearMarks()

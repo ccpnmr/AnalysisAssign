@@ -452,7 +452,7 @@ class PeakAssigner(CcpnModule):
         CCPN-INTERNAL: used to close the module
         """
         self._unRegisterNotifiers()
-        super(PeakAssigner, self)._closeModule()
+        super()._closeModule()
 
     def close(self):
         """
@@ -497,7 +497,6 @@ class AxisAssignmentObject(Frame):
         self.current = mainWindow.application.current
         self.currentAtoms = None
 
-        # TODO:ED change divider at the top
         row = 0
         self.divider = HLine(self, grid=(row, 0), gridSpan=(1, 3), colour=getColours()[DIVIDER], height=15)
 
@@ -546,7 +545,8 @@ class AxisAssignmentObject(Frame):
                                          updateFunc=parentModule._updateInterface,
                                          tableSelection=None,
                                          pullDownWidget=None,
-                                         callBackClass=NmrAtom)
+                                         callBackClass=NmrAtom,
+                                         moduleParent=self)
         self.tables[1].setTableNotifiers(tableClass=Peak,
                                          rowClass=NmrAtom,
                                          cellClassNames=None,
@@ -556,7 +556,8 @@ class AxisAssignmentObject(Frame):
                                          updateFunc=parentModule._updateInterface,
                                          tableSelection=None,
                                          pullDownWidget=None,
-                                         callBackClass=NmrAtom)
+                                         callBackClass=NmrAtom,
+                                         moduleParent=self)
 
         # add a spacer to pad out the middle
         Spacer(self, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding,
@@ -657,6 +658,9 @@ class AxisAssignmentObject(Frame):
         # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
 
         self._setDefaultPulldowns()
+
+    def _close(self):
+        pass
 
     def _assignDeassignNmrAtom(self, tableNum: int, data):
         """

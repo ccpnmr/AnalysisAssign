@@ -202,7 +202,7 @@ class PickAndAssignModule(NmrResidueTableModule):
         Unregister notifiers and close module.
         """
         self._unRegisterNotifiers()
-        super(PickAndAssignModule, self)._closeModule()
+        super()._closeModule()
 
     def assignSelected(self):
         "Assign current.peaks on the bases of nmrAtoms of current.nmrResidue"
