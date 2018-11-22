@@ -680,11 +680,11 @@ class AssignmentInspectorTable(QuickTable):
     #   """
     #   return self.searchWidget
 
-    def _close(self):
-        """
-        Cleanup the notifiers when the window is closed
-        """
-        self.clearTableNotifiers()
+    # def _close(self):
+    #     """
+    #     Cleanup the notifiers when the window is closed
+    #     """
+    #     self.clearTableNotifiers()
 
     def _refreshTable(self, *args):
         self.update()
