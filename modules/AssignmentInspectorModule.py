@@ -74,8 +74,6 @@ class AssignmentInspectorModule(CcpnModule):
     settingsPosition = 'left'
 
     def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
-        # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
-        # CcpnModule.__init__(self, mainWindow=mainWindow, name=name)  # ejb
         super().__init__(mainWindow=mainWindow, name=name)  # gwv
 
         # Derive application, project, and current from mainWindow
@@ -162,7 +160,7 @@ class AssignmentInspectorModule(CcpnModule):
                                                            hiddenColumns=['Pid'])
         self.chemicalShiftTable = ChemicalShiftTable(parent=self._chemicalShiftFrame,
                                                      mainWindow=self.mainWindow,
-                                                     moduleParent=self.assignedPeaksTable,  # just to give a unique id
+                                                     moduleParent=self,
                                                      setLayout=True,
                                                      actionCallback=self._actionCallback,
                                                      selectionCallback=self._selectionCallback,
@@ -208,16 +206,8 @@ class AssignmentInspectorModule(CcpnModule):
     def _registerNotifiers(self):
         """Set up the notifiers
         """
-        self._selectOnTableCurrentNmrResiduesNotifier = Notifier(self.current,
-                                                                 [Notifier.CURRENT],
-                                                                 targetName=NmrResidue._pluralLinkName,
-                                                                 callback=self._highlightNmrResidues)
-
-    def _unRegisterNotifiers(self):
-        """Clean up the notifiers
-        """
-        if self._selectOnTableCurrentNmrResiduesNotifier is not None:
-            self._selectOnTableCurrentNmrResiduesNotifier.unRegister()
+        self.setNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
+                         callback=self._highlightNmrResidues, debug=False)
 
     def _closeModule(self):
         """
@@ -227,7 +217,6 @@ class AssignmentInspectorModule(CcpnModule):
             self._selectCurrentNmrAtomsNotifier.unRegister()
         self.assignedPeaksTable._close()
         self.chemicalShiftTable._close()
-        self._unRegisterNotifiers()
         super()._closeModule()
 
     def close(self):
@@ -392,8 +381,6 @@ class AssignmentInspectorTable(QuickTable):
             self.project = None
             self.current = None
 
-        # self.moduleParent = moduleParent
-
         self.sampledDims = {}  #GWV: not sure what this is supposed to do
         self.ids = []  # list of currently displayed NmrAtom ids + <all>
 
@@ -432,7 +419,7 @@ class AssignmentInspectorTable(QuickTable):
         #                                       grid=(1, 0), gridSpan=(1, 5), **policies
         #                                       )
 
-        super().__init__(parent=parent,
+        QuickTable.__init__(self, parent=parent,
                             mainWindow=self.mainWindow,
                             dataFrameObject=None,
                             setLayout=True,
