@@ -532,11 +532,11 @@ class NmrAtomAssignerModule(CcpnModule):
             # peakCodes = ['H', 'C', 'N', 'Other']
 
             axisLabels = [', '.join(ax) for ax in axisLabels]
-            self.axisCodeOptions.setButtons(texts=axisLabels, tipTexts=axisLabels)
+            self.axisCodeOptions.setButtons(texts=axisLabels, tipTexts=axisLabels, silent=True)
 
     def _setPeakAtomCodes(self):
         atomCodes = ['H', 'C', 'N', 'Other']
-        self.axisCodeOptions.setButtons(texts=list(atomCodes), tipTexts=list(atomCodes))
+        self.axisCodeOptions.setButtons(texts=list(atomCodes), tipTexts=list(atomCodes), silent=True)
 
     def _updateWidget(self):
         "Update the widget to reflect the proper state"
