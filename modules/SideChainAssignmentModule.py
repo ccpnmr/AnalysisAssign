@@ -31,7 +31,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
     """
     if self.spectrumSelectionWidget.refreshBox.isChecked():
       if self._notifier is not None: self._notifier.unRegister()
-      self._notifier = self.registerNotifier(self.project,
+      self._notifier = self.setNotifier(self.project,
                                 [Notifier.RENAME, Notifier.CREATE, Notifier.CHANGE, Notifier.DELETE],
                                 targetName='NmrAtom', callback=self._updateModules,
                                 )

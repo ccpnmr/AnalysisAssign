@@ -74,8 +74,6 @@ class AssignmentInspectorModule(CcpnModule):
     settingsPosition = 'left'
 
     def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
-        # CcpnModule.__init__(self, parent=mainWindow.moduleArea, name=name)
-        # CcpnModule.__init__(self, mainWindow=mainWindow, name=name)  # ejb
         super().__init__(mainWindow=mainWindow, name=name)  # gwv
 
         # Derive application, project, and current from mainWindow
@@ -208,8 +206,8 @@ class AssignmentInspectorModule(CcpnModule):
     def _registerNotifiers(self):
         """Set up the notifiers
         """
-        self.registerNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
-                              callback=self._highlightNmrResidues, debug=False)
+        self.setNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
+                         callback=self._highlightNmrResidues, debug=False)
 
     def _closeModule(self):
         """
