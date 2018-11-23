@@ -5,158 +5,135 @@ from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot, makeStripPlotFromSing
 
 from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
 
+
 class SideChainAssignmentModule(PickAndAssignModule):
 
-  def __init__(self, mainWindow, name='Pick and Assign'):
+    def __init__(self, mainWindow, name='Pick and Assign'):
 
-    PickAndAssignModule.__init__(self, mainWindow=mainWindow, name=name)
+        PickAndAssignModule.__init__(self, mainWindow=mainWindow, name=name)
 
-    self.mainWindow = mainWindow
-    self.application = mainWindow.application
-    self.project = mainWindow.application.project
-    self.current = mainWindow.application.current
+        self.mainWindow = mainWindow
+        self.application = mainWindow.application
+        self.project = mainWindow.application.project
+        self.current = mainWindow.application.current
 
-    self._notifier = None
+        self._notifier = self.setNotifier(self.project,
+                                          [Notifier.RENAME, Notifier.CREATE, Notifier.CHANGE, Notifier.DELETE],
+                                          targetName='NmrAtom', callback=self._updateModules,
+                                          )
 
-    # self.refreshButton.show()             # ejb - not working
-    # self.refreshButton.setCallback(self._startAssignment)
-    # self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
-    # self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
-    # self.mode = 'pairs'
+        # self.refreshButton.show()             # ejb - not working
+        # self.refreshButton.setCallback(self._startAssignment)
+        # self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
+        # self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
+        # self.mode = 'pairs'
 
-  def _mediateRefresh(self):
-    """
-    Activate/de-activate notifiers depending on the state of the auto-refresh checkbox
-    in the spectrum selection widget.
-    """
-    if self.spectrumSelectionWidget.refreshBox.isChecked():
-      if self._notifier is not None: self._notifier.unRegister()
-      self._notifier = self.setNotifier(self.project,
-                                [Notifier.RENAME, Notifier.CREATE, Notifier.CHANGE, Notifier.DELETE],
-                                targetName='NmrAtom', callback=self._updateModules,
-                                )
-    else:
-      if self._notifier is not None: self._notifier.unRegister()
+    def _mediateRefresh(self):
+        """
+        Activate/de-activate notifiers depending on the state of the auto-refresh checkbox
+        in the spectrum selection widget.
+        """
+        checked = self.spectrumSelectionWidget.refreshBox.isChecked()
+        self._notifier.setBlanking(not checked)
 
-  def _updateModules(self, nmrAtom):
-    """
-    Convenience function called by notifiers to refresh strip plots when an NmrAtom is created, deleted,
-    modified or rename. Calls _startAssignment as to carry out changes.
-    """
-    if not nmrAtom.nmrResidue is self.current.nmrResidue:
-      return
-    else:
-      self._startAssignment()
+    def _updateModules(self, nmrAtom):
+        """
+        Convenience function called by notifiers to refresh strip plots when an NmrAtom is created, deleted,
+        modified or rename. Calls _startAssignment as to carry out changes.
+        """
+        if not nmrAtom.nmrResidue is self.current.nmrResidue:
+            return
+        else:
+            self._startAssignment()
 
-  # def __unRegisterNotifiers(self):
-  #   self.project.unRegisterNotifier('NmrAtom', 'rename', self._updateModules)
-  #   self.project.unRegisterNotifier('NmrAtom', 'create', self._updateModules)
-  #   self.project.unRegisterNotifier('NmrAtom', 'modify', self._updateModules)
-  #   self.project.unRegisterNotifier('NmrAtom', 'delete', self._updateModules)
-  #
-  # def __adminsterNotifiers(self):
-  #   self.project.registerNotifier('NmrAtom', 'rename', self._updateModules)
-  #   self.project.registerNotifier('NmrAtom', 'create', self._updateModules)
-  #   self.project.registerNotifier('NmrAtom', 'modify', self._updateModules)
-  #   self.project.registerNotifier('NmrAtom', 'delete', self._updateModules)
+    # def _closeModule(self):
+    #   super()._closeModule()
 
-  def _closeModule(self):
-    # Fixme 'SideChainAssignmentModule' object has no attribute 'spectrumSelectionWidget'
-    # if self.spectrumSelectionWidget.refreshBox.isChecked():
-    #   self.__unRegisterNotifiers()
-    super(SideChainAssignmentModule, self)._closeModule()
+    def _startAssignment(self):
+        self.mainWindow.clearMarks()
+        if self.mode == 'singles':
+            self._startAssignmentFromSingles()
+        elif self.mode == 'pairs':
+            self._startAssignmentFromPairs()
 
-  def _startAssignment(self):
-    self.mainWindow.clearMarks()
-    if self.mode == 'singles':
-      self._startAssignmentFromSingles()
-    elif self.mode == 'pairs':
-      self._startAssignmentFromPairs()
+    def _startAssignmentFromPairs(self):
+        from ccpn.core.lib.AssignmentLib import getBoundNmrAtomPairs
+        activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
 
+        for display in activeDisplays:
+            axisCodes = display.strips[0].axisCodes
+            nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[-1][0])
+            displayIsotopeCodes = [Common.name2IsotopeCode(code) for code in axisCodes]
+            pairsToRemove = []
+            for nmrAtomPair in nmrAtomPairs:
+                pairIsotopeCodes = [nap.isotopeCode for nap in nmrAtomPair]
+                nmrAtoms = set()
+                if (displayIsotopeCodes[1] in pairIsotopeCodes
+                        and displayIsotopeCodes[0] not in pairIsotopeCodes):
+                    pairsToRemove.append(nmrAtomPair)
+                    nmrAtoms.add(nmrAtomPair[0])
+                    nmrAtoms.add(nmrAtomPair[1])
+                if not all(x.isotopeCode in displayIsotopeCodes for x in nmrAtomPair):
+                    pairsToRemove.append(nmrAtomPair)
+                    nmrAtoms.add(nmrAtomPair[0])
+                    nmrAtoms.add(nmrAtomPair[1])
+                elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and not \
+                        any(displayIsotopeCodes.count(x) > 1 for x in displayIsotopeCodes):
+                    pairsToRemove.append(nmrAtomPair)
+                    nmrAtoms.add(nmrAtomPair[0])
+                    nmrAtoms.add(nmrAtomPair[1])
+                if len(displayIsotopeCodes) > 2:
+                    if nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and displayIsotopeCodes[0] != \
+                            displayIsotopeCodes[2]:
+                        if displayIsotopeCodes.count(nmrAtomPair[0].isotopeCode) != 2:
+                            nmrAtoms.add(nmrAtomPair[0])
+                            nmrAtoms.add(nmrAtomPair[1])
+                            pairsToRemove.append(nmrAtomPair)
+            for pair in pairsToRemove:
+                if pair in nmrAtomPairs:
+                    nmrAtomPairs.remove(pair)
+            if len(nmrAtomPairs) > 1:
+                sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
 
-  def _startAssignmentFromPairs(self):
-    from ccpn.core.lib.AssignmentLib import getBoundNmrAtomPairs
-    activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
+            else:
+                sortedNmrAtomPairs = nmrAtomPairs
 
-    for display in activeDisplays:
-      axisCodes = display.strips[0].axisCodes
-      nmrAtomPairs = getBoundNmrAtomPairs(self.current.nmrResidue.nmrAtoms, axisCodes[-1][0])
-      displayIsotopeCodes = [Common.name2IsotopeCode(code) for code in axisCodes]
-      pairsToRemove = []
-      for nmrAtomPair in nmrAtomPairs:
-        pairIsotopeCodes = [nap.isotopeCode for nap in nmrAtomPair]
-        nmrAtoms = set()
-        if (displayIsotopeCodes[1] in pairIsotopeCodes
-            and displayIsotopeCodes[0] not in pairIsotopeCodes):
-          pairsToRemove.append(nmrAtomPair)
-          nmrAtoms.add(nmrAtomPair[0])
-          nmrAtoms.add(nmrAtomPair[1])
-        if not all(x.isotopeCode in displayIsotopeCodes for x in nmrAtomPair):
-          pairsToRemove.append(nmrAtomPair)
-          nmrAtoms.add(nmrAtomPair[0])
-          nmrAtoms.add(nmrAtomPair[1])
-        elif nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and not \
-                any(displayIsotopeCodes.count(x) > 1 for x in displayIsotopeCodes):
-          pairsToRemove.append(nmrAtomPair)
-          nmrAtoms.add(nmrAtomPair[0])
-          nmrAtoms.add(nmrAtomPair[1])
-        if len(displayIsotopeCodes) > 2:
-          if nmrAtomPair[0].isotopeCode == nmrAtomPair[1].isotopeCode and displayIsotopeCodes[0] != displayIsotopeCodes[2]:
-            if displayIsotopeCodes.count(nmrAtomPair[0].isotopeCode) != 2:
-              nmrAtoms.add(nmrAtomPair[0])
-              nmrAtoms.add(nmrAtomPair[1])
-              pairsToRemove.append(nmrAtomPair)
-      for pair in pairsToRemove:
-        if pair in nmrAtomPairs:
-          nmrAtomPairs.remove(pair)
-      if len(nmrAtomPairs) > 1:
-        sortedNmrAtomPairs = self.sortNmrAtomPairs(nmrAtomPairs)
+            if len(display.strips[0].axisCodes) > 2:
+                makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
+            nmrAtoms = [x for y in nmrAtomPairs for x in y]
+            axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
+            self.mainWindow.markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
 
-      else:
-        sortedNmrAtomPairs = nmrAtomPairs
+    def sortNmrAtomPairs(self, nmrAtomPairs):
+        """
+        Sorts pairs of NmrAtoms into 'greek' order. Used in _startAssignmentFromPairs to pass correctly
+        ordered lists to makeStripPlot so strips are in the correct order.
+        """
+        order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD1', 'CD2', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
+                 'H', 'HA', 'HB', 'HG', 'HD', 'HE', 'HZ', 'HH']
+        ordering = []
+        for p in nmrAtomPairs:
+            if p[0].name[:len(p[0].name)] in order:
+                ordering.append((order.index(p[0].name[:len(p[0].name)]), p))
 
-      if len(display.strips[0].axisCodes) > 2:
-        makeStripPlot(display, sortedNmrAtomPairs, autoWidth=False)
-      nmrAtoms = [x for y in nmrAtomPairs for x in y]
-      axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], nmrAtoms)
-      #TODO: routine moved to mainWindow
-      from ccpn.ui.gui.lib.Window import markPositions
-      markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
+        if len(nmrAtomPairs) > 1:
+            sortedNmrAtomPairs = [x[1] for x in sorted(ordering, key=lambda x: x[0])]
+        else:
+            sortedNmrAtomPairs = nmrAtomPairs
+        return sortedNmrAtomPairs
 
+    def _startAssignmentFromSingles(self):
+        activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
 
-  def sortNmrAtomPairs(self, nmrAtomPairs):
-    """
-    Sorts pairs of NmrAtoms into 'greek' order. Used in _startAssignmentFromPairs to pass correctly
-    ordered lists to makeStripPlot so strips are in the correct order.
-    """
-    order = ['C', 'CA', 'CB', 'CG', 'CG1', 'CG2', 'CD1', 'CD2', 'CE', 'CZ', 'N', 'ND', 'NE', 'NZ', 'NH',
-             'H', 'HA', 'HB', 'HG', 'HD',  'HE',  'HZ', 'HH']
-    ordering = []
-    for p in nmrAtomPairs:
-      if p[0].name[:len(p[0].name)] in order:
-          ordering.append((order.index(p[0].name[:len(p[0].name)]), p))
+        for display in activeDisplays:
+            axisCodes = display.strips[0].axisCodes
+            nmrAtoms = set()
+            displayIsotopeCodes = [Common.name2IsotopeCode(code) for code in axisCodes]
 
-    if len(nmrAtomPairs) > 1:
-      sortedNmrAtomPairs = [x[1] for x in sorted(ordering, key=lambda x: x[0])]
-    else:
-      sortedNmrAtomPairs = nmrAtomPairs
-    return sortedNmrAtomPairs
+            for nmrAtom in self.current.nmrResidue.nmrAtoms:
+                if nmrAtom.isotopeCode in displayIsotopeCodes and nmrAtom.isotopeCode == displayIsotopeCodes[2]:
+                    nmrAtoms.add(nmrAtom)
 
-  def _startAssignmentFromSingles(self):
-    activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
-
-    for display in activeDisplays:
-      axisCodes = display.strips[0].axisCodes
-      nmrAtoms = set()
-      displayIsotopeCodes = [Common.name2IsotopeCode(code) for code in axisCodes]
-
-      for nmrAtom in self.current.nmrResidue.nmrAtoms:
-        if nmrAtom.isotopeCode in displayIsotopeCodes and nmrAtom.isotopeCode == displayIsotopeCodes[2]:
-          nmrAtoms.add(nmrAtom)
-
-      makeStripPlotFromSingles(display, list(nmrAtoms))
-      axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], list(nmrAtoms))
-      #TODO: routine moved to mainWindow
-      markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
-
-
+            makeStripPlotFromSingles(display, list(nmrAtoms))
+            axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], list(nmrAtoms))
+            self.mainWindow.markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
