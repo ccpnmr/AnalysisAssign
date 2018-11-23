@@ -322,6 +322,7 @@ class PickAndAssignModule(NmrResidueTableModule):
         finally:
             self.application._endCommandBlock()
 
+
     def restrictedPickAndAssign(self, nmrResidue=None):
         """
         Functionality for beta2 to include the Assign part
@@ -347,11 +348,14 @@ class PickAndAssignModule(NmrResidueTableModule):
             if self.application.current.peaks:
                 self.assignSelected()
 
-                # notifier for other modules
-                nmrResidue._finaliseAction('change')
+                # # notifier for other modules
+                # nmrResidue._finaliseAction('change')
 
         finally:
             self.application._endCommandBlock()
+
+            # notifier for other modules
+            nmrResidue._finaliseAction('change')
 
     def goToPositionInModules(self, nmrResidue=None, row=None, col=None):
         "Go to the positions defined my NmrAtoms of nmrResidue in the active displays"
