@@ -251,7 +251,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
 
     def _mouseDoubleClickEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            self.parent().showNmrResidue(self)
+            self._parent.showNmrResidue(self)
             event.accept()
         else:
             super(GuiNmrResidue, self).mouseDoubleClickEvent(event)
