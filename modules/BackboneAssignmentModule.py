@@ -702,8 +702,8 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
     displays = [dp for dp in mainWindow.spectrumDisplays]
 
     if len(displays) == 0:
-        getLogger().warning('No Spectrum Displays')
-        showWarning('markNmrAtoms', 'No spectrum Displays')
+        getLogger().warning("No SpectrumDisplay's")
+        showWarning('markNmrAtoms', "No SpectrumDisplay's")
         return
 
     # mainWindow.clearMarks()     # clear the marks for the minute
