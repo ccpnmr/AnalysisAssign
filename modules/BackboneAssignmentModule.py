@@ -491,6 +491,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 if matchNmrResidue:
                     self.navigateToNmrResidue(matchNmrResidue)
 
+                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                GLSignals = GLNotifier(parent=self)
+                GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+
             except Exception as es:
                 getLogger().warning(str(es))
                 # raise es
@@ -523,6 +527,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition, update=False)
                 strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth, update=False)
                 strip._CcpnGLWidget._rescaleAllAxis()
+
+                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                GLSignals = GLNotifier(parent=self)
+                GLSignals.emitPaintEvent()
+
             except Exception as es:
                 getLogger().debugGL('OpenGL widget not instantiated')
 
@@ -553,13 +562,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 for strip in strips:
                     strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition, update=False)
                     strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth, update=False)
-                    # strip._CcpnGLWidget._rebuildMarks()
                     strip._CcpnGLWidget._scaleToYAxis()
 
                     from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
 
                     GLSignals = GLNotifier(parent=self)
-                    GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+                    GLSignals.emitPaintEvent()
 
             except Exception as es:
                 getLogger().debugGL('OpenGL widget not instantiated')
@@ -702,8 +710,8 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
     displays = [dp for dp in mainWindow.spectrumDisplays]
 
     if len(displays) == 0:
-        getLogger().warning("No SpectrumDisplay's")
-        showWarning('markNmrAtoms', "No SpectrumDisplay's")
+        getLogger().warning('No Spectrum Displays')
+        showWarning('markNmrAtoms', 'No spectrum Displays')
         return
 
     # mainWindow.clearMarks()     # clear the marks for the minute
@@ -711,51 +719,55 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
     for display in displays:
         strips = display.strips
 
-        for strip in strips:
+        if strips:
+            strip = strips[0]
+
+            # for strip in strips:
             # assume that this returns list of nmrAtoms in the display
 
             shiftDict = matchAxesAndNmrAtoms(strip, nmrAtoms)
             # atomPositions = shiftDict[strip.axisOrder[2]]
-            atomPositions = [[x.value for x in shiftDict[axisCode]] for axisCode in strip.axisOrder]
-            positions = []
-            for atomPos in atomPositions:
-                if atomPos:
-                    if len(atomPos) < 2:
-                        positions.append(atomPos[0])
-                    else:
-                        positions.append(max(atomPos) - min(atomPos) / 2)
-                else:
-                    positions.append('')
+            # atomPositions = [[x.value for x in shiftDict[axisCode]] for axisCode in strip.axisOrder]
+            # positions = []
+
+            # for atomPos in atomPositions:
+            #     if atomPos:
+            #         if len(atomPos) < 2:
+            #             positions.append(atomPos[0])
+            #         else:
+            #             positions.append(max(atomPos) - min(atomPos) / 2)
+            #     else:
+            #         positions.append('')
                 # navigateToPositionInStrip(strip, positions, widths=widths) # don't need to change display yet
 
-                strip.spectrumDisplay.mainWindow.markPositions(list(shiftDict.keys()),
-                                                               list(shiftDict.values()))
+            strip.spectrumDisplay.mainWindow.markPositions(list(shiftDict.keys()),
+                                                           list(shiftDict.values()))
 
 
-##=====  Just some code to 'save' =====
-#def hasNmrResidue(nmrChain, residueCode):
-  #  "Simple function to check if sequenCode is found within the nmrResidues of nmrChain"
-  #  resCodes = [res.sequenceCode for res in nmrChain.nmrResidues]
-  #   return (residueCode in resCodes)
+#=====  Just some code to 'save' =====
+# def hasNmrResidue(nmrChain, residueCode):
+#     "Simple function to check if sequenCode is found within the nmrResidues of nmrChain"
+#     resCodes = [res.sequenceCode for res in nmrChain.nmrResidues]
+#     return (residueCode in resCodes)
 #
 #
-#def endOfchain(nmrResidue):
-    # #changes to end of connected chain; not a good idea
-  #  if nmrResidue.nmrChain.isConnected:
-    #    if nmrResidue.sequenceCode.endswith('-1'):
-      #      nmrResidue = nmrResidue.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
-    #    else:
-      #      nmrResidue = nmrResidue.nmrChain.mainNmrResidues[-1]
-  #   return nmrResidue
+# def endOfchain(nmrResidue):
+#     # changes to end of connected chain; not a good idea
+#     if nmrResidue.nmrChain.isConnected:
+#         if nmrResidue.sequenceCode.endswith('-1'):
+#             nmrResidue = nmrResidue.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
+#         else:
+#             nmrResidue = nmrResidue.nmrChain.mainNmrResidues[-1]
+#     return nmrResidue
 #
 #
-#def getPids(fromObject, attributeName):
-  #  "Get a list of pids fromObject.attributeName or None on error"
-  #  if not hasattr(fromObject, attributeName): return None
-  #  return [obj.pid for obj in getattr(fromObject, attributeName)]
-
-
-##===== end code save =====
+# def getPids(fromObject, attributeName):
+#     "Get a list of pids fromObject.attributeName or None on error"
+#     if not hasattr(fromObject, attributeName): return None
+#     return [obj.pid for obj in getattr(fromObject, attributeName)]
+#
+#
+#===== end code save =====
 
 
 if __name__ == '__main__':
