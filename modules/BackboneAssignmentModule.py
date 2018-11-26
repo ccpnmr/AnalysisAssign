@@ -491,6 +491,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 if matchNmrResidue:
                     self.navigateToNmrResidue(matchNmrResidue)
 
+                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                GLSignals = GLNotifier(parent=self)
+                GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+
             except Exception as es:
                 getLogger().warning(str(es))
                 # raise es
@@ -523,6 +527,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition, update=False)
                 strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth, update=False)
                 strip._CcpnGLWidget._rescaleAllAxis()
+
+                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                GLSignals = GLNotifier(parent=self)
+                GLSignals.emitPaintEvent()
+
             except Exception as es:
                 getLogger().debugGL('OpenGL widget not instantiated')
 
@@ -553,13 +562,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 for strip in strips:
                     strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition, update=False)
                     strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth, update=False)
-                    # strip._CcpnGLWidget._rebuildMarks()
                     strip._CcpnGLWidget._scaleToYAxis()
 
                     from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
 
                     GLSignals = GLNotifier(parent=self)
-                    GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+                    GLSignals.emitPaintEvent()
 
             except Exception as es:
                 getLogger().debugGL('OpenGL widget not instantiated')
@@ -573,14 +581,13 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self.interShifts = OrderedDict()
         chemicalShiftList = self.application.project.getByPid(self.shiftListWidget.pulldownList.currentText())
 
-        if chemicalShiftList:
-            for nmrResidue in self.application.project.nmrResidues:
-                nmrAtoms = [nmrAtom for nmrAtom in nmrResidue.nmrAtoms]
-                shifts = [chemicalShiftList.getChemicalShift(atom.id) for atom in nmrAtoms]
-                if nmrResidue.sequenceCode.endswith('-1'):
-                    self.interShifts[nmrResidue] = shifts
-                else:
-                    self.intraShifts[nmrResidue] = shifts
+        for nmrResidue in self.application.project.nmrResidues:
+            nmrAtoms = [nmrAtom for nmrAtom in nmrResidue.nmrAtoms]
+            shifts = [chemicalShiftList.getChemicalShift(atom.id) for atom in nmrAtoms]
+            if nmrResidue.sequenceCode.endswith('-1'):
+                self.interShifts[nmrResidue] = shifts
+            else:
+                self.intraShifts[nmrResidue] = shifts
 
     def _createMatchStrips(self, assignMatrix: typing.Tuple[typing.Dict[NmrResidue, typing.List[ChemicalShift]], typing.List[float]]):
         """
@@ -702,8 +709,8 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
     displays = [dp for dp in mainWindow.spectrumDisplays]
 
     if len(displays) == 0:
-        getLogger().warning("No SpectrumDisplay's")
-        showWarning('markNmrAtoms', "No SpectrumDisplay's")
+        getLogger().warning('No Spectrum Displays')
+        showWarning('markNmrAtoms', 'No spectrum Displays')
         return
 
     # mainWindow.clearMarks()     # clear the marks for the minute
@@ -711,25 +718,29 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
     for display in displays:
         strips = display.strips
 
-        for strip in strips:
+        if strips:
+            strip = strips[0]
+
+            # for strip in strips:
             # assume that this returns list of nmrAtoms in the display
 
             shiftDict = matchAxesAndNmrAtoms(strip, nmrAtoms)
             # atomPositions = shiftDict[strip.axisOrder[2]]
-            atomPositions = [[x.value for x in shiftDict[axisCode]] for axisCode in strip.axisOrder]
-            positions = []
-            for atomPos in atomPositions:
-                if atomPos:
-                    if len(atomPos) < 2:
-                        positions.append(atomPos[0])
-                    else:
-                        positions.append(max(atomPos) - min(atomPos) / 2)
-                else:
-                    positions.append('')
+            # atomPositions = [[x.value for x in shiftDict[axisCode]] for axisCode in strip.axisOrder]
+            # positions = []
+
+            # for atomPos in atomPositions:
+            #     if atomPos:
+            #         if len(atomPos) < 2:
+            #             positions.append(atomPos[0])
+            #         else:
+            #             positions.append(max(atomPos) - min(atomPos) / 2)
+            #     else:
+            #         positions.append('')
                 # navigateToPositionInStrip(strip, positions, widths=widths) # don't need to change display yet
 
-                strip.spectrumDisplay.mainWindow.markPositions(list(shiftDict.keys()),
-                                                               list(shiftDict.values()))
+            strip.spectrumDisplay.mainWindow.markPositions(list(shiftDict.keys()),
+                                                           list(shiftDict.values()))
 
 
 
