@@ -383,7 +383,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         from ccpn.core.lib.ContextManagers import undoBlock
 
-        with undoBlock(self.application):
+        with undoBlock():
 
             # self.application._startCommandBlock('application.atomSelector._nmrAtomButtonsCallback(%s)' % pressedButton)
             try:
