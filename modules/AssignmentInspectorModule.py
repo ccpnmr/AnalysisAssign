@@ -207,7 +207,7 @@ class AssignmentInspectorModule(CcpnModule):
         """Set up the notifiers
         """
         self.setNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
-                         callback=self._highlightNmrResidues, debug=False)
+                         callback=self._highlightNmrResidues)
 
     def _closeModule(self):
         """
