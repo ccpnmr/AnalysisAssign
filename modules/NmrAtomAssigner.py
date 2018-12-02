@@ -115,8 +115,8 @@ class NmrAtomAssignerModule(CcpnModule):
     className = 'NmrAtomAssignerModule'
 
     includeSettingsWidget = True
-    maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-    settingsPosition = 'top'
+    maxSettingsState = 1  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+    settingsPosition = 'left'
 
     def __init__(self, mainWindow=None, name='NmrAtom Assigner', nmrAtom=None):
 
@@ -135,7 +135,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         row = 0
         self.selectionLabel = Label(self._ASwidget, 'Select NmrAtom by', grid=(row, 0))
-        self.selectionRadioButtons = RadioButtons(self._ASwidget, texts=['Atom Type', 'Axis Code'], selectedInd=0,
+        self.selectionRadioButtons = RadioButtons(self._ASwidget, texts=['Atom Type', 'Axis Code'], selectedInd=1,
                                                   callback=self._selectionCallback, grid=(row, 1))
         self.selectAtomType, self.selectAxisCode = self.selectionRadioButtons.radioButtons
 
@@ -191,7 +191,7 @@ class NmrAtomAssignerModule(CcpnModule):
         # f = Frame(self._residueFrame, grid=(resRow,0), gridSpan=(1,2))
         self._chainFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
         self._nmrChain = NmrChainPulldown(self._chainFrame, project=self.project,
-                                          labelText='Filter by NmrChain:', default=0, showSelectName=True,
+                                          labelText='Filter:', default=0, showSelectName=True,
                                           setCurrent=False,
                                           callback=self._nmrChainCallback,
                                           grid=(0, 1), hPolicy='minimal', minimumWidths=None)
