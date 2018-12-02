@@ -115,10 +115,11 @@ class NmrAtomAssignerModule(CcpnModule):
     className = 'NmrAtomAssignerModule'
 
     includeSettingsWidget = True
-    maxSettingsState = 1  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+    maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
+    defaultSettingsState = 0
     settingsPosition = 'left'
 
-    def __init__(self, mainWindow=None, name='NmrAtom Assigner', nmrAtom=None):
+    def __init__(self, mainWindow=None, name='NmrAtomAssigner', nmrAtom=None):
 
         super().__init__(mainWindow=mainWindow, name=name)
 
@@ -158,158 +159,96 @@ class NmrAtomAssignerModule(CcpnModule):
                                            callback=self._offsetPullDownCallback)
         self._sidechainModifiers = [self.offsetLabel, self.offsetSelector]
 
-        # # modifier for atomType - moved to main frame below
-        # row += 1
-        # self.atomTypeLabel = Label(self._ASwidget, 'Atom Type', grid=(row, 0))
-        # self.atomTypeOptions = RadioButtons(self._ASwidget, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
-        #                                 callback=self._toggleBox, grid=(row, 1))
-        #
-        # self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomTypeOptions.radioButtons
-        # self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
-
         # set size policies to allow the main widget to overlap the settings, cleaner display
         self._ASwidget.setMinimumSize(self._ASwidget.sizeHint())
-        self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
+        self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.settingsWidget.setContentsMargins(10, 10, 10, 10)
         self.mainWidget.setContentsMargins(10, 10, 10, 10)
 
         for w in self._sidechainModifiers:  w.hide()
 
-        # add widgets to the main widget area
-        self._pickAndAssignScrollArea = ScrollArea(self.mainWidget, setLayout=True, grid=(0, 0), gridSpan=(1, 1))
-        self._pickAndAssignScrollArea.setWidgetResizable(True)
+        # add scrollable widget to the main widget area
+        self._scrollAreaWidget = ScrollArea(self.mainWidget, setLayout=True, grid=(0, 0), gridSpan=(1, 1))
+        self._scrollAreaWidget.setWidgetResizable(True)
 
         self._residueFrame = Frame(self.mainWidget, setLayout=True, acceptDrops=True, showBorder=False)
-
         resRow = 0
-        # self._nmrResidueLabel = Label(self._residueFrame, 'Current NmrResidue:', grid=(resRow, 0),
-        #                               hPolicy='minimal')
-        # self.currentNmrResidueLabel = Label(self._residueFrame, grid=(resRow, 1),
-        #                                     hPolicy='minimal', hAlign='l')
 
-        # _nmrChain needs defining before _nmrResidue, as its filterFunction depends on the presence of the former
-        # f = Frame(self._residueFrame, grid=(resRow,0), gridSpan=(1,2))
-        self._chainFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
-        self._nmrChain = NmrChainPulldown(self._chainFrame, project=self.project,
+        _f = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
+        self._peaksLabel = Label(_f, 'Assigning Peak(s):', bold=True, grid=(0, 0), hPolicy='minimal')
+        self.currentPeaksLabel = Label(_f, grid=(0, 1), gridSpan=(1, 2), hPolicy='minimal', hAlign='l')
+        resRow += 1
+
+        _f = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
+        self._nmrChain = NmrChainPulldown(_f, project=self.project,
                                           labelText='Filter:', default=0, showSelectName=True,
                                           setCurrent=False,
                                           callback=self._nmrChainCallback,
                                           grid=(0, 1), hPolicy='minimal', minimumWidths=None)
-        self._nmrResidue = NmrResiduePulldown(self._chainFrame, project=self.project,
-                                              labelText='Current NmrResidue:', useIds=False, showSelectName=False,
+        self._nmrResidue = NmrResiduePulldown(_f, project=self.project,
+                                              labelText='NmrResidue:', useIds=False, showSelectName=False,
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
                                               grid=(0, 0), hPolicy='minimal', minimumWidths=None)
-        Spacer(self._chainFrame, 2, 2,
-               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
-               grid=(0, 2), gridSpan=(1, 1))
 
+        Spacer(_f, 2, 2, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
+               grid=(0, 2), gridSpan=(1, 1))
         resRow += 1
-        labRow = 0
+
         self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
-        self._peaksLabel = Label(self._labelFrame, 'Current Peak(s):', grid=(labRow, 0),
-                                 hPolicy='minimal')
-        self.currentPeaksLabel = Label(self._labelFrame, grid=(labRow, 1), gridSpan=(1, 2), hPolicy='minimal', hAlign='l')
+        labRow = 0
 
         # modifier for atomCode
-        labRow += 1
         self.axisCodeLabel = Label(self._labelFrame, 'Axis Codes:', grid=(labRow, 0))
         self.axisCodeOptions = RadioButtons(self._labelFrame, selectedInd=0, texts=['C'],
                                             callback=self._changeAxisCode, grid=(labRow, 1))
+        labRow += 1
 
         # modifier for atomType
-        labRow += 1
         self.atomTypeLabel = Label(self._labelFrame, 'Atom Types', grid=(labRow, 0))
         self.atomTypeOptions = RadioButtons(self._labelFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
                                             callback=self._changeAtomType, grid=(labRow, 1))
-        Spacer(self._labelFrame, 2, 2,
-               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
-               grid=(labRow, 2), gridSpan=(1, 1))
+        labRow += 1
 
+        Spacer(self._labelFrame, 2, 2, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
+               grid=(labRow, 2), gridSpan=(1, 1))
         resRow += 1
-        self.pickAndAssignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0))
-        self._pickAndAssignScrollArea.setWidget(self._residueFrame)
+
+        self._assignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0))
+        self._scrollAreaWidget.setWidget(self._residueFrame)
+        resRow += 1
 
         # add spacer to stop columns changing width
-        resRow += 1
-        Spacer(self._residueFrame, 2, 2,
-               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
+        Spacer(self._residueFrame, 2, 2, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
                grid=(resRow, 4), gridSpan=(1, 1))
+        resRow += 1
 
-        # self.hCheckBox, self.cCheckBox, self.nCheckBox, self.otherCheckBox = self.atomTypeOptions.radioButtons
-        # self.otherCheckBox.setEnabled(True)  # not implemented ? broken?
-
-        # row += 1
-        # self._pickAndAssignScrollArea = ScrollArea(self.mainWidget, setLayout=True, grid=(row, 0), gridSpan=(1, 1))
-        # self._pickAndAssignScrollArea.setWidgetResizable(True)
-
-        # resRow += 1
-        # self.pickAndAssignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow,0))
-        # self._pickAndAssignScrollArea.setWidget(self._residueFrame)
-        # self.pickAndAssignWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        # self._pickAndAssignScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        # self._pickAndAssignScrollArea.setStyleSheet("""ScrollArea { border: 0px; }""")
-
-        # # hide unnecessary widgets on initialise
-        # self._pickAndAssignWidgetHide()
-
-        self.buttonGroup = QtWidgets.QButtonGroup()  #self.pickAndAssignWidget)
+        self.buttonGroup = QtWidgets.QButtonGroup()
         self.buttonGroup.buttonClicked.connect(self._nmrAtomButtonsCallback)
         self.buttonGroup.setExclusive(False)
-
-        # # add a spacer to control size
-        # gridLine += 1
-        # Spacer(self._MWwidget, 3, 3,
-        #        QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
-        #        grid=(gridLine, 1), gridSpan=(1, 1))
-
-        # self._MWwidget.setMinimumSize(self._ASwidget.sizeHint())
-        # self._MWwidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-        # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
         self.buttons = {}
         self._registerNotifiers()
         self._updateWidget()
-        # self._predictAssignments(self.current.peaks)
 
     def _registerNotifiers(self):
         """Register notifiers for the module
         """
-        self._nmrAtomNotifier = Notifier(self.project,
-                                         [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
-                                         NmrAtom.className,
-                                         callback=self._nmrResidueCallBack,
-                                         onceOnly=True)
-        self._peakChangeNotifier = Notifier(self.project,
-                                            [Notifier.CHANGE],
-                                            Peak.className,
-                                            callback=self._nmrResidueCallBack,
-                                            onceOnly=True)
-        self._peakNotifier = Notifier(self.current,
-                                      [Notifier.CURRENT],
-                                      Peak._pluralLinkName,
-                                      callback=self._peaksCallback,
-                                      onceOnly=True)
-        self._nmrResidueNotifier = Notifier(self.current,
-                                            [Notifier.CURRENT],
-                                            NmrResidue._pluralLinkName,
-                                            callback=self._nmrResidueCallBack,
-                                            onceOnly=True)
-        self._dropEventNotifier = GuiNotifier(self.mainWidget,
-                                              [GuiNotifier.DROPEVENT], [DropBase.PIDS],
-                                              callback=self._handleNmrResidue)
-
-        # keep a list of all notifiers for easy un-registering
-        self._notifiers = [
-            self._nmrAtomNotifier, self._peakChangeNotifier, self._peakNotifier,
-            self._nmrResidueNotifier, self._dropEventNotifier
-            ]
+        # self.setNotifier(self.project, [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+        #                  NmrAtom.className, callback=self._nmrResidueCallBack, onceOnly=True)
+        # self.setNotifier(self.project, [Notifier.CHANGE],
+        #                  Peak.className, callback=self._nmrResidueCallBack, onceOnly=True)
+        self.setNotifier(self.current, [Notifier.CURRENT],
+                         Peak._pluralLinkName, callback=self._peaksCallback, onceOnly=True)
+        self.setNotifier(self.current, [Notifier.CURRENT],
+                         NmrResidue._pluralLinkName, callback=self._updateWidget, onceOnly=True)
+        self.setGuiNotifier(self.mainWidget,[GuiNotifier.DROPEVENT],
+                            [DropBase.PIDS], callback=self._handleNmrResidue)
 
     def _unRegisterNotifiers(self):
         """clean up the notifiers
         """
-        for n in self._notifiers:
-            n.unRegister()
+        # _closeModule() will do most of them
         self._nmrResidue.unRegister()
         self._nmrChain.unRegister()
 
@@ -420,21 +359,22 @@ class NmrAtomAssignerModule(CcpnModule):
         self._updateWidget()
         return
 
-    def _nmrResidueCallBack(self, nmrResidues=None):
-        "Callback if current.nmrResidue changes"
-        if nmrResidues is not None and self.current.nmrResidue:
-            self._updateWidget()
-        else:
-            self._pickAndAssignWidgetHide()
-            # self.currentNmrResidueLabel.setText(MSG)
-            self._nmrResidue.select(MSG)
+    # def _nmrResidueCallBack(self, data=None):
+    #     "Callback if current.nmrResidue changes"
+    #
+    #     if self.current.nmrResidue:
+    #         self._updateWidget()
+    #     else:
+    #         self._assignWidgetHide()
+    #         # self.currentNmrResidueLabel.setText(MSG)
+    #         # self._nmrResidue.select(MSG)
 
-    def _pickAndAssignWidgetShow(self):
-        self.pickAndAssignWidget.show()
+    def _assignWidgetShow(self):
+        self._assignWidget.show()
         self._showSelectionButtons()
 
-    def _pickAndAssignWidgetHide(self):
-        self.pickAndAssignWidget.hide()
+    def _assignWidgetHide(self):
+        self._assignWidget.hide()
         self.atomTypeLabel.hide()
         self.atomTypeOptions.hide()
         self.axisCodeLabel.hide()
@@ -447,9 +387,9 @@ class NmrAtomAssignerModule(CcpnModule):
             # self._predictAssignments(self.current.peaks)
 
     def _setPeaksLabel(self):
-
-        if self.current.peak is not None:
-            splitter = ' , '
+        " update the peaks label from current.peaks"
+        if len(self.current.peaks) > 0:
+            splitter = ', '
             pText = _truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
             self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
             self.currentPeaksLabel.setText(pText)
@@ -538,7 +478,7 @@ class NmrAtomAssignerModule(CcpnModule):
         atomCodes = ['H', 'C', 'N', 'Other']
         self.axisCodeOptions.setButtons(texts=list(atomCodes), tipTexts=list(atomCodes), silent=True)
 
-    def _updateWidget(self):
+    def _updateWidget(self, dataDict=None):  # also used as notifier callback function
         "Update the widget to reflect the proper state"
         # try:
         ii = jj = 0
@@ -546,7 +486,7 @@ class NmrAtomAssignerModule(CcpnModule):
         if self.current.nmrResidue is not None:
             # self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
             self._nmrResidue.select(self.current.nmrResidue.pid)
-            self._pickAndAssignWidgetHide()
+            self._assignWidgetHide()
 
             # dimensionalities = set([len(peak.position) for peak in self.current.peaks])
             # if len(dimensionalities) > 1:
@@ -568,32 +508,15 @@ class NmrAtomAssignerModule(CcpnModule):
             self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
 
             # add a spacer to the radiobutton box
-            Spacer(self.pickAndAssignWidget, 3, 3,
+            Spacer(self._assignWidget, 3, 3,
                    QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
                    grid=(30, 30), gridSpan=(1, 1))
 
             if self.current.peaks:
                 self._predictHighlight(self.current.peaks)
-                self._pickAndAssignWidgetShow()
+                self._assignWidgetShow()
         else:
-            self._pickAndAssignWidgetHide()
-            # self.currentNmrResidueLabel.setText(MSG)
-            self._nmrResidue.select(MSG)
-
-        # # add a spacer to the radiobutton box
-        # Spacer(self.pickAndAssignWidget, 3, 3,
-        #        QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
-        #        grid=(30, 30), gridSpan=(1, 1))
-
-        # except:
-        #     return
-        #
-        # finally:
-
-        # self.pickAndAssignWidget.setMinimumSize(self.pickAndAssignWidget.minimumSizeHint())
-
-        # self.pickAndAssignWidget.setMinimumSize(
-        #     QtCore.QSize(ii * (BUTTON_MINX+1), jj * (BUTTON_MINY+1)))
+            self._assignWidgetHide()
 
     def _removeOffsetFromButtonText(self, text: str):
         p = text.split(' ')
@@ -677,22 +600,22 @@ class NmrAtomAssignerModule(CcpnModule):
         # not sure if there was anything else leading to this cludge (and one below) though
         # cludge: don't know why I have to do this for the button to appear:
         ###_Label = Label(self, text='')
-        ###self.pickAndAssignWidget.layout().addWidget(_Label, 0, 0)
+        ###self._assignWidget.layout().addWidget(_Label, 0, 0)
         self.buttons = {}
         atoms = ATOM_TYPES
         for b in self.buttonGroup.buttons():
             self.buttonGroup.removeButton(b)
 
-        # rowCount = self.pickAndAssignWidget.layout().rowCount()
-        # colCount = self.pickAndAssignWidget.layout().columnCount()
+        # rowCount = self._assignWidget.layout().rowCount()
+        # colCount = self._assignWidget.layout().columnCount()
         #
         # for r in range(1, rowCount):
         #   for m in range(colCount):
-        #     item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        #     item = self._assignWidget.layout().itemAtPosition(r, m)
         #     if item:
         #       if item.widget():
         #         item.widget().hide()
-        #     self.pickAndAssignWidget.layout().removeItem(item)
+        #     self._assignWidget.layout().removeItem(item)
 
         if self.current.nmrResidue:
             rows = 0
@@ -734,7 +657,7 @@ class NmrAtomAssignerModule(CcpnModule):
                 innerCols = 0
                 for jj, offset in enumerate(['-1', '0', '+1']):
                     btext = self.atomLabel(atom, offset)
-                    button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(rows, jj),
+                    button = RadioButton(self._assignWidget, text=btext, grid=(rows, jj),
                                          callback=None)  #partial(self.assignSelected, offset, atom))
                     button.setMinimumSize(BUTTON_MINX, BUTTON_MINY)
                     self.buttonGroup.addButton(button)
@@ -757,8 +680,8 @@ class NmrAtomAssignerModule(CcpnModule):
 
         # see comment about cludge above
         # cludge: don't know why I have to do this for the button to appear: TODO: fix this
-        ###_label= Label(self.pickAndAssignWidget, '',  hAlign='l')
-        ###self.pickAndAssignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
+        ###_label= Label(self._assignWidget, '',  hAlign='l')
+        ###self._assignWidget.layout().addWidget(_label, 0, 0, QtCore.Qt.AlignRight)
 
         ii, jj = self._updateChainLayout()
         # self._predictAssignments(self.current.peaks)
@@ -906,16 +829,16 @@ class NmrAtomAssignerModule(CcpnModule):
         #          and not atom.startswith('H') \
         #          and not atom.startswith('N')]
 
-        # rowCount = self.pickAndAssignWidget.layout().rowCount()
-        # colCount = self.pickAndAssignWidget.layout().columnCount()
+        # rowCount = self._assignWidget.layout().rowCount()
+        # colCount = self._assignWidget.layout().columnCount()
         #
         # for r in range(1, rowCount):
         #     for m in range(colCount):
-        #         item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        #         item = self._assignWidget.layout().itemAtPosition(r, m)
         #         if item:
         #             if item.widget():
         #                 item.widget().hide()
-        #         self.pickAndAssignWidget.layout().removeItem(item)
+        #         self._assignWidget.layout().removeItem(item)
 
         rows = 0
         cols = 0
@@ -930,7 +853,7 @@ class NmrAtomAssignerModule(CcpnModule):
                         self.buttons[atom] = []
                         offset = self.offsetSelector.currentText()
                         btext = self.atomLabel(atom, offset)
-                        button = RadioButton(self.pickAndAssignWidget, text=btext, grid=(rows, jj), hAlign='t', )
+                        button = RadioButton(self._assignWidget, text=btext, grid=(rows, jj), hAlign='t', )
                         # callback=partial(self.assignSelected, offset, atom))
                         button._atomName = atom
                         button._offSet = offset
@@ -955,9 +878,9 @@ class NmrAtomAssignerModule(CcpnModule):
                 for ii, atomList in enumerate(atomButtonList2):
                     for jj, atom in enumerate(atomList):
                         self.buttons[atom] = []
-                        button = RadioButton(self.pickAndAssignWidget, text=atom, grid=(rows, jj), hAlign='t', )
+                        button = RadioButton(self._assignWidget, text=atom, grid=(rows, jj), hAlign='t', )
                         # callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
-                        # button = Button(self.pickAndAssignWidget, text=atom, grid=(ii, jj), hAlign='t',
+                        # button = Button(self._assignWidget, text=atom, grid=(ii, jj), hAlign='t',
                         #         callback=partial(self.assignSelected, self.offsetSelector.currentText(), atom))
                         button._atomName = atom
                         button._offSet = None
@@ -982,23 +905,23 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _cleanupPickAndAssignWidget(self):
 
-        layout = self.pickAndAssignWidget.layout()
+        layout = self._assignWidget.layout()
 
         for i in reversed(range(layout.count())):
             widget = layout.takeAt(i).widget()
             if widget is not None:
                 widget.setParent(None)
 
-        # rowCount = self.pickAndAssignWidget.layout().rowCount()
-        # colCount = self.pickAndAssignWidget.layout().columnCount()
+        # rowCount = self._assignWidget.layout().rowCount()
+        # colCount = self._assignWidget.layout().columnCount()
         #
         # for r in range(1, rowCount):
         #     for m in range(colCount):
-        #         item = self.pickAndAssignWidget.layout().itemAtPosition(r, m)
+        #         item = self._assignWidget.layout().itemAtPosition(r, m)
         #         if item:
         #             if item.widget():
         #                 item.widget().hide()
-        #         self.pickAndAssignWidget.layout().removeItem(item)
+        #         self._assignWidget.layout().removeItem(item)
 
         # for r in range(layout.rowCount() - 1, -1, -1):
         #     for c in range(layout.columnCount() - 1, -1, -1):
@@ -1164,7 +1087,7 @@ class NmrAtomAssignerModule(CcpnModule):
         """
         Returns all buttons in Atom Selector to original colours and style.
         """
-        self.pickAndAssignWidget.setStyleSheet(DEFAULT_BUTTON)
+        self._assignWidget.setStyleSheet(DEFAULT_BUTTON)
 
     def _peaksCallback(self, data):
         "Callback for the peaks notifier"
@@ -1177,22 +1100,22 @@ class NmrAtomAssignerModule(CcpnModule):
     #     Predicts atom type for selected peaks and highlights the relevant buttons with confidence of
     #     that assignment prediction, green is very confident, orange is less confident.
     #     """
-    #     self._pickAndAssignWidgetHide()
+    #     self._assignWidgetHide()
     #
     #     if self.current.nmrResidue and self.current.peaks:
     #         self._predictHighlight(peaks)
     #
-    #     self._pickAndAssignWidgetShow()
+    #     self._assignWidgetShow()
 
     def _predictHighlight(self, peaks: typing.List[Peak]):
 
         self._returnButtonsToNormal()
         # if self.current.nmrResidue is None or len(peaks) == 0:
-        #     self._pickAndAssignWidgetHide()
+        #     self._assignWidgetHide()
         #     return
         #
         # # make sure that the widget is visible
-        # self._pickAndAssignWidgetShow()
+        # self._assignWidgetShow()
 
         # make sure that you have buttons!
         if len(self.buttonGroup.buttons()) == 0:
