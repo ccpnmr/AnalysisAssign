@@ -31,6 +31,7 @@ import typing
 import numpy as np
 from PyQt5 import QtGui, QtWidgets, QtCore
 from collections import OrderedDict
+from ccpn.core.lib.Pid import Pid
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.Peak import Peak
@@ -573,48 +574,46 @@ class SequenceGraphModule(CcpnModule):
     def _registerNotifiers(self):
         self.current.registerNotify(self._updateModule, 'nmrChains')
 
-        # use the new notifier class
-        self._nmrResidueNotifier = Notifier(self.project,
+        self._nmrResidueNotifier = self.setNotifier(self.project,
                                             [Notifier.RENAME, Notifier.CHANGE],
                                             NmrResidue.__name__,
                                             self._resetNmrResiduePidForAssigner,
                                             onceOnly=True)
 
-        # self._peakNotifier = None
-        self._peakNotifier = Notifier(self.project,
+        self._peakNotifier = self.setNotifier(self.project,
                                       [Notifier.CHANGE],
                                       Peak.__name__,
                                       self._updateShownAssignments,
                                       onceOnly=True)
 
-        # self._peakNotifier = Notifier(self.project,
+        # self._peakNotifier = self.setNotifier(self.project,
         #                               [Notifier.CHANGE, Notifier.DELETE],
         #                               Peak.__name__,
         #                               self._updatePeaks,
         #                               onceOnly=True)
 
-        self._spectrumNotifier = Notifier(self.project,
+        self._spectrumNotifier = self.setNotifier(self.project,
                                           [Notifier.CHANGE],
                                           Spectrum.__name__,
                                           self._updateShownAssignments)
 
         # notifier for changing the selected chain - draw new display
-        self._nmrChainNotifier = Notifier(self.project,
+        self._nmrChainNotifier = self.setNotifier(self.project,
                                           [Notifier.CHANGE, Notifier.DELETE],
                                           NmrChain.__name__,
                                           self._updateShownAssignments,
                                           onceOnly=True)
 
-    def _unRegisterNotifiers(self):
-        # use the new notifier class
-        if self._nmrResidueNotifier:
-            self._nmrResidueNotifier.unRegister()
-        if self._peakNotifier:
-            self._peakNotifier.unRegister()
-        if self._spectrumNotifier:
-            self._spectrumNotifier.unRegister()
-        if self._nmrChainNotifier:
-            self._nmrChainNotifier.unRegister()
+    # def _unRegisterNotifiers(self):
+    #     # use the new notifier class
+    #     if self._nmrResidueNotifier:
+    #         self._nmrResidueNotifier.unRegister()
+    #     if self._peakNotifier:
+    #         self._peakNotifier.unRegister()
+    #     if self._spectrumNotifier:
+    #         self._spectrumNotifier.unRegister()
+    #     if self._nmrChainNotifier:
+    #         self._nmrChainNotifier.unRegister()
 
     def _repopulateModule(self):
         """
@@ -711,6 +710,11 @@ class SequenceGraphModule(CcpnModule):
     def setNmrChainDisplay(self, nmrChainOrPid):
 
         if isinstance(nmrChainOrPid, str):
+            if not Pid.isValid(nmrChainOrPid):
+                self.scene.clear()
+                self.scene.setSceneRect(self.scene.itemsBoundingRect())
+                return
+
             nmrChain = self.project.getByPid(nmrChainOrPid)
         else:
             nmrChain = nmrChainOrPid
@@ -775,7 +779,7 @@ class SequenceGraphModule(CcpnModule):
         """
         CCPN-INTERNAL: used to close the module
         """
-        self._unRegisterNotifiers()
+        # self._unRegisterNotifiers()
         self.thisSequenceModule.close()
         super()._closeModule()
 
