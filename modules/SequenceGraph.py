@@ -62,7 +62,7 @@ from ccpn.ui.gui.widgets.Splitter import Splitter
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
-
+from ccpn.core.lib.ContextManagers import logCommandBlock
 
 logger = getLogger()
 ALL = '<all>'
@@ -725,48 +725,47 @@ class SequenceGraphModule(CcpnModule):
             self.scene.setSceneRect(self.scene.itemsBoundingRect())
             return
 
-        self.application._startCommandBlock('application.sequenceGraph.setNmrChainDisplay({!r})'.format(nmrChain.pid))
+        with logCommandBlock(get='self') as log:
+            log('setNmrChainDisplay', nmrChainOrPid=repr(nmrChain.pid))
 
-        self.clearAllItems()
+            self.clearAllItems()
 
-        ###nmrChain = self.project.getByPid(nmrChainPid)
-        ###if self.modePulldown.currentText() == 'fragment':
-        if True:
+            ###nmrChain = self.project.getByPid(nmrChainPid)
+            ###if self.modePulldown.currentText() == 'fragment':
+            if True:
 
-            connectingLinesNeeded = set()
-            if self.nmrResiduesCheckBox.isChecked():
-                for nmrResidue in nmrChain.nmrResidues:
-                    if nmrResidue is nmrResidue.mainNmrResidue:
+                connectingLinesNeeded = set()
+                if self.nmrResiduesCheckBox.isChecked():
+                    for nmrResidue in nmrChain.nmrResidues:
+                        if nmrResidue is nmrResidue.mainNmrResidue:
+                            self.addResidue(nmrResidue, '+1')
+                            if nmrResidue.nextNmrResidue:
+                                connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
+                else:
+                    nmrResidue = self.current.nmrResidue
+                    if nmrResidue in nmrChain.nmrResidues:
+                        while nmrResidue.previousNmrResidue:  # go to start of connected stretch
+                            nmrResidue = nmrResidue.previousNmrResidue
+                    elif nmrChain.isConnected or nmrChain.chain:  # either NC:# or NC:A type nmrChains but not NC:@
+                        nmrResidue = nmrChain.mainNmrResidues[0]
+
+                    while nmrResidue:  # add all of connected stretch
                         self.addResidue(nmrResidue, '+1')
-                        if nmrResidue.nextNmrResidue:
-                            connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
-            else:
-                nmrResidue = self.current.nmrResidue
-                if nmrResidue in nmrChain.nmrResidues:
-                    while nmrResidue.previousNmrResidue:  # go to start of connected stretch
-                        nmrResidue = nmrResidue.previousNmrResidue
-                elif nmrChain.isConnected or nmrChain.chain:  # either NC:# or NC:A type nmrChains but not NC:@
-                    nmrResidue = nmrChain.mainNmrResidues[0]
+                        nmrResidue = nmrResidue.nextNmrResidue
 
-                while nmrResidue:  # add all of connected stretch
-                    self.addResidue(nmrResidue, '+1')
-                    nmrResidue = nmrResidue.nextNmrResidue
+                if len(self.predictedStretch) > 2:
+                    # TODO:ED causes a crash from here GuiNmrResidue has been deleted
+                    self.predictSequencePosition(self.predictedStretch)
 
-            if len(self.predictedStretch) > 2:
-                # TODO:ED causes a crash from here GuiNmrResidue has been deleted
-                self.predictSequencePosition(self.predictedStretch)
+            ###elif self.modePulldown.currentText() == 'Assigned - backbone':
+            ###  self._showBackboneAssignments(nmrChain)
 
-        ###elif self.modePulldown.currentText() == 'Assigned - backbone':
-        ###  self._showBackboneAssignments(nmrChain)
+            for ii, res in enumerate(self.guiResiduesShown[:-1]):
+                if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
+                    self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
 
-        for ii, res in enumerate(self.guiResiduesShown[:-1]):
-            if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
-                self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
-
-        if self.assignmentsCheckBox.isChecked():
-            self._getAssignmentsFromSpectra()
-
-        self.application._endCommandBlock()  # should match the start block
+            if self.assignmentsCheckBox.isChecked():
+                self._getAssignmentsFromSpectra()
 
         self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
         self.nmrChain = nmrChain
@@ -894,52 +893,46 @@ class SequenceGraphModule(CcpnModule):
         """Deassign the peak by removing the assigned nmrAtoms from the list
         """
         if selectedPeak:
+            with logCommandBlock(get='self') as log:
+                log('deassignPeak', selectedPeak=repr(selectedPeak.pid), selectedNmrAtom=repr(selectedNmrAtom.pid))
 
-            self.project._startCommandEchoBlock('application.peakAssigner.deassignPeak')
-            try:
+                try:
+                    newList = []
+                    for atomList in selectedPeak.assignedNmrAtoms:
+                        atoms = [atom for atom in list(atomList) if atom != selectedNmrAtom]
+                        newList.append(tuple(atoms))
 
-                newList = []
-                for atomList in selectedPeak.assignedNmrAtoms:
-                    atoms = [atom for atom in list(atomList) if atom != selectedNmrAtom]
-                    newList.append(tuple(atoms))
+                    selectedPeak.assignedNmrAtoms = tuple(newList)
 
-                selectedPeak.assignedNmrAtoms = tuple(newList)
-
-            except Exception as es:
-                showWarning(str(self.windowTitle()), str(es))
-
-            finally:
-                self.project._endCommandEchoBlock()
+                except Exception as es:
+                    showWarning(str(self.windowTitle()), str(es))
 
     def deassignNmrAtom(self, selectedNmrAtom=None):
         """Remove the selected peaks from the assignedPeaks list
         """
         if selectedNmrAtom:
+            with logCommandBlock(get='self') as log:
+                log('deassignPeak', selectedNmrAtom=repr(selectedNmrAtom.pid))
 
-            self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom')
-            try:
+                try:
+                    atoms = list(selectedNmrAtom.assignedPeaks)
+                    # selectedPeak.assignedNmrAtoms = ()
 
-                atoms = list(selectedNmrAtom.assignedPeaks)
-                # selectedPeak.assignedNmrAtoms = ()
+                    # for peak in selectedNmrAtom.assignedPeaks:
+                    #
+                    #   allAtoms = list(peak.dimensionNmrAtoms)
+                    #   for dim in range(len(peak.dimensionNmrAtoms)):
+                    #     dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+                    #     if selectedNmrAtom in dimNmrAtoms:
+                    #       dimNmrAtoms.remove(selectedNmrAtom)
+                    #
+                    #       # allAtoms = list(peak.dimensionNmrAtoms)
+                    #       allAtoms[dim] = dimNmrAtoms
+                    #
+                    #   peak.dimensionNmrAtoms = allAtoms
 
-                # for peak in selectedNmrAtom.assignedPeaks:
-                #
-                #   allAtoms = list(peak.dimensionNmrAtoms)
-                #   for dim in range(len(peak.dimensionNmrAtoms)):
-                #     dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
-                #     if selectedNmrAtom in dimNmrAtoms:
-                #       dimNmrAtoms.remove(selectedNmrAtom)
-                #
-                #       # allAtoms = list(peak.dimensionNmrAtoms)
-                #       allAtoms[dim] = dimNmrAtoms
-                #
-                #   peak.dimensionNmrAtoms = allAtoms
-
-            except Exception as es:
-                showWarning(str(self.windowTitle()), str(es))
-
-            finally:
-                self.project._endCommandEchoBlock()
+                except Exception as es:
+                    showWarning(str(self.windowTitle()), str(es))
 
     def clearAllItems(self):
         """
@@ -1577,9 +1570,9 @@ class SequenceGraphModule(CcpnModule):
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
 
-        self.application._startCommandBlock('%s.navigateToNmrResidue(project.getByPid(%r))' %
-                                            (self.className, nmrResidue.pid))
-        try:
+        with logCommandBlock(get='self') as log:
+            log('navigateToNmrResidue', selectedNmrResidue=repr(nmrResidue.pid))
+
             # optionally clear the marks
             if self.autoClearMarksWidget.checkBox.isChecked():
                 self.mainWindow.clearMarks()
@@ -1597,8 +1590,6 @@ class SequenceGraphModule(CcpnModule):
                                                                          self.sequentialStripsWidget.checkBox.isChecked(),
                                                   markPositions=self.markPositionsWidget.checkBox.isChecked()
                                                   )
-        finally:
-            self.application._endCommandBlock()
 
     def _raiseContextMenu(self, object, event: QtGui.QMouseEvent):
         """
