@@ -60,7 +60,7 @@ from ccpnmodel.ccpncore.lib.Constants import defaultNmrChainCode
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 from ccpn.ui.gui.widgets.Widget import Widget
-
+from ccpn.core.lib.ContextManagers import undoBlockManager
 
 logger = getLogger()
 
@@ -423,24 +423,21 @@ class PeakAssigner(CcpnModule):
         nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
                                              ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
 
-        self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
-        try:
+        with undoBlockManager():
+            try:
+                for peak in self.current.peaks:
+                    if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+                        # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
 
-            for peak in self.current.peaks:
-                if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-                    # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+                        newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
+                        axisCode = peak.peakList.spectrum.axisCodes[dim]
+                        peak.assignDimension(axisCode, newAssignments)
+                # self.listWidgets[dim].addItem(nmrAtom.pid)
+                # self._updateTables()
+                self._updateNewTable()
 
-                    newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
-                    axisCode = peak.peakList.spectrum.axisCodes[dim]
-                    peak.assignDimension(axisCode, newAssignments)
-            # self.listWidgets[dim].addItem(nmrAtom.pid)
-            # self._updateTables()
-            self._updateNewTable()
-
-        except Exception as es:
-            showWarning(str(self.windowTitle()), str(es))
-        finally:
-            self.project._endCommandEchoBlock()
+            except Exception as es:
+                showWarning(str(self.windowTitle()), str(es))
 
     def _updatePulldownLists(self, dim: int, row: int = None, col: int = None, obj: object = None):
         objectTable = self.objectTables[dim]
@@ -750,30 +747,28 @@ class AxisAssignmentObject(Frame):
         nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
                                              ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
 
-        self.project._startCommandEchoBlock('application.peakAssigner.newNmrAtom')
-        try:
+        with undoBlockManager():
+            try:
 
-            for peak in self.current.peaks:
-                if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-                    # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+                for peak in self.current.peaks:
+                    if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+                        # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
 
-                    newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
-                    axisCode = peak.peakList.spectrum.axisCodes[dim]
-                    peak.assignDimension(axisCode, newAssignments)
-            self._parent._updateInterface()
+                        newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
+                        axisCode = peak.peakList.spectrum.axisCodes[dim]
+                        peak.assignDimension(axisCode, newAssignments)
+                self._parent._updateInterface()
 
-            # highlight on the table and populate the pulldowns
-            self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-            self.tables[1].clearSelection()
-            self._updateAssignmentWidget(0, nmrAtom)
-            self.buttonList.setButtonEnabled('Delete', True)
-            self.buttonList.setButtonEnabled('Deassign', True)
-            self.buttonList.setButtonEnabled('Assign', False)
+                # highlight on the table and populate the pulldowns
+                self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+                self.tables[1].clearSelection()
+                self._updateAssignmentWidget(0, nmrAtom)
+                self.buttonList.setButtonEnabled('Delete', True)
+                self.buttonList.setButtonEnabled('Deassign', True)
+                self.buttonList.setButtonEnabled('Assign', False)
 
-        except Exception as es:
-            showWarning(str(self.windowTitle()), str(es))
-        finally:
-            self.project._endCommandEchoBlock()
+            except Exception as es:
+                showWarning(str(self.windowTitle()), str(es))
 
     def _assignNmrAtom(self, dim: int, action: bool = False):
         """
@@ -818,29 +813,26 @@ class AxisAssignmentObject(Frame):
             if nmrResidue:
                 nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
 
-                self.project._startCommandEchoBlock('application.peakAssigner.assignNmrAtom')
-                try:
+                with undoBlockManager():
+                    try:
 
-                    for peak in self.current.peaks:
+                        for peak in self.current.peaks:
 
-                        dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+                            dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
 
-                        currentObject = nmrAtom
-                        if nmrAtom not in dimNmrAtoms:
-                            dimNmrAtoms.append(nmrAtom)
+                            currentObject = nmrAtom
+                            if nmrAtom not in dimNmrAtoms:
+                                dimNmrAtoms.append(nmrAtom)
 
-                            toAssign = dimNmrAtoms.index(currentObject)
+                                toAssign = dimNmrAtoms.index(currentObject)
 
-                            dimNmrAtoms[toAssign] = nmrAtom
-                            allAtoms = list(peak.dimensionNmrAtoms)
-                            allAtoms[dim] = dimNmrAtoms
-                            peak.dimensionNmrAtoms = allAtoms
+                                dimNmrAtoms[toAssign] = nmrAtom
+                                allAtoms = list(peak.dimensionNmrAtoms)
+                                allAtoms[dim] = dimNmrAtoms
+                                peak.dimensionNmrAtoms = allAtoms
 
-                except Exception as es:
-                    showWarning(str(self.windowTitle()), str(es))
-
-                finally:
-                    self.project._endCommandEchoBlock()
+                    except Exception as es:
+                        showWarning(str(self.windowTitle()), str(es))
 
                     # notifier to update other tables
                     # nmrResidue._finaliseAction('change')
@@ -889,32 +881,29 @@ class AxisAssignmentObject(Frame):
             currentObject = self.tables[0].getSelectedObjects()
 
             if currentObject:
-                self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom')
-                try:
-                    for peak in self.current.peaks:
+                with undoBlockManager():
+                    try:
+                        for peak in self.current.peaks:
 
-                        # newList = []
-                        # for atomList in peak.assignedNmrAtoms:
-                        #     atoms = [atom for atom in list(atomList) if atom != currentObject[0]]
-                        #     newList.append(tuple(atoms))
-                        #
-                        #     peak.assignedNmrAtoms = tuple(newList)
+                            # newList = []
+                            # for atomList in peak.assignedNmrAtoms:
+                            #     atoms = [atom for atom in list(atomList) if atom != currentObject[0]]
+                            #     newList.append(tuple(atoms))
+                            #
+                            #     peak.assignedNmrAtoms = tuple(newList)
 
-                        # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
+                            # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
 
-                        peakDimNmrAtoms = peak.dimensionNmrAtoms
-                        dimNmrAtoms = list(peakDimNmrAtoms[dim])  # ejb - changed to list
-                        dimNmrAtoms.remove(currentObject[0])
+                            peakDimNmrAtoms = peak.dimensionNmrAtoms
+                            dimNmrAtoms = list(peakDimNmrAtoms[dim])  # ejb - changed to list
+                            dimNmrAtoms.remove(currentObject[0])
 
-                        allAtoms = list(peakDimNmrAtoms)
-                        allAtoms[dim] = dimNmrAtoms
-                        peak.dimensionNmrAtoms = allAtoms
+                            allAtoms = list(peakDimNmrAtoms)
+                            allAtoms[dim] = dimNmrAtoms
+                            peak.dimensionNmrAtoms = allAtoms
 
-                except Exception as es:
-                    showWarning(str(self.windowTitle()), str(es))
-
-                finally:
-                    self.project._endCommandEchoBlock()
+                    except Exception as es:
+                        showWarning(str(self.windowTitle()), str(es))
 
                     # notifier to update other tables
                     # nmrResidue._finaliseAction('change')
@@ -940,55 +929,6 @@ class AxisAssignmentObject(Frame):
 
         except Exception as es:
             showWarning('Deassign Peak from NmrAtom', str(es))
-
-        # try:
-        #     for peak in self.current.peaks:
-        #         # dimNmrAtoms = peak.dimensionNmrAtoms[dim]
-        #
-        #         dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])  # ejb - changed to list
-        #         currentObject = self.tables[0].getSelectedObjects()
-        #
-        #         if currentObject:
-        #             self.project._startCommandEchoBlock('application.peakAssigner.deassignNmrAtom', peak.pid)
-        #             try:
-        #                 # toAssign = dimNmrAtoms.index(currentObject)                   # error here..
-        #
-        #                 dimNmrAtoms.remove(currentObject[0])
-        #
-        #                 allAtoms = list(peak.dimensionNmrAtoms)
-        #                 allAtoms[dim] = dimNmrAtoms
-        #                 peak.dimensionNmrAtoms = allAtoms
-        #
-        #             except Exception as es:
-        #                 showWarning(str(self.windowTitle()), str(es))
-        #
-        #             finally:
-        #                 self.project._endCommandEchoBlock()
-        #
-        #                 # notifier to update other tables
-        #                 # nmrResidue._finaliseAction('change')
-        #
-        #             # self._updateInterface()
-        #             self._parent._updateInterface()
-        #             self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
-        #             nextAtom = self.tables[1].getSelectedObjects()
-        #             if nextAtom:
-        #                 self._updateAssignmentWidget(1, currentObject[0])
-        #
-        #                 self.lastTableSelected = 1
-        #                 self.buttonList.setButtonEnabled('Delete', True)
-        #                 self.buttonList.setButtonEnabled('Deassign', False)
-        #                 self.buttonList.setButtonEnabled('Assign', True)
-        #             else:
-        #                 self._updateAssignmentWidget(1, None)
-        #
-        #                 self.lastTableSelected = 1
-        #                 self.buttonList.setButtonEnabled('Delete', False)
-        #                 self.buttonList.setButtonEnabled('Deassign', False)
-        #                 self.buttonList.setButtonEnabled('Assign', False)
-        #
-        # except Exception as es:
-        #     showWarning('Deassign Peak from NmrAtom', str(es))
 
     def setAssignedTable(self, atomList: list):
         # self.project.blankNotification()
