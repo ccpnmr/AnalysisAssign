@@ -581,13 +581,14 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self.interShifts = OrderedDict()
         chemicalShiftList = self.application.project.getByPid(self.shiftListWidget.pulldownList.currentText())
 
-        for nmrResidue in self.application.project.nmrResidues:
-            nmrAtoms = [nmrAtom for nmrAtom in nmrResidue.nmrAtoms]
-            shifts = [chemicalShiftList.getChemicalShift(atom.id) for atom in nmrAtoms]
-            if nmrResidue.sequenceCode.endswith('-1'):
-                self.interShifts[nmrResidue] = shifts
-            else:
-                self.intraShifts[nmrResidue] = shifts
+        if chemicalShiftList:
+            for nmrResidue in self.application.project.nmrResidues:
+                nmrAtoms = [nmrAtom for nmrAtom in nmrResidue.nmrAtoms]
+                shifts = [chemicalShiftList.getChemicalShift(atom.id) for atom in nmrAtoms]
+                if nmrResidue.sequenceCode.endswith('-1'):
+                    self.interShifts[nmrResidue] = shifts
+                else:
+                    self.intraShifts[nmrResidue] = shifts
 
     def _createMatchStrips(self, assignMatrix: typing.Tuple[typing.Dict[NmrResidue, typing.List[ChemicalShift]], typing.List[float]]):
         """
@@ -743,29 +744,30 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
                                                            list(shiftDict.values()))
 
 
-
-# #=====  Just some code to 'save' =====
+#=====  Just some code to 'save' =====
 # def hasNmrResidue(nmrChain, residueCode):
-#   "Simple function to check if sequenCode is found within the nmrResidues of nmrChain"
-#   resCodes = [res.sequenceCode for res in nmrChain.nmrResidues]
-#   return (residueCode in resCodes)
+#     "Simple function to check if sequenCode is found within the nmrResidues of nmrChain"
+#     resCodes = [res.sequenceCode for res in nmrChain.nmrResidues]
+#     return (residueCode in resCodes)
 #
 #
 # def endOfchain(nmrResidue):
-#   # changes to end of connected chain; not a good idea
-#   if nmrResidue.nmrChain.isConnected:
-#     if nmrResidue.sequenceCode.endswith('-1'):
-#       nmrResidue = nmrResidue.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
-#     else:
-#       nmrResidue = nmrResidue.nmrChain.mainNmrResidues[-1]
-#   return nmrResidue
+#     # changes to end of connected chain; not a good idea
+#     if nmrResidue.nmrChain.isConnected:
+#         if nmrResidue.sequenceCode.endswith('-1'):
+#             nmrResidue = nmrResidue.nmrChain.mainNmrResidues[0].getOffsetNmrResidue(-1)
+#         else:
+#             nmrResidue = nmrResidue.nmrChain.mainNmrResidues[-1]
+#     return nmrResidue
 #
 #
 # def getPids(fromObject, attributeName):
-#   "Get a list of pids fromObject.attributeName or None on error"
-#   if not hasattr(fromObject, attributeName): return None
-#   return [obj.pid for obj in getattr(fromObject, attributeName)]
-# #===== end code save =====
+#     "Get a list of pids fromObject.attributeName or None on error"
+#     if not hasattr(fromObject, attributeName): return None
+#     return [obj.pid for obj in getattr(fromObject, attributeName)]
+#
+#
+#===== end code save =====
 
 
 if __name__ == '__main__':

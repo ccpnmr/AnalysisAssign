@@ -6,7 +6,7 @@ __credits__ = ("Wayne Boucher, Ed Brooksbank, Rasmus H Fogh, Luca Mureddu, Timot
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license",
                "or ccpnmodel.ccpncore.memops.Credits.CcpnLicense for licence text")
 __reference__ = ("For publications, please use reference from http://www.ccpn.ac.uk/v3-software/downloads/license",
-               "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
+                 "or ccpnmodel.ccpncore.memops.Credits.CcpNmrReference")
 #=========================================================================================
 # Last code modification
 #=========================================================================================
@@ -26,17 +26,18 @@ from ccpn.framework import Framework
 from ccpn.AnalysisAssign.AnalysisAssign import Assign as Application
 from ccpn.framework.Version import applicationVersion
 
+
 if __name__ == '__main__':
-  # from ccpn.util.GitTools import getAllRepositoriesGitCommit
-  # applicationVersion = 'development: {AnalysisAssign:.8s}'.format(**getAllRepositoriesGitCommit())
+    # from ccpn.util.GitTools import getAllRepositoriesGitCommit
+    # applicationVersion = 'development: {AnalysisAssign:.8s}'.format(**getAllRepositoriesGitCommit())
 
-  # argument parser
-  parser = Framework.defineProgramArguments()
+    # argument parser
+    parser = Framework.defineProgramArguments()
 
-  # add any additional commandline argument here
-  commandLineArguments = parser.parse_args()
+    # add any additional commandline argument here
+    commandLineArguments = parser.parse_args()
 
-  application = Application(Framework.AnalysisAssign, applicationVersion, commandLineArguments)
-  Framework._getApplication = lambda: application
+    application = Application(Framework.AnalysisAssign, applicationVersion, commandLineArguments)
+    Framework._getApplication = lambda: application
 
-  application.start()
+    application.start()

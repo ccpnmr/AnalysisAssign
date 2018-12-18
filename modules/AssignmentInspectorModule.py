@@ -160,7 +160,7 @@ class AssignmentInspectorModule(CcpnModule):
                                                            hiddenColumns=['Pid'])
         self.chemicalShiftTable = ChemicalShiftTable(parent=self._chemicalShiftFrame,
                                                      mainWindow=self.mainWindow,
-                                                     moduleParent=self,
+                                                     moduleParent=self.assignedPeaksTable,  # just to give a unique id
                                                      setLayout=True,
                                                      actionCallback=self._actionCallback,
                                                      selectionCallback=self._selectionCallback,
@@ -206,7 +206,7 @@ class AssignmentInspectorModule(CcpnModule):
     def _registerNotifiers(self):
         """Set up the notifiers
         """
-        self.setNotifier(self.current,[Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
+        self.setNotifier(self.current, [Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
                          callback=self._highlightNmrResidues)
 
     def _closeModule(self):
@@ -419,16 +419,16 @@ class AssignmentInspectorTable(QuickTable):
         #                                       grid=(1, 0), gridSpan=(1, 5), **policies
         #                                       )
 
-        QuickTable.__init__(self, parent=parent,
-                            mainWindow=self.mainWindow,
-                            dataFrameObject=None,
-                            setLayout=True,
-                            autoResize=True, multiSelect=True,
-                            selectionCallback=selectionCallback,
-                            actionCallback=actionCallback,
-                            grid=(3, 0), gridSpan=(1, 6),
-                            enableDelete=False, enableSearch=False
-                            )
+        super().__init__(parent=parent,
+                         mainWindow=self.mainWindow,
+                         dataFrameObject=None,
+                         setLayout=True,
+                         autoResize=True, multiSelect=True,
+                         selectionCallback=selectionCallback,
+                         actionCallback=actionCallback,
+                         grid=(3, 0), gridSpan=(1, 6),
+                         enableDelete=False, enableSearch=False
+                         )
         self.moduleParent = moduleParent
 
         # self._assignmentFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
