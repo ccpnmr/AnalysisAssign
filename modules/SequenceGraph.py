@@ -711,7 +711,13 @@ class SequenceGraphModule(CcpnModule):
                                 connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
 
                             if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+
+                                # add the internally connected Lines
                                 assignments = self._getPeakAssignmentsForResidue(nmrResidue)
+                                self._addPeakAssignmentLinesToGroup(assignments)
+
+                                # add the externally connected Lines
+                                assignments = self._getPeakAssignmentsForResidueExternal(nmrResidue)
                                 self._addPeakAssignmentLinesToGroup(assignments)
 
                 else:
@@ -1369,8 +1375,8 @@ class SequenceGraphModule(CcpnModule):
         # self.guiNmrAtomDict[nmrAtom] = atom
         return atom
 
-    def _getPeakAssignmentsForResidue(self, nmrResidue, internal=True, external=False, mTList=None):
-        """Get the list of peak assignments from the nmrAtoms
+    def _getPeakAssignmentsForResidue(self, nmrResidue, mTList=None):
+        """Get the list of peak assignments from the nmrAtoms, only peaks contained with the nmrResidue
         """
 
         # generate the list that defines which couplings there are between the nmrAtoms attached to each peak - move outside
@@ -1400,6 +1406,82 @@ class SequenceGraphModule(CcpnModule):
                         if not None in (nmrAtom0, nmrAtom1):
                             if (nmrAtom1, nmrAtom0, peak) not in atomPairing[spec]:
                                 atomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+
+                            # if (nmrAtom1, nmrAtom0, peak) not in atomPairList:
+                            #     atomPairList.add((nmrAtom0, nmrAtom1, peak))
+
+                        # need to sort by spectra
+
+                    # nmrAtoms = [nA for nA in assignment if nA and nA.nmrResidue is nmrResidue and nA is not nmrAtom]
+                    #
+                    # for nA in nmrAtoms:
+                    #     if (nA, nmrAtom, peak) not in atomPairList:
+                    #         atomPairList.add((nmrAtom, nA, peak))
+
+        return atomPairing
+
+    def _getPeakAssignmentsForResidueExternal(self, nmrResidue, mTList=None):
+        """Get the list of peak assignments from the nmrAtoms, only peaks exterior to the nmrResidue
+        """
+
+        # generate the list that defines which couplings there are between the nmrAtoms attached to each peak - move outside
+        mTList = OrderedDict()
+        for spec in self.project.spectra:
+            mTList[spec] = {}
+            for mt in spec.magnetisationTransfers:
+                mTList[spec][mt] = set()
+
+        # create a set of sets ordered by spectra
+        atomPairing = OrderedDict((spec, set()) for spec in mTList.keys())
+
+        for nmrAtom in nmrResidue.nmrAtoms:
+
+            for peak in nmrAtom.assignedPeaks:
+                spec = peak.peakList.spectrum
+                for assignment in peak.assignments:
+
+                    # find the mainNmrResidue for -1 and +1 connections
+                    newCon = list(assignment)
+                    for conNum in range(len(assignment)):
+                        if assignment[conNum].nmrResidue.relativeOffset == -1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+
+                            # this is a minus residue so find connected, have to traverse to the previousNmrResidue
+                            # will it always exist?
+                            conName = assignment[conNum].name
+                            preN = assignment[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
+                            if preN:
+                                newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+                                if newConSwap:
+                                    newCon[conNum] = newConSwap[0]
+                            else:
+                                newCon[conNum] = None                   # not connected so skip
+
+                        # if assignment[conNum].nmrResidue.relativeOffset == +1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+                        #
+                        #     # this is a plus residue so find connected, have to traverse to the nextNmrResidue
+                        #     # will it always exist?
+                        #     conName = assignment[conNum].name
+                        #     preN = assignment[conNum].nmrResidue.mainNmrResidue.nextNmrResidue
+                        #     if preN:
+                        #         newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+                        #         if newConSwap:
+                        #             newCon[conNum] = newConSwap[0]
+                        #     else:
+                        #         newCon[conNum] = None                   # not connected so skip
+
+                    assignment = newCon
+
+                    # only get the assignments a-b if a and b are defined in the spectrum magnetisationTransfers list
+                    for mag in mTList[spec]:
+                        nmrAtom0 = assignment[mag[0] - 1]
+                        nmrAtom1 = assignment[mag[1] - 1]
+                        nmrAtom0 = nmrAtom0 if nmrAtom0 else None
+                        nmrAtom1 = nmrAtom1 if nmrAtom1 else None
+
+                        if not None in (nmrAtom0, nmrAtom1):
+                            if (nmrAtom0.nmrResidue is not nmrResidue) or (nmrAtom1.nmrResidue is not nmrResidue):
+                                if (nmrAtom1, nmrAtom0, peak) not in atomPairing[spec]:
+                                    atomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
 
                             # if (nmrAtom1, nmrAtom0, peak) not in atomPairList:
                             #     atomPairList.add((nmrAtom0, nmrAtom1, peak))
