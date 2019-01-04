@@ -61,8 +61,11 @@ from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
 from ccpn.ui.gui.widgets.Splitter import Splitter
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
+from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
 from ccpn.core.lib.ContextManagers import logCommandBlock
+
+from ccpn.util.decorators import profile
 
 logger = getLogger()
 ALL = '<all>'
@@ -73,6 +76,7 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
     A graphical object specifying the position and name of an atom when created by the Assigner.
     Can be linked to a Nmr Atom.
     """
+
     def __init__(self, mainWindow, text, pos=None, nmrAtom=None):
 
         super(GuiNmrAtom, self).__init__()
@@ -147,6 +151,7 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
     """
     Group item to group all nmrAtoms/connecting lines of nmrResidue
     """
+
     def __init__(self, parent, nmrResidue, caAtom, pos):
         super(GuiNmrResidueGroup, self).__init__()
 
@@ -284,10 +289,12 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
                         if nmrAtom:
                             contextMenu.addAction(nmrAtom.id, partial(self._deassignPeak, thisLine._peak, nmrAtom))
 
+
 class AssignmentLine(QtWidgets.QGraphicsLineItem):
     """
     Object to create lines between GuiNmrAtoms with specific style, width, colour and displacement.
     """
+
     def __init__(self, x1, y1, x2, y2, colour, width, parent=None, style=None, peak=None, atom1=None, atom2=None):
         QtWidgets.QGraphicsLineItem.__init__(self)
 
@@ -388,11 +395,45 @@ class SequenceGraphModule(CcpnModule):
 
         self.resetScene()
 
-        self._SGwidget = Widget(self.settingsWidget, setLayout=True,
-                                grid=(0, 0), vAlign='top', hAlign='left')
+        # add the settings widgets defined from the following orderedDict - test for refactored
+        settingsDict = OrderedDict((('peakAssignments', {'label'   : 'Show peak assignments:',
+                                                         'tipText' : 'Show peak assignments on display coloured by positiveContourColour.',
+                                                         'callBack': self._updateShownAssignments,
+                                                         'checked' : True,
+                                                         '_init'   : None,
+                                                         }),
+                                    ('treeView', {'label'   : 'Tree view:',
+                                                  'tipText' : 'Show peak assignments as a tree below the main backbone.',
+                                                  'callBack': self._updateShowTreeAssignments,
+                                                  'checked' : False,
+                                                  '_init'   : self._updateShowTreeAssignments,
+                                                  }),
+                                    ('sequentialStrips', {'label'   : 'Show sequential strips:',
+                                                          'tipText' : 'Show nmrResidue in all strips.',
+                                                          'callBack': self._updateShownAssignments,
+                                                          'checked' : False,
+                                                          '_init'   : None,
+                                                          }),
+                                    ('markPositions', {'label'   : 'Mark positions:',
+                                                       'tipText' : 'Mark positions in all strips.',
+                                                       'callBack': self._updateShownAssignments,
+                                                       'checked' : True,
+                                                       '_init'   : None,
+                                                       }),
+                                    ('autoClearMarks', {'label'   : 'Auto clear marks:',
+                                                        'tipText' : 'Auto clear all previous marks',
+                                                        'callBack': None,
+                                                        'checked' : True,
+                                                        '_init'   : None,
+                                                        }),
+                                    ))
+        self._SGwidget = SequenceGraphSettings(parent=self.settingsWidget, mainWindow=self.mainWindow,
+                                               settingsDict=settingsDict,
+                                               grid=(0, 0))
+
         self.residueCount = 0
 
-        colwidth = 175
+        colwidth = 140
         self._MWwidget = Widget(self.mainWidget, setLayout=True,
                                 grid=(0, 0), vAlign='top', hAlign='left')
 
@@ -427,83 +468,11 @@ class SequenceGraphModule(CcpnModule):
                                                           callback=self._updateShownAssignments,
                                                           grid=(0, 3), gridSpan=(1, 1))
 
-        row = 0
-        self.assignmentsCheckBox = CheckBoxCompoundWidget(self._SGwidget,
-                                                          labelText='Show peak assignments:',
-                                                          checked=True,
-                                                          fixedWidths=(colwidth, 30),
-                                                          tipText='Show peak assignments on display coloured by positiveContourColour',
-                                                          callback=self._updateShownAssignments,
-                                                          grid=(row, 0), gridSpan=(1, 1))
+        # # add a callback that fires when the layout changes the state of the checkbox
+        # # move this into the settings widget as _init callback
+        # self._SGwidget.assignmentsTreeCheckBox.checkBox.stateChanged.connect(self._checkLayoutInit)
 
-        row += 1
-        self.assignmentsTreeCheckBox = CheckBoxCompoundWidget(self._SGwidget,
-                                                              labelText='Tree view:',
-                                                              checked=False,
-                                                              fixedWidths=(colwidth, 30),
-                                                              tipText='Show peak assignments as a tree below the main backbone',
-                                                              callback=self._updateShowTreeAssignments,
-                                                              grid=(row, 0), gridSpan=(1, 1))
-
-        # add a callback that fires when the layout changes the state of the checkbox
-        self.assignmentsTreeCheckBox.checkBox.stateChanged.connect(self._checkLayoutInit)
-
-        row += 1
-        self.sequentialStripsWidget = CheckBoxCompoundWidget(self._SGwidget,
-                                                             labelText='Show sequential strips:',
-                                                             checked=False,
-                                                             fixedWidths=(colwidth, 30),
-                                                             tipText='Show nmrResidue in all strips',
-                                                             callback=self._updateShownAssignments,
-                                                             grid=(row, 0), gridSpan=(1, 1))
-
-        row += 1
-        self.markPositionsWidget = CheckBoxCompoundWidget(self._SGwidget,
-                                                          labelText='Mark positions:',
-                                                          checked=True,
-                                                          fixedWidths=(colwidth, 30),
-                                                          tipText='Mark positions in strips',
-                                                          callback=self._updateShownAssignments,
-                                                          grid=(row, 0), gridSpan=(1, 1))
-
-        row += 1
-        self.autoClearMarksWidget = CheckBoxCompoundWidget(
-                self._SGwidget,
-                grid=(row, 0), vAlign='top', stretch=(0, 0), hAlign='left',
-                #minimumWidths=(colwidth, 0),
-                fixedWidths=(colwidth, 30),
-                orientation='left',
-                labelText='Auto clear marks:',
-                checked=True
-                )
-
-        colwidth = 140
-        if self.mainWindow:
-            textAll = [ALL] + [display.pid for display in self.application.ui.mainWindow.spectrumDisplays]
-        else:
-            textAll = [ALL]
-
-        row += 1
-        self.displaysWidget = ListCompoundWidget(self._SGwidget,
-                                                 grid=(row, 0), gridSpan=(1, 2),
-                                                 vAlign='top', stretch=(0, 0), hAlign='left',
-                                                 vPolicy='minimal',
-                                                 fixedWidths=(colwidth, colwidth, colwidth),
-                                                 orientation='left',
-                                                 labelText='Display(s):',
-                                                 tipText='SpectrumDisplay modules to respond to double-click',
-                                                 texts=textAll
-                                                 )
-        self.displaysWidget.setFixedHeights((None, None, 40))
-        self.displaysWidget.pulldownList.set(ALL)
-        self.displaysWidget.setPreSelect(self._fillDisplayWidget)
-
-        self._spacer = Spacer(self.settingsWidget, 5, 5,
-                              QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-                              grid=(row, 2), gridSpan=(1, 1))
-
-        self._SGwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
-        self._MWwidget.setMinimumWidth(self._SGwidget.sizeHint().width())
+        self._MWwidget.setMinimumWidth(self._MWwidget.sizeHint().width())
         self._MWwidget.setSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         self.settingsWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
 
@@ -541,22 +510,20 @@ class SequenceGraphModule(CcpnModule):
                 self._raiseContextMenu(object, event)
         self._preMouserelease(event)
 
-    def _checkLayoutInit(self):
-        """This is a hack so that the state changes when the layout loads
-        After the layout initialise, this function is removed
-        """
-        self._updateShowTreeAssignments()
-        self.assignmentsTreeCheckBox.checkBox.stateChanged.disconnect(self._checkLayoutInit)
+    # def _checkLayoutInit(self):
+    #     """This is a hack so that the state changes when the layout loads
+    #     After the layout initialise, this function is removed
+    #     """
+    #     self._updateShowTreeAssignments()
+    #     self.assignmentsTreeCheckBox.checkBox.stateChanged.disconnect(self._checkLayoutInit)
 
     def _maximise(self):
-        """
-        Maximise the attached table
+        """Maximise the attached table
         """
         pass
 
     def selectSequence(self, nmrChain=None):
-        """
-        Manually select a Sequence from the pullDown
+        """Manually select a Sequence from the pullDown
         """
         if nmrChain is None:
             logger.warning('select: No Sequence selected')
@@ -572,19 +539,21 @@ class SequenceGraphModule(CcpnModule):
                         self.setNmrChainDisplay(nmrChain)
 
     def _registerNotifiers(self):
-        self.current.registerNotify(self._updateModule, 'nmrChains')
+        """Register the required notifiers
+        """
+        # self.current.registerNotify(self._updateModule, 'nmrChains')      # doesn't work
 
         self._nmrResidueNotifier = self.setNotifier(self.project,
-                                            [Notifier.RENAME, Notifier.CHANGE],
-                                            NmrResidue.__name__,
-                                            self._resetNmrResiduePidForAssigner,
-                                            onceOnly=True)
+                                                    [Notifier.RENAME, Notifier.CHANGE],
+                                                    NmrResidue.__name__,
+                                                    self._resetNmrResiduePidForAssigner,
+                                                    onceOnly=True)
 
         self._peakNotifier = self.setNotifier(self.project,
-                                      [Notifier.CHANGE],
-                                      Peak.__name__,
-                                      self._updateShownAssignments,
-                                      onceOnly=True)
+                                              [Notifier.CHANGE],
+                                              Peak.__name__,
+                                              self._updateShownAssignments,
+                                              onceOnly=True)
 
         # self._peakNotifier = self.setNotifier(self.project,
         #                               [Notifier.CHANGE, Notifier.DELETE],
@@ -593,16 +562,16 @@ class SequenceGraphModule(CcpnModule):
         #                               onceOnly=True)
 
         self._spectrumNotifier = self.setNotifier(self.project,
-                                          [Notifier.CHANGE],
-                                          Spectrum.__name__,
-                                          self._updateShownAssignments)
+                                                  [Notifier.CHANGE],
+                                                  Spectrum.__name__,
+                                                  self._updateShownAssignments)
 
         # notifier for changing the selected chain - draw new display
         self._nmrChainNotifier = self.setNotifier(self.project,
-                                          [Notifier.CHANGE, Notifier.DELETE],
-                                          NmrChain.__name__,
-                                          self._updateShownAssignments,
-                                          onceOnly=True)
+                                                  [Notifier.CHANGE, Notifier.DELETE],
+                                                  NmrChain.__name__,
+                                                  self._updateChain,
+                                                  onceOnly=True)
 
     # def _unRegisterNotifiers(self):
     #     # use the new notifier class
@@ -616,15 +585,13 @@ class SequenceGraphModule(CcpnModule):
     #         self._nmrChainNotifier.unRegister()
 
     def _repopulateModule(self):
-        """
-        CCPN Internal: Repopulate the required widgets in the module
+        """CCPN Internal: Repopulate the required widgets in the module
         This is will be attached to GuiNotifiers
         """
         self._updateShownAssignments()
 
     def _updateModule(self, nmrChains=None):
-        """
-        Update in reponse to change of current.nmrChains
+        """Update in response to change of current.nmrChains
         """
         #if nmrChains is None or len(nmrChains)==0: return
         nmrChain = self.current.nmrChain
@@ -707,6 +674,7 @@ class SequenceGraphModule(CcpnModule):
             # modify the line in the table
             pass
 
+    @profile
     def setNmrChainDisplay(self, nmrChainOrPid):
 
         if isinstance(nmrChainOrPid, str):
@@ -741,6 +709,11 @@ class SequenceGraphModule(CcpnModule):
                             self.addResidue(nmrResidue, '+1')
                             if nmrResidue.nextNmrResidue:
                                 connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
+
+                            if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+                                assignments = self._getPeakAssignmentsForResidue(nmrResidue)
+                                self._addPeakAssignmentLinesToGroup(assignments)
+
                 else:
                     nmrResidue = self.current.nmrResidue
                     if nmrResidue in nmrChain.nmrResidues:
@@ -764,8 +737,9 @@ class SequenceGraphModule(CcpnModule):
                 if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
                     self._addConnectingLine(res['CO'], self.guiResiduesShown[ii + 1]['N'], self._lineColour, 1.0, 0)
 
-            if self.assignmentsCheckBox.isChecked():
-                self._getAssignmentsFromSpectra()
+            # if self._SGwidget.assignmentsCheckBox.isChecked():
+            # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+            #     self._getAssignmentsFromSpectra()
 
         self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
         self.nmrChain = nmrChain
@@ -1028,6 +1002,8 @@ class SequenceGraphModule(CcpnModule):
 
         self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
 
+        return guiResidueGroup
+
     def _assembleGhostResidue(self, nmrResidue: NmrResidue, atoms: typing.Dict[str, GuiNmrAtom]):
         """
         Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
@@ -1108,8 +1084,9 @@ class SequenceGraphModule(CcpnModule):
             self.atomSpacing = atomSpacing
         nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
 
-        residueAtoms = {"H": np.array([0, 0]),
-                        "N": np.array([0, -1 * self.atomSpacing]),
+        # create a standard nmrResidue
+        residueAtoms = {"H" : np.array([0, 0]),
+                        "N" : np.array([0, -1 * self.atomSpacing]),
                         "CA": np.array([self.atomSpacing, -1 * self.atomSpacing]),
                         "CB": np.array([self.atomSpacing, -2 * self.atomSpacing]),
                         "CO": np.array([2 * self.atomSpacing, -1 * self.atomSpacing])
@@ -1118,6 +1095,7 @@ class SequenceGraphModule(CcpnModule):
             # GLY doesn't have CB
             del residueAtoms['CB']
 
+        # add the new nmrResidue to the current list
         if self.residueCount == 0:
             for k, v in residueAtoms.items():
                 if k in nmrAtoms:
@@ -1140,11 +1118,14 @@ class SequenceGraphModule(CcpnModule):
                     # use the 'H' as the reference
                     pos = np.array([self.guiResiduesShown[0]['H'].x() - 3 * self.atomSpacing, self.guiResiduesShown[0]['H'].y()])
                     atoms[k] = self._createGuiNmrAtom(k, v + pos, nmrAtom)
+                    # atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
 
                 else:
                     pos = np.array([self.guiResiduesShown[-1]['H'].x() + 3 * self.atomSpacing, self.guiResiduesShown[-1]['H'].y()])
                     atoms[k] = self._createGuiNmrAtom(k, v + pos, nmrAtom)
+                    # atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
 
+            # insert into the list at the correct position
             if direction == '-1':
                 self.guiResiduesShown.insert(0, atoms)
                 self.predictedStretch.insert(0, nmrResidue)
@@ -1152,7 +1133,10 @@ class SequenceGraphModule(CcpnModule):
                 self.guiResiduesShown.append(atoms)
                 self.predictedStretch.append(nmrResidue)
 
-        self._assembleGroupResidue(nmrResidue, atoms, pos[0])
+        newGuiResidueGroup = self._assembleGroupResidue(nmrResidue, atoms)          #, pos[0])
+
+        # move to the required position
+        # newGuiResidueGroup.setPos(QtCore.QPointF(pos[0], pos[1]))
 
         self.residueCount += 1
 
@@ -1230,7 +1214,18 @@ class SequenceGraphModule(CcpnModule):
     def _updateShowTreeAssignments(self, peak=None):
         nmrChainPid = self.nmrChainPulldown.getText()
         if nmrChainPid:
+            self.setUpdatesEnabled(False)
+            self.scene.blockSignals(True)
+
             self.setNmrChainDisplay(nmrChainPid)
+
+            # test moving the groups
+            for ii, res in enumerate(self.guiNmrResidues.items()):
+                print('>>>', res[0])
+                res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
+
+            self.scene.blockSignals(False)
+            self.setUpdatesEnabled(True)
 
     def _updateShownAssignments(self, peak=None):
         ###if self.current.nmrChain is not None:
@@ -1238,7 +1233,37 @@ class SequenceGraphModule(CcpnModule):
 
         nmrChainPid = self.nmrChainPulldown.getText()
         if nmrChainPid:
+            self.setUpdatesEnabled(False)
+            self.scene.blockSignals(True)
+
             self.setNmrChainDisplay(nmrChainPid)
+
+            # test moving the groups
+            for ii, res in enumerate(self.guiNmrResidues.items()):
+                print('>>>', res[0])
+                res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
+
+            self.scene.blockSignals(False)
+            self.setUpdatesEnabled(True)
+
+    def _updateChain(self, data):
+        ###if self.current.nmrChain is not None:
+        ###  self.setNmrChainDisplay(self.current.nmrChain.pid)
+
+        nmrChainPid = self.nmrChainPulldown.getText()
+        if nmrChainPid:
+            self.setUpdatesEnabled(False)
+            self.scene.blockSignals(True)
+
+            self.setNmrChainDisplay(nmrChainPid)
+
+            # test moving the groups
+            for ii, res in enumerate(self.guiNmrResidues.items()):
+                print('>>>', res[0])
+                res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
+
+            self.scene.blockSignals(False)
+            self.setUpdatesEnabled(True)
 
     def _addConnectingLine(self, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
                            colour: str, width: float, displacement: float, style: str = None,
@@ -1303,7 +1328,7 @@ class SequenceGraphModule(CcpnModule):
         dx = x2 - x1
         dy = y2 - y1
         length = pow(dx * dx + dy * dy, 0.5)
-        offsetX = -dy * displacement / length
+        offsetX = dy * displacement / length                # was -ve
         offsetY = dx * displacement / length
         kx1 = (atom1.boundingRect().width() * dx) / (2.0 * length)  # shorten the lines along length
         ky1 = (atom1.boundingRect().height() * dy) / (2.0 * length)
@@ -1344,7 +1369,55 @@ class SequenceGraphModule(CcpnModule):
         # self.guiNmrAtomDict[nmrAtom] = atom
         return atom
 
+    def _getPeakAssignmentsForResidue(self, nmrResidue, internal=True, external=False, mTList=None):
+        """Get the list of peak assignments from the nmrAtoms
+        """
+
+        # generate the list that defines which couplings there are between the nmrAtoms attached to each peak - move outside
+        mTList = OrderedDict()
+        for spec in self.project.spectra:
+            mTList[spec] = {}
+            for mt in spec.magnetisationTransfers:
+                mTList[spec][mt] = set()
+
+        # create a set of sets ordered by spectra
+        atomPairing = OrderedDict((spec, set()) for spec in mTList.keys())
+
+        # atomPairList = set()
+        for nmrAtom in nmrResidue.nmrAtoms:
+
+            for peak in nmrAtom.assignedPeaks:
+                spec = peak.peakList.spectrum
+                for assignment in peak.assignments:
+
+                    # only get the assignments a-b if a and b are defined in the spectrum magnetisationTransfers list
+                    for mag in mTList[spec]:
+                        nmrAtom0 = assignment[mag[0] - 1]
+                        nmrAtom1 = assignment[mag[1] - 1]
+                        nmrAtom0 = nmrAtom0 if nmrAtom0 and nmrAtom0.nmrResidue is nmrResidue else None
+                        nmrAtom1 = nmrAtom1 if nmrAtom1 and nmrAtom1.nmrResidue is nmrResidue else None
+
+                        if not None in (nmrAtom0, nmrAtom1):
+                            if (nmrAtom1, nmrAtom0, peak) not in atomPairing[spec]:
+                                atomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+
+                            # if (nmrAtom1, nmrAtom0, peak) not in atomPairList:
+                            #     atomPairList.add((nmrAtom0, nmrAtom1, peak))
+
+                        # need to sort by spectra
+
+                    # nmrAtoms = [nA for nA in assignment if nA and nA.nmrResidue is nmrResidue and nA is not nmrAtom]
+                    #
+                    # for nA in nmrAtoms:
+                    #     if (nA, nmrAtom, peak) not in atomPairList:
+                    #         atomPairList.add((nmrAtom, nA, peak))
+
+        return atomPairing
+
     def _getAssignmentsFromSpectra(self):
+        """Get the peak assignments attached to the nmrResidues and display as lines, coloured by spectrum, to
+        the nmrResidues.
+        """
         for spectrum in self.project.spectra:
             connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
                            for x in y]
@@ -1397,20 +1470,28 @@ class SequenceGraphModule(CcpnModule):
                     peak0 = connection[2]
                     peak1 = connection[2]
 
-                    if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
+                    # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
+                    if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or \
+                            self._SGwidget.checkBoxes['treeView']['checkBox'].isChecked() is False:
 
-                        self._addConnectingLine(guiNmrAtomPair[0],
-                                                guiNmrAtomPair[1],
-                                                spectrum.positiveContourColour,
-                                                2.0, displacement,
-                                                peak=peak0)
-                        # group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
-                        # self._addConnectingLineToGroup(group,
-                        #                         guiNmrAtomPair[0],
-                        #                         guiNmrAtomPair[1],
-                        #                         spectrum.positiveContourColour,
-                        #                         2.0, displacement,
-                        #                         peak=peak0)
+                        if guiNmrAtomPair[0].nmrAtom.nmrResidue is guiNmrAtomPair[1].nmrAtom.nmrResidue:
+
+                            # add the internal line to the guiNmrResidueGroup, should now move when group is moved
+                            group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+                            self._addConnectingLineToGroup(group,
+                                                    guiNmrAtomPair[0],
+                                                    guiNmrAtomPair[1],
+                                                    spectrum.positiveContourColour,
+                                                    2.0, displacement,
+                                                    peak=peak0)
+                        else:
+
+                            # do not connect to a group yet, possibly add to another group that requires updating on create/delete nmrResidues
+                            self._addConnectingLine(guiNmrAtomPair[0],
+                                                    guiNmrAtomPair[1],
+                                                    spectrum.positiveContourColour,
+                                                    2.0, displacement,
+                                                    peak=peak0)
 
                         guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
                         guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
@@ -1466,6 +1547,55 @@ class SequenceGraphModule(CcpnModule):
                         # guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
         pass
 
+    def _addPeakAssignmentLinesToGroup(self, assignments):
+        for specAssignments in assignments.values():
+            for nmrAtomPair in specAssignments:
+
+                guiNmrAtomPair = (self.guiNmrAtomDict[nmrAtomPair[0]],
+                                  self.guiNmrAtomDict[nmrAtomPair[1]],
+                                  nmrAtomPair[2]
+                                  )
+
+                # displacement = 3 * min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
+
+                # get the peak and the spectrum
+                peak = guiNmrAtomPair[2]
+                spectrum = peak.peakList.spectrum
+
+                displacement = 3 * guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])  # spread out a little
+                # peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+                # peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+
+                # peak0 = connection[2]
+                # peak1 = connection[2]
+
+                # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
+                if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or \
+                        self._SGwidget.checkBoxes['treeView']['checkBox'].isChecked() is False:
+
+                    # if guiNmrAtomPair[0].nmrAtom.nmrResidue is guiNmrAtomPair[1].nmrAtom.nmrResidue:
+
+                    # add the internal line to the guiNmrResidueGroup, should now move when group is moved
+                    group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+                    self._addConnectingLineToGroup(group,
+                                                   guiNmrAtomPair[0],
+                                                   guiNmrAtomPair[1],
+                                                   spectrum.positiveContourColour,
+                                                   2.0, displacement,
+                                                   peak=peak)
+                    # else:
+                    #
+                    #     # do not connect to a group yet, possibly add to another group that requires updating on create/delete nmrResidues
+                    #     self._addConnectingLine(guiNmrAtomPair[0],
+                    #                             guiNmrAtomPair[1],
+                    #                             spectrum.positiveContourColour,
+                    #                             2.0, displacement,
+                    #                             peak=peak)
+
+                    guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+                    guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+
+
     def addGhostResidue(self, nmrResidueCon1: NmrResidue,
                         guiRef: GuiNmrAtom,
                         nmrResidueCon0: NmrResidue,
@@ -1493,8 +1623,8 @@ class SequenceGraphModule(CcpnModule):
             self.atomSpacing = atomSpacing
         nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
 
-        residueAtoms = {"H": np.array([0, 0]),
-                        "N": np.array([0, -1 * self.atomSpacing]),
+        residueAtoms = {"H" : np.array([0, 0]),
+                        "N" : np.array([0, -1 * self.atomSpacing]),
                         "CA": np.array([self.atomSpacing, -1 * self.atomSpacing]),
                         "CB": np.array([self.atomSpacing, -2 * self.atomSpacing]),
                         "CO": np.array([2 * self.atomSpacing, -1 * self.atomSpacing])
@@ -1684,28 +1814,28 @@ cos72 = math.cos(2 * math.pi / 5)
 
 ATOM_POSITION_DICT = {
 
-    'ALA': {'HB%': [0.0, -0.75 * atomSpacing],
+    'ALA': {'HB%'       : [0.0, -0.75 * atomSpacing],
             'boundAtoms': ['']},
     'CYS': {'SG': [0.0, -1 * atomSpacing], 'HG': [0, -1.75 * atomSpacing]},
     'ASP': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG': [0, -1 * atomSpacing]},
-    'ASN': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG': [0, -1 * atomSpacing], 'ND2': [0, -2 * atomSpacing],
+            'CG' : [0, -1 * atomSpacing]},
+    'ASN': {'HBx' : [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
+            'CG'  : [0, -1 * atomSpacing], 'ND2': [0, -2 * atomSpacing],
             'HD2x': [atomSpacing * -0.75, -2 * atomSpacing - (0.75 * atomSpacing * cos60)],
             'HD2y': [atomSpacing * +0.75, -2 * atomSpacing - (0.75 * atomSpacing * cos60)],
             },
     'GLU': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
             'HGx': [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
-            'CG': [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing]
+            'CG' : [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing]
             },
-    'GLN': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'HGx': [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
-            'CG': [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing], 'NE2': [0, -3 * atomSpacing],
+    'GLN': {'HBx' : [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
+            'HGx' : [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
+            'CG'  : [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing], 'NE2': [0, -3 * atomSpacing],
             'HD2x': [atomSpacing * -0.75, -3 * atomSpacing - (0.75 * atomSpacing * cos60)],
             'HD2y': [atomSpacing * +0.75, -3 * atomSpacing - (0.75 * atomSpacing * cos60)],
             },
     'PHE': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG': [0, -1 * atomSpacing], 'CD1': [-1 * atomSpacing, (-1 - cos60) * atomSpacing],
+            'CG' : [0, -1 * atomSpacing], 'CD1': [-1 * atomSpacing, (-1 - cos60) * atomSpacing],
             'CD2': [1 * atomSpacing, (-1 - cos60) * atomSpacing],
             'CE1': [-1 * atomSpacing, (-2 - cos60) * atomSpacing],
             'CE2': [1 * atomSpacing, (-2 - cos60) * atomSpacing],
@@ -1713,10 +1843,10 @@ ATOM_POSITION_DICT = {
             'HD2': [1.75 * atomSpacing, (-1 - cos60) * atomSpacing],
             'HE1': [-1.75 * atomSpacing, (-2 - cos60) * atomSpacing],
             'HE2': [1.75 * atomSpacing, (-2 - cos60) * atomSpacing],
-            'CZ': [0, (-2 - cos60 - sin60) * atomSpacing], 'HZ': [0, (-2 - cos60 - sin60 - 0.75) * atomSpacing]
+            'CZ' : [0, (-2 - cos60 - sin60) * atomSpacing], 'HZ': [0, (-2 - cos60 - sin60 - 0.75) * atomSpacing]
             },
     'TYR': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG': [0, -1 * atomSpacing], 'CD1': [-1 * atomSpacing, (-1 - cos60) * atomSpacing],
+            'CG' : [0, -1 * atomSpacing], 'CD1': [-1 * atomSpacing, (-1 - cos60) * atomSpacing],
             'CD2': [1 * atomSpacing, (-1 - cos60) * atomSpacing],
             'CE1': [-1 * atomSpacing, (-2 - cos60) * atomSpacing],
             'CE2': [1 * atomSpacing, (-2 - cos60) * atomSpacing],
@@ -1724,41 +1854,41 @@ ATOM_POSITION_DICT = {
             'HD2': [1.75 * atomSpacing, (-1 - cos60) * atomSpacing],
             'HE1': [-1.75 * atomSpacing, (-2 - cos60) * atomSpacing],
             'HE2': [1.75 * atomSpacing, (-2 - cos60) * atomSpacing],
-            'CZ': [0, (-2 - cos60 - sin60) * atomSpacing], 'HH': [0, (-2 - cos60 - sin60 - 0.75) * atomSpacing]
+            'CZ' : [0, (-2 - cos60 - sin60) * atomSpacing], 'HH': [0, (-2 - cos60 - sin60 - 0.75) * atomSpacing]
             },
     'SER': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'HG': [0, -1 * atomSpacing]
+            'HG' : [0, -1 * atomSpacing]
             },
     'THR': {'HG1': [atomSpacing * -0.75, 0.0], 'HB': [atomSpacing * 0.75, 0.0],
             'CG2': [0, -1 * atomSpacing], 'HG2%': [0, -1.75 * atomSpacing]
             },
     'MET': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
             'HGx': [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
-            'CG': [0, -1 * atomSpacing], 'SD': [0, -2 * atomSpacing], 'CE': [0, -3 * atomSpacing],
+            'CG' : [0, -1 * atomSpacing], 'SD': [0, -2 * atomSpacing], 'CE': [0, -3 * atomSpacing],
             'HE%': [0, -3.75 * atomSpacing]
             },
     'ARG': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
             'HGx': [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
-            'CG': [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing], 'NE': [0, -3 * atomSpacing],
-            'CZ': [0, -4 * atomSpacing], 'NH1': [atomSpacing * -1, -4 * atomSpacing - (0.75 * atomSpacing * cos60)],
+            'CG' : [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing], 'NE': [0, -3 * atomSpacing],
+            'CZ' : [0, -4 * atomSpacing], 'NH1': [atomSpacing * -1, -4 * atomSpacing - (0.75 * atomSpacing * cos60)],
             'NH2': [atomSpacing * +1, -4 * atomSpacing - (0.75 * atomSpacing * cos60)],
             },
-    'VAL': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CGx': [-1 * atomSpacing, -1 * (cos60 * atomSpacing)],
-            'CGy': [1 * atomSpacing, -1 * (cos60 * atomSpacing)],
+    'VAL': {'HBx' : [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
+            'CGx' : [-1 * atomSpacing, -1 * (cos60 * atomSpacing)],
+            'CGy' : [1 * atomSpacing, -1 * (cos60 * atomSpacing)],
             'HGx%': [atomSpacing * -1, -1 * (cos60 * atomSpacing) - (0.75 * atomSpacing)],
             'HGy%': [atomSpacing * +1, -1 * (cos60 * atomSpacing) - (0.75 * atomSpacing)]
             },
-    'LEU': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'HGx': [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
-            'CG': [0, -1 * atomSpacing],
-            'CDx': [-1 * atomSpacing, (-1 - cos60) * atomSpacing],
-            'CDy': [1 * atomSpacing, (-1 - cos60) * atomSpacing],
+    'LEU': {'HBx' : [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
+            'HGx' : [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
+            'CG'  : [0, -1 * atomSpacing],
+            'CDx' : [-1 * atomSpacing, (-1 - cos60) * atomSpacing],
+            'CDy' : [1 * atomSpacing, (-1 - cos60) * atomSpacing],
             'HDx%': [atomSpacing * -1, ((-1 - cos60) * atomSpacing) - (0.75 * atomSpacing)],
             'HDy%': [atomSpacing * +1, ((-1 - cos60) * atomSpacing) - (0.75 * atomSpacing)]
             },
-    'ILE': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG1': [-1 * atomSpacing, -1 * (cos60 * atomSpacing)],
+    'ILE': {'HBx' : [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
+            'CG1' : [-1 * atomSpacing, -1 * (cos60 * atomSpacing)],
             'CG2%': [1 * atomSpacing, -1 * (cos60 * atomSpacing)],
             'HG1x': [atomSpacing * -1.75, -1 * (cos60 * atomSpacing)],
             'HG1y': [atomSpacing * -0.25, -1 * (cos60 * atomSpacing)],
@@ -1768,32 +1898,32 @@ ATOM_POSITION_DICT = {
             },
     'LYS': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
             'HGx': [atomSpacing * -0.75, -1 * atomSpacing], 'HGy': [atomSpacing * 0.75, -1 * atomSpacing],
-            'CG': [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing],
+            'CG' : [0, -1 * atomSpacing], 'CD': [0, -2 * atomSpacing],
             'HDx': [atomSpacing * -0.75, -2 * atomSpacing], 'HDy': [atomSpacing * 0.75, -2 * atomSpacing],
             'HEx': [atomSpacing * -0.75, -3 * atomSpacing], 'HEy': [atomSpacing * 0.75, -3 * atomSpacing],
-            'CE': [0, -3 * atomSpacing],
-            'NZ': [0, -4 * atomSpacing], 'HZ%': [0, -4.75 * atomSpacing],
+            'CE' : [0, -3 * atomSpacing],
+            'NZ' : [0, -4 * atomSpacing], 'HZ%': [0, -4.75 * atomSpacing],
             },
     'HIS': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG': [0, -1 * atomSpacing], 'ND1': [-1 * atomSpacing, -1 * (atomSpacing + (atomSpacing / (2 * tan36)))],
+            'CG' : [0, -1 * atomSpacing], 'ND1': [-1 * atomSpacing, -1 * (atomSpacing + (atomSpacing / (2 * tan36)))],
             'CD2': [atomSpacing, -1 * (atomSpacing + (atomSpacing / (2 * tan36)))],
             'NE2': [atomSpacing / 2, -1 * (atomSpacing + (atomSpacing / (2 * sin36)) + (atomSpacing / (2 * tan36)))],
             'CD1': [-0.5 * atomSpacing, -1 * (atomSpacing + (atomSpacing / (2 * sin36)) + (atomSpacing / (2 * tan36)))],
             },
 
-    'TRP': {'HBx': [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
-            'CG': [0, -1 * atomSpacing], 'CD1': [atomSpacing, -1 * atomSpacing],
-            'NE1': [atomSpacing + (atomSpacing * cos72), -1 * (atomSpacing + (atomSpacing * sin72))],
-            'CE2': [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54),
-                    -1 * (atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
-            'CD2': [-1 * (atomSpacing * cos72), -1 * (atomSpacing + (atomSpacing * sin72))],
-            'CE3': [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54) - (2 * (atomSpacing * sin60)),
-                    -1 * (atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
-            'CZ2': [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54),
-                    -1 * (2 * atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
-            'CZ3': [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54) - (2 * (atomSpacing * sin60)),
-                    -1 * (2 * atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
-            'CH2': [-1 * (atomSpacing * cos72), -1 * (2 * atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54) + (atomSpacing * cos60))],
+    'TRP': {'HBx'       : [atomSpacing * -0.75, 0.0], 'HBy': [atomSpacing * 0.75, 0.0],
+            'CG'        : [0, -1 * atomSpacing], 'CD1': [atomSpacing, -1 * atomSpacing],
+            'NE1'       : [atomSpacing + (atomSpacing * cos72), -1 * (atomSpacing + (atomSpacing * sin72))],
+            'CE2'       : [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54),
+                           -1 * (atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
+            'CD2'       : [-1 * (atomSpacing * cos72), -1 * (atomSpacing + (atomSpacing * sin72))],
+            'CE3'       : [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54) - (2 * (atomSpacing * sin60)),
+                           -1 * (atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
+            'CZ2'       : [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54),
+                           -1 * (2 * atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
+            'CZ3'       : [atomSpacing + (atomSpacing * cos72) - (atomSpacing * sin54) - (2 * (atomSpacing * sin60)),
+                           -1 * (2 * atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54))],
+            'CH2'       : [-1 * (atomSpacing * cos72), -1 * (2 * atomSpacing + (atomSpacing * sin72) + (atomSpacing * cos54) + (atomSpacing * cos60))],
 
             'boundAtoms': [['CG', 'CD1'], ['CG', 'CD2'], ['CD2', 'CE3'], ['CD2', 'CE2'],
                            ['CD1', 'NE1'], ['CE2', 'CZ2'], ['CE3', 'CZ3'], ['CZ3', 'CH2'],
