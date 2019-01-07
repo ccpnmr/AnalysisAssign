@@ -1169,7 +1169,7 @@ class SequenceGraphModule(CcpnModule):
         # # self.guiNmrResidues.append(self.nmrResidueLabel)
         # self.scene.addItem(self.nmrResidueLabel)
 
-    def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
+    def addSideChainAtoms(self, nmrResidue, cbAtom, atoms, colour):
         residue = {}
         for k, v in ATOM_POSITION_DICT[nmrResidue.residueType].items():
             if k != 'boundAtoms':
@@ -1178,13 +1178,15 @@ class SequenceGraphModule(CcpnModule):
                 newAtom = self._createGuiNmrAtom(k, position, nmrAtom)
                 self.scene.addItem(newAtom)
                 residue[k] = newAtom
-                self.guiNmrAtomDict[nmrAtom] = newAtom
+                atoms[k] = newAtom
 
-        for boundAtomPair in ATOM_POSITION_DICT[nmrResidue.residueType]['boundAtoms']:
-            atom1 = residue[boundAtomPair[0]]
-            atom2 = residue[boundAtomPair[1]]
-            newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
-            self.scene.addItem(newLine)
+                # self.guiNmrAtomDict[nmrAtom] = newAtom
+
+        # for boundAtomPair in ATOM_POSITION_DICT[nmrResidue.residueType]['boundAtoms']:
+        #     atom1 = residue[boundAtomPair[0]]
+        #     atom2 = residue[boundAtomPair[1]]
+        #     newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
+        #     self.scene.addItem(newLine)
 
     def addResidue(self, nmrResidue: NmrResidue, direction: str, atomSpacing=None):
         """
@@ -1226,9 +1228,9 @@ class SequenceGraphModule(CcpnModule):
             self.guiResiduesShown.append(atoms)
             self.predictedStretch.append(nmrResidue)
 
-            # if 'CB' in residueAtoms and nmrResidue.residueType:
-            #     cbAtom = atoms['CB']
-            #     self.addSideChainAtoms(nmrResidue, cbAtom, self._lineColour)
+            if 'CB' in residueAtoms and nmrResidue.residueType:
+                cbAtom = atoms['CB']
+                self.addSideChainAtoms(nmrResidue, cbAtom, atoms, self._lineColour)
 
         else:
             for k, v in residueAtoms.items():
