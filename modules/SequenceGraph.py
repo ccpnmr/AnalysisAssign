@@ -1214,6 +1214,8 @@ class SequenceGraphModule(CcpnModule):
             # GLY doesn't have CB
             del residueAtoms['CB']
 
+        # add sideChain nmrAtoms here?
+
         # add the new nmrResidue to the current list
         if self.residueCount == 0:
             for k, v in residueAtoms.items():
