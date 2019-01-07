@@ -815,8 +815,8 @@ class SequenceGraphModule(CcpnModule):
                     # TODO:ED causes a crash from here GuiNmrResidue has been deleted
                     self.predictSequencePosition(self.predictedStretch)
 
-            ###elif self.modePulldown.currentText() == 'Assigned - backbone':
-            ###  self._showBackboneAssignments(nmrChain)
+                ###elif self.modePulldown.currentText() == 'Assigned - backbone':
+                ###  self._showBackboneAssignments(nmrChain)
 
                 # test moving the groups - lines are updated automatically
                 for ii, res in enumerate(self.guiNmrResidues.items()):
@@ -847,7 +847,6 @@ class SequenceGraphModule(CcpnModule):
             # if self._SGwidget.assignmentsCheckBox.isChecked():
             # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
             #     self._getAssignmentsFromSpectra()
-
 
         # needs to be a two-pass so that the initial guiNmrAtom positions are updated on the first paint
 
@@ -1170,22 +1169,22 @@ class SequenceGraphModule(CcpnModule):
         # # self.guiNmrResidues.append(self.nmrResidueLabel)
         # self.scene.addItem(self.nmrResidueLabel)
 
-    # def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
-    #   residue = {}
-    #   for k, v in ATOM_POSITION_DICT[nmrResidue.residueType].items():
-    #     if k != 'boundAtoms':
-    #       position = [cbAtom.x()+v[0], cbAtom.y()+v[1]]
-    #       nmrAtom = nmrResidue.fetchNmrAtom(name=k)
-    #       newAtom = self._createGuiNmrAtom(k, position, nmrAtom)
-    #       self.scene.addItem(newAtom)
-    #       residue[k] = newAtom
-    #       self.guiNmrAtomDict[nmrAtom] = newAtom
-    #
-    #   for boundAtomPair in ATOM_POSITION_DICT[nmrResidue.residueType]['boundAtoms']:
-    #     atom1 = residue[boundAtomPair[0]]
-    #     atom2 = residue[boundAtomPair[1]]
-    #     newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
-    #     self.scene.addItem(newLine)
+    def addSideChainAtoms(self, nmrResidue, cbAtom, colour):
+        residue = {}
+        for k, v in ATOM_POSITION_DICT[nmrResidue.residueType].items():
+            if k != 'boundAtoms':
+                position = [cbAtom.x() + v[0], cbAtom.y() + v[1]]
+                nmrAtom = nmrResidue.fetchNmrAtom(name=k)
+                newAtom = self._createGuiNmrAtom(k, position, nmrAtom)
+                self.scene.addItem(newAtom)
+                residue[k] = newAtom
+                self.guiNmrAtomDict[nmrAtom] = newAtom
+
+        for boundAtomPair in ATOM_POSITION_DICT[nmrResidue.residueType]['boundAtoms']:
+            atom1 = residue[boundAtomPair[0]]
+            atom2 = residue[boundAtomPair[1]]
+            newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
+            self.scene.addItem(newLine)
 
     def addResidue(self, nmrResidue: NmrResidue, direction: str, atomSpacing=None):
         """
@@ -1226,6 +1225,10 @@ class SequenceGraphModule(CcpnModule):
                 atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
             self.guiResiduesShown.append(atoms)
             self.predictedStretch.append(nmrResidue)
+
+            # if 'CB' in residueAtoms and nmrResidue.residueType:
+            #     cbAtom = atoms['CB']
+            #     self.addSideChainAtoms(nmrResidue, cbAtom, self._lineColour)
 
         else:
             for k, v in residueAtoms.items():
@@ -2129,6 +2132,7 @@ class SequenceGraphModule(CcpnModule):
 
 
 import math
+
 
 atomSpacing = 66
 cos36 = math.cos(math.pi / 5)
