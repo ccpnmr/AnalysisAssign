@@ -167,6 +167,8 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
         self.nmrResidue = nmrResidue
         self._parent = parent
         self.setPos(QtCore.QPointF(pos, 0.0))
+        self.crossChainCount = None
+        self.crossChainResidue = None
 
         self.nmrResidueLabel = GuiNmrResidue(parent, nmrResidue, caAtom)
         self.addToGroup(self.nmrResidueLabel)
@@ -350,11 +352,11 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
         if atom2.x() < atom1.x():
             x1 = atom1.x()  # + rx1
             y1 = atom1.y()  # + ry1
-            x2 = atom2.x() + rx2 - rx1
-            y2 = atom2.y() + ry2 - ry1
+            x2 = atom2.x() + (rx2 - rx1)
+            y2 = atom2.y() + (ry2 - ry1)
         else:
-            x1 = atom2.x() + rx2 - rx1
-            y1 = atom2.y() + ry2 - ry1
+            x1 = atom2.x() + (rx2 - rx1)
+            y1 = atom2.y() + (ry2 - ry1)
             x2 = atom1.x()  # + rx1
             y2 = atom1.y()  # + ry1
 
@@ -438,7 +440,8 @@ class SequenceGraphModule(CcpnModule):
         self.guiNmrResidues = OrderedDict()
         self.guiNmrResidueLabels = []
         self.guiNmrAtomDict = {}
-        self.ghostList = []
+        self.guiGhostNmrResidues = OrderedDict()
+        self.ghostList = {}
         self.selectedLine = None
 
         self.splitter = Splitter(self.mainWidget, horizontal=False)
@@ -478,35 +481,35 @@ class SequenceGraphModule(CcpnModule):
                                     ('treeView', {'label'   : 'Tree view:',
                                                   'tipText' : 'Show peak assignments as a tree below the main backbone.',
                                                   'callBack': None,  #self._updateShowTreeAssignments,
-                                                  'enabled': True,
+                                                  'enabled' : False,
                                                   'checked' : False,
                                                   '_init'   : None,  #self._updateShowTreeAssignments,
                                                   }),
                                     ('showSideChain', {'label'   : 'Show side chain:',
                                                        'tipText' : 'Show side chain atoms and connections above the main chain.',
                                                        'callBack': None,  #self.showNmrChainFromPulldown,
-                                                       'enabled': False,
+                                                       'enabled' : False,
                                                        'checked' : False,
                                                        '_init'   : None,
                                                        }),
                                     ('sequentialStrips', {'label'   : 'Show sequential strips:',
                                                           'tipText' : 'Show nmrResidue in all strips.',
                                                           'callBack': None,  #self.showNmrChainFromPulldown,
-                                                          'enabled': True,
+                                                          'enabled' : True,
                                                           'checked' : False,
                                                           '_init'   : None,
                                                           }),
                                     ('markPositions', {'label'   : 'Mark positions:',
                                                        'tipText' : 'Mark positions in all strips.',
                                                        'callBack': None,  #self.showNmrChainFromPulldown,
-                                                       'enabled': True,
+                                                       'enabled' : True,
                                                        'checked' : True,
                                                        '_init'   : None,
                                                        }),
                                     ('autoClearMarks', {'label'   : 'Auto clear marks:',
                                                         'tipText' : 'Auto clear all previous marks',
                                                         'callBack': None,
-                                                        'enabled': True,
+                                                        'enabled' : True,
                                                         'checked' : True,
                                                         '_init'   : None,
                                                         }),
@@ -734,7 +737,7 @@ class SequenceGraphModule(CcpnModule):
         delete the nmrResidue form the scene
         """
         nmrResidue = data[Notifier.OBJECT]
-        # print('>>>delete nmrResidue')
+        print('>>>_deleteNmrResidue', nmrResidue)
 
         if nmrResidue in self.predictedStretch:
             # print('  >>>delete items')
@@ -760,7 +763,7 @@ class SequenceGraphModule(CcpnModule):
         """
         peak = data[Notifier.OBJECT]
 
-        # print ('>>>updatePeaks', peak)
+        print('>>>_updatePeaks', peak)
         trigger = data[Notifier.TRIGGER]
 
         if trigger == Notifier.DELETE:
@@ -863,13 +866,26 @@ class SequenceGraphModule(CcpnModule):
 
                             if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
                                 # add the internally connected Lines
-                                internalAssignments, interChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
+                                internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
                                 self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
-                                self._addPeakAssignmentLinesToAdjacentGroup(interChainAssignments, self.assignmentLines)
+                                self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                                self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments, self.assignmentLines)
 
-                # test moving the groups - lines are updated automatically
+                # update the group positions
                 for ii, res in enumerate(self.guiNmrResidues.items()):
+                    # second element of tuple; res is (k, v)
                     res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.0, 0.0))
+
+                # update crossChainResidue positions
+                for res in self.guiGhostNmrResidues.values():
+                    if res.crossChainResidue:
+                        link = self.guiNmrResidues[res.crossChainResidue]
+                        count = res.crossChainCount
+
+                        newPosx = link.x()
+                        newPosy = link.y()
+                        res.setPos(QtCore.QPointF(newPosx + (count * 0.5 - 1.0) * self.atomSpacing,
+                                                  newPosy + (count * 2.5 + 5.0) * self.atomSpacing))
 
                 # update the endpoints
                 for connectingLine in self.connectingLines:
@@ -881,9 +897,7 @@ class SequenceGraphModule(CcpnModule):
             # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
             #     self._getAssignmentsFromSpectra()
 
-        # needs to be a two-pass so that the initial guiNmrAtom positions are updated on the first paint
-
-        # self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))  # resize to the new items
+        # self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-20, -20, 20, 20))  # resize to the new items
         self.nmrChain = nmrChain
 
     def resetSequenceGraph(self):
@@ -1067,7 +1081,8 @@ class SequenceGraphModule(CcpnModule):
         self.guiNmrResidues = OrderedDict()
         self.guiNmrResidueLabels = []
         self.guiNmrAtomDict = {}
-        self.ghostList = []
+        self.guiGhostNmrResidues = OrderedDict()
+        self.ghostList = {}
         self.scene.clear()
 
     def resetScene(self):
@@ -1118,17 +1133,12 @@ class SequenceGraphModule(CcpnModule):
     #     self._addResiduePredictions(nmrResidue, atoms['CA'])
 
     def _assembleGroupResidue(self, nmrResidue: NmrResidue, atoms: typing.Dict[str, GuiNmrAtom], pos=None, lineList=None):
-        """
-        Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
+        """Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
         creates a graphical representation of a residue in the assigner
         """
         guiResidueGroup = GuiNmrResidueGroup(self, nmrResidue, atoms['CA'], 0)  #atoms['H'].x())
         self.guiNmrResidues[nmrResidue] = guiResidueGroup
         self.scene.addItem(guiResidueGroup)
-
-        # self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
-        # self.guiNmrResidueLabels.append(self.nmrResidueLabel)
-        # guiResidueGroup.addToGroup(self.nmrResidueLabel)
 
         # add the atoms to the group and set the reverse link
         for item in atoms.values():
@@ -1142,11 +1152,6 @@ class SequenceGraphModule(CcpnModule):
 
         if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
             self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList)
-
-        # if nmrResidue.residueType != 'PRO':
-        #     self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList)
-        # else:
-        #     guiResidueGroup.removeFromGroup(atoms['H'])
 
         self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
         self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
@@ -1156,12 +1161,11 @@ class SequenceGraphModule(CcpnModule):
         return guiResidueGroup
 
     def _assembleGhostResidue(self, nmrResidue: NmrResidue, atoms: typing.Dict[str, GuiNmrAtom], lineList=None):
-        """
-        Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
+        """Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
         creates a graphical representation of a residue in the assigner
         """
         guiResidueGroup = GuiNmrResidueGroup(self, nmrResidue, atoms['CA'], 0)  #atoms['H'].x())
-        self.guiNmrResidues[nmrResidue] = guiResidueGroup
+        self.guiGhostNmrResidues[nmrResidue] = guiResidueGroup
         self.scene.addItem(guiResidueGroup)
 
         # add the atoms to the group and set the reverse link
@@ -1176,36 +1180,13 @@ class SequenceGraphModule(CcpnModule):
 
         if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
             self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList)
-        # if nmrResidue.residueType != 'PRO':
-        #     self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList)
-        # else:
-        #     guiResidueGroup.removeFromGroup(atoms['H'])
 
         self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
         self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
 
-        # for item in atoms.values():
-        #   self.scene.addItem(item)
-        #
-        # nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
-        # if "CB" in list(atoms.keys()):
-        #   self._addConnectingLine(atoms['CA'], atoms['CB'], self._lineColour, 1.0, 0)
-        # if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
-        #   self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
-        # if nmrResidue.residueType != 'PRO':
-        #     self._addConnectingLine(atoms['H'], atoms['N'], self._lineColour, 1.0, 0)
-        # else:
-        #   self.scene.removeItem(atoms['H'])
-        # # if not 'CB' in nmrAtoms:
-        # #   self.scene.removeItem(atoms['CB'])
-        # #   self.scene.removeItem(cbLine)
-        #
-        # self._addConnectingLine(atoms['N'], atoms['CA'], self._lineColour, 1.0, 0)
-        # self._addConnectingLine(atoms['CO'], atoms['CA'], self._lineColour, 1.0, 0)
-        # self.nmrResidueLabel = GuiNmrResidue(self, nmrResidue, atoms['CA'])
-        # self.nmrResidueLabel.setPlainText(nmrResidue.id)
-        # # self.guiNmrResidues.append(self.nmrResidueLabel)
-        # self.scene.addItem(self.nmrResidueLabel)
+        # self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
+
+        return guiResidueGroup
 
     def addSideChainAtoms(self, nmrResidue, cbAtom, atoms, colour, lineList):
         """Add the sideChain atoms and connecting lines above the backbone line.
@@ -1257,10 +1238,11 @@ class SequenceGraphModule(CcpnModule):
             self.guiResiduesShown.append(atoms)
             self.predictedStretch.append(nmrResidue)
 
-            # # add the sideChain atoms
-            # if 'CB' in residueAtoms and nmrResidue.residueType:
-            #     cbAtom = atoms['CB']
-            #     self.addSideChainAtoms(nmrResidue, cbAtom, atoms, self._lineColour, lineList)
+            # add the sideChain atoms
+            if self._SGwidget.checkBoxes['showSideChain']['checkBox'].isChecked():
+                if 'CB' in residueAtoms and nmrResidue.residueType:
+                    cbAtom = atoms['CB']
+                    self.addSideChainAtoms(nmrResidue, cbAtom, atoms, self._lineColour, lineList)
 
         else:
             for k, v in residueAtoms.items():
@@ -1291,15 +1273,18 @@ class SequenceGraphModule(CcpnModule):
                 self.guiResiduesShown.append(atoms)
                 self.predictedStretch.append(nmrResidue)
 
-            # # add the sideChain atoms
-            # if 'CB' in residueAtoms and nmrResidue.residueType:
-            #     cbAtom = atoms['CB']
-            #     self.addSideChainAtoms(nmrResidue, cbAtom, atoms, self._lineColour, lineList)
+            # add the sideChain atoms
+            if self._SGwidget.checkBoxes['showSideChain']['checkBox'].isChecked():
+                if 'CB' in residueAtoms and nmrResidue.residueType:
+                    cbAtom = atoms['CB']
+                    self.addSideChainAtoms(nmrResidue, cbAtom, atoms, self._lineColour, lineList)
 
         newGuiResidueGroup = self._assembleGroupResidue(nmrResidue, atoms, lineList=lineList)  #, pos[0])
 
         # # move to the required position
         # newGuiResidueGroup.setPos(QtCore.QPointF(pos[0], pos[1]))
+
+        return newGuiResidueGroup
 
     def _addGroupResiduePredictions(self, group: GuiNmrResidueGroup, nmrResidue: NmrResidue, caAtom: GuiNmrAtom):
         """
@@ -1372,21 +1357,21 @@ class SequenceGraphModule(CcpnModule):
         else:
             self._sequenceModuleFrame.show()
 
-    def _updateShowTreeAssignments(self, peak=None):
-        nmrChainPid = self.nmrChainPulldown.getText()
-        if nmrChainPid:
-            self.setUpdatesEnabled(False)
-            self.scene.blockSignals(True)
-
-            self.setNmrChainDisplay(nmrChainPid)
-
-            # test moving the groups
-            for ii, res in enumerate(self.guiNmrResidues.items()):
-                print('>>>', res[0])
-                res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
-
-            self.scene.blockSignals(False)
-            self.setUpdatesEnabled(True)
+    # def _updateShowTreeAssignments(self, peak=None):
+    #     nmrChainPid = self.nmrChainPulldown.getText()
+    #     if nmrChainPid:
+    #         self.setUpdatesEnabled(False)
+    #         self.scene.blockSignals(True)
+    #
+    #         self.setNmrChainDisplay(nmrChainPid)
+    #
+    #         # test moving the groups
+    #         for ii, res in enumerate(self.guiNmrResidues.items()):
+    #             print('>>>', res[0])
+    #             res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
+    #
+    #         self.scene.blockSignals(False)
+    #         self.setUpdatesEnabled(True)
 
     def showNmrChainFromPulldown(self, data=None):
         ###if self.current.nmrChain is not None:
@@ -1403,44 +1388,44 @@ class SequenceGraphModule(CcpnModule):
             self.scene.blockSignals(False)
             self.setUpdatesEnabled(True)
 
-            # update the bounding box for the scene
-            self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-15, -20, 15, 15))
+            # resize to the new items and spawns a repaint
+            self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-20, -20, 20, 20))
 
-    def _updateChain(self, data):
-        ###if self.current.nmrChain is not None:
-        ###  self.setNmrChainDisplay(self.current.nmrChain.pid)
-        print('>>>_updateChain')
+    # def _updateChain(self, data):
+    #     ###if self.current.nmrChain is not None:
+    #     ###  self.setNmrChainDisplay(self.current.nmrChain.pid)
+    #     print('>>>_updateChain')
+    #
+    #     nmrChainPid = self.nmrChainPulldown.getText()
+    #     if nmrChainPid:
+    #         self.setUpdatesEnabled(False)
+    #         self.scene.blockSignals(True)
+    #
+    #         self.setNmrChainDisplay(nmrChainPid)
+    #
+    #         # test moving the groups
+    #         for ii, res in enumerate(self.guiNmrResidues.items()):
+    #             print('>>>', res[0])
+    #             res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
+    #
+    #         self.scene.blockSignals(False)
+    #         self.setUpdatesEnabled(True)
 
-        nmrChainPid = self.nmrChainPulldown.getText()
-        if nmrChainPid:
-            self.setUpdatesEnabled(False)
-            self.scene.blockSignals(True)
-
-            self.setNmrChainDisplay(nmrChainPid)
-
-            # test moving the groups
-            for ii, res in enumerate(self.guiNmrResidues.items()):
-                print('>>>', res[0])
-                res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.5, 0))
-
-            self.scene.blockSignals(False)
-            self.setUpdatesEnabled(True)
-
-    def _addConnectingLine(self, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
-                           colour: str, width: float, displacement: float=None, style: str = None,
-                           peak: Peak = None, lineList=None):
-        """Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
-        """
-        newLine = AssignmentLine(0, 0, 0, 0, colour, width,
-                                 parent=self, style=style, peak=peak,
-                                 atom1=atom1, atom2=atom2, displacement=displacement)
-
-        self.scene.addItem(newLine)
-        lineList.append(newLine)
-        return newLine
+    # def _addConnectingLine(self, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
+    #                        colour: str, width: float, displacement: float = None, style: str = None,
+    #                        peak: Peak = None, lineList=None):
+    #     """Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
+    #     """
+    #     newLine = AssignmentLine(0, 0, 0, 0, colour, width,
+    #                              parent=self, style=style, peak=peak,
+    #                              atom1=atom1, atom2=atom2, displacement=displacement)
+    #
+    #     self.scene.addItem(newLine)
+    #     lineList.append(newLine)
+    #     return newLine
 
     def _addConnectingLineToGroup(self, group: GuiNmrResidueGroup, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
-                                  colour: str, width: float, displacement: float=None, style: str = None,
+                                  colour: str, width: float, displacement: float = None, style: str = None,
                                   peak: Peak = None, lineList=None):
         """Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
         """
@@ -1465,8 +1450,7 @@ class SequenceGraphModule(CcpnModule):
     #     return newLine
 
     def _createGuiNmrAtom(self, atomType: str, position: tuple, nmrAtom: NmrAtom = None) -> GuiNmrAtom:
-        """
-        Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
+        """Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
         GuiNmrAtom can be linked to an NmrAtom by supplying it to the function.
         """
         atom = GuiNmrAtom(self.mainWindow, text=atomType, pos=position, nmrAtom=nmrAtom)
@@ -1474,36 +1458,27 @@ class SequenceGraphModule(CcpnModule):
         return atom
 
     def _createGhostGuiNmrAtom(self, atomType: str, position: tuple, nmrAtom: NmrAtom = None) -> GuiNmrAtom:
-        """
-        Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
+        """Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
         GuiNmrAtom can be linked to an NmrAtom by supplying it to the function.
         """
         atom = GuiNmrAtom(self.mainWindow, text=atomType, pos=position, nmrAtom=nmrAtom)
-        # self.guiNmrAtomDict[nmrAtom] = atom
+        self.guiNmrAtomDict[nmrAtom] = atom
         return atom
 
     def _getPeakAssignmentsForResidue(self, nmrResidue):
         """Get the list of peak assignments from the nmrAtoms
-        InterResidueAtomPairing is the linking within the same nmrResidue
-        InterChainAtomPairing is the linking within the same chain but to different nmrResidues
-        ExternalAtomPairing is the linking to different chains
+        interResidueAtomPairing is the linking within the same nmrResidue
+        interChainAtomPairing is the linking within the same chain but to different nmrResidues
+        crossChainAtomPairing is the linking to different chains
         """
 
-        # # generate the list that defines which couplings there are between the nmrAtoms attached to each peak - move outside
-        # mTList = OrderedDict()
-        # for spec in self.project.spectra:
-        #     mTList[spec] = {}
-        #     for mt in spec.magnetisationTransfers:
-        #         mTList[spec][mt] = set()
-
         # create a set of sets ordered by spectra
-        InterResidueAtomPairing = OrderedDict((spec, set()) for spec in self.magnetisationTransfers.keys())
-        InterChainAtomPairing = OrderedDict((spec, set()) for spec in self.magnetisationTransfers.keys())
-        ExternalAtomPairing = OrderedDict((spec, set()) for spec in self.magnetisationTransfers.keys())
+        interResidueAtomPairing = OrderedDict((spec, set()) for spec in self.magnetisationTransfers.keys())
+        interChainAtomPairing = OrderedDict((spec, set()) for spec in self.magnetisationTransfers.keys())
+        crossChainAtomPairing = OrderedDict((spec, set()) for spec in self.magnetisationTransfers.keys())
 
         nmrChain = nmrResidue.nmrChain
 
-        # atomPairList = set()
         for nmrAtom in nmrResidue.nmrAtoms:
 
             for peak in nmrAtom.assignedPeaks:
@@ -1555,91 +1530,21 @@ class SequenceGraphModule(CcpnModule):
                             if (nmrAtom0.nmrResidue is nmrResidue) and (nmrAtom1.nmrResidue is nmrResidue):
 
                                 # interResidueAtomPairing
-                                if (nmrAtom1, nmrAtom0, peak) not in InterResidueAtomPairing[spec]:
-                                    InterResidueAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+                                if (nmrAtom1, nmrAtom0, peak) not in interResidueAtomPairing[spec]:
+                                    interResidueAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
 
                             elif (nmrAtom0.nmrResidue.nmrChain is nmrChain) and (nmrAtom1.nmrResidue.nmrChain is nmrChain):
 
-                                if (nmrAtom1, nmrAtom0, peak) not in InterChainAtomPairing[spec]:
-                                    InterChainAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+                                # connections within the same chain
+                                if (nmrAtom1, nmrAtom0, peak) not in interChainAtomPairing[spec]:
+                                    interChainAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
 
-                            # if (nmrAtom1, nmrAtom0, peak) not in atomPairList:
-                            #     atomPairList.add((nmrAtom0, nmrAtom1, peak))
-
-                        # need to sort by spectra
-
-                    # nmrAtoms = [nA for nA in assignment if nA and nA.nmrResidue is nmrResidue and nA is not nmrAtom]
-                    #
-                    # for nA in nmrAtoms:
-                    #     if (nA, nmrAtom, peak) not in atomPairList:
-                    #         atomPairList.add((nmrAtom, nA, peak))
-
-        return InterResidueAtomPairing, InterChainAtomPairing
-
-    def _getPeakAssignmentsForResidueExternal(self, nmrResidue, mTList=None):
-        """Get the list of peak assignments from the nmrAtoms, only peaks exterior to the nmrResidue
-        """
-
-        # generate the list that defines which couplings there are between the nmrAtoms attached to each peak - move outside
-        mTList = OrderedDict()
-        for spec in self.project.spectra:
-            mTList[spec] = {}
-            for mt in spec.magnetisationTransfers:
-                mTList[spec][mt] = set()
-
-        # create a set of sets ordered by spectra
-        atomPairing = OrderedDict((spec, set()) for spec in mTList.keys())
-        atomPairingCount = 0
-
-        for nmrAtom in nmrResidue.nmrAtoms:
-
-            for peak in nmrAtom.assignedPeaks:
-                spec = peak.peakList.spectrum
-                for assignment in peak.assignments:
-
-                    # find the mainNmrResidue for -1 and +1 connections
-                    newCon = list(assignment)
-                    for conNum in range(len(assignment)):
-                        if assignment[conNum].nmrResidue.relativeOffset == -1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
-
-                            # this is a minus residue so find connected, have to traverse to the previousNmrResidue
-                            # will it always exist?
-                            conName = assignment[conNum].name
-                            preN = assignment[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
-                            if preN:
-                                newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
-                                if newConSwap:
-                                    newCon[conNum] = newConSwap[0]
+                            # elif (nmrAtom0.nmrResidue.nmrChain is nmrChain) and (nmrAtom1.nmrResidue.nmrChain is not nmrChain):
                             else:
-                                newCon[conNum] = None  # not connected so skip
 
-                        # if assignment[conNum].nmrResidue.relativeOffset == +1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
-                        #
-                        #     # this is a plus residue so find connected, have to traverse to the nextNmrResidue
-                        #     # will it always exist?
-                        #     conName = assignment[conNum].name
-                        #     preN = assignment[conNum].nmrResidue.mainNmrResidue.nextNmrResidue
-                        #     if preN:
-                        #         newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
-                        #         if newConSwap:
-                        #             newCon[conNum] = newConSwap[0]
-                        #     else:
-                        #         newCon[conNum] = None                   # not connected so skip
-
-                    assignment = newCon
-
-                    # only get the assignments a-b if a and b are defined in the spectrum magnetisationTransfers list
-                    for mag in mTList[spec]:
-                        nmrAtom0 = assignment[mag[0] - 1]
-                        nmrAtom1 = assignment[mag[1] - 1]
-                        nmrAtom0 = nmrAtom0 if nmrAtom0 else None
-                        nmrAtom1 = nmrAtom1 if nmrAtom1 else None
-
-                        if not None in (nmrAtom0, nmrAtom1):
-                            if (nmrAtom0.nmrResidue is not nmrResidue) or (nmrAtom1.nmrResidue is not nmrResidue):
-                                if (nmrAtom1, nmrAtom0, peak) not in atomPairing[spec]:
-                                    atomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
-                                    atomPairingCount += 1
+                                # connections to a dif
+                                if (nmrAtom1, nmrAtom0, peak) not in crossChainAtomPairing[spec]:
+                                    crossChainAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
 
                             # if (nmrAtom1, nmrAtom0, peak) not in atomPairList:
                             #     atomPairList.add((nmrAtom0, nmrAtom1, peak))
@@ -1652,140 +1557,207 @@ class SequenceGraphModule(CcpnModule):
                     #     if (nA, nmrAtom, peak) not in atomPairList:
                     #         atomPairList.add((nmrAtom, nA, peak))
 
-        return atomPairing if atomPairingCount else None
+        return interResidueAtomPairing, interChainAtomPairing, crossChainAtomPairing
 
-    def _getAssignmentsFromSpectra(self):
-        """Get the peak assignments attached to the nmrResidues and display as lines, coloured by spectrum, to
-        the nmrResidues.
-        """
-        for spectrum in self.project.spectra:
-            connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
-                           for x in y]
+    # def _getPeakAssignmentsForResidueExternal(self, nmrResidue, mTList=None):
+    #     """Get the list of peak assignments from the nmrAtoms, only peaks exterior to the nmrResidue
+    #     """
+    #
+    #     # generate the list that defines which couplings there are between the nmrAtoms attached to each peak - move outside
+    #     mTList = OrderedDict()
+    #     for spec in self.project.spectra:
+    #         mTList[spec] = {}
+    #         for mt in spec.magnetisationTransfers:
+    #             mTList[spec][mt] = set()
+    #
+    #     # create a set of sets ordered by spectra
+    #     atomPairing = OrderedDict((spec, set()) for spec in mTList.keys())
+    #     atomPairingCount = 0
+    #
+    #     for nmrAtom in nmrResidue.nmrAtoms:
+    #
+    #         for peak in nmrAtom.assignedPeaks:
+    #             spec = peak.peakList.spectrum
+    #             for assignment in peak.assignments:
+    #
+    #                 # find the mainNmrResidue for -1 and +1 connections
+    #                 newCon = list(assignment)
+    #                 for conNum in range(len(assignment)):
+    #                     if assignment[conNum].nmrResidue.relativeOffset == -1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+    #
+    #                         # this is a minus residue so find connected, have to traverse to the previousNmrResidue
+    #                         # will it always exist?
+    #                         conName = assignment[conNum].name
+    #                         preN = assignment[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
+    #                         if preN:
+    #                             newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+    #                             if newConSwap:
+    #                                 newCon[conNum] = newConSwap[0]
+    #                         else:
+    #                             newCon[conNum] = None  # not connected so skip
+    #
+    #                     # if assignment[conNum].nmrResidue.relativeOffset == +1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+    #                     #
+    #                     #     # this is a plus residue so find connected, have to traverse to the nextNmrResidue
+    #                     #     # will it always exist?
+    #                     #     conName = assignment[conNum].name
+    #                     #     preN = assignment[conNum].nmrResidue.mainNmrResidue.nextNmrResidue
+    #                     #     if preN:
+    #                     #         newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+    #                     #         if newConSwap:
+    #                     #             newCon[conNum] = newConSwap[0]
+    #                     #     else:
+    #                     #         newCon[conNum] = None                   # not connected so skip
+    #
+    #                 assignment = newCon
+    #
+    #                 # only get the assignments a-b if a and b are defined in the spectrum magnetisationTransfers list
+    #                 for mag in mTList[spec]:
+    #                     nmrAtom0 = assignment[mag[0] - 1]
+    #                     nmrAtom1 = assignment[mag[1] - 1]
+    #                     nmrAtom0 = nmrAtom0 if nmrAtom0 else None
+    #                     nmrAtom1 = nmrAtom1 if nmrAtom1 else None
+    #
+    #                     if not None in (nmrAtom0, nmrAtom1):
+    #                         if (nmrAtom0.nmrResidue is not nmrResidue) or (nmrAtom1.nmrResidue is not nmrResidue):
+    #                             if (nmrAtom1, nmrAtom0, peak) not in atomPairing[spec]:
+    #                                 atomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+    #                                 atomPairingCount += 1
+    #
+    #                         # if (nmrAtom1, nmrAtom0, peak) not in atomPairList:
+    #                         #     atomPairList.add((nmrAtom0, nmrAtom1, peak))
+    #
+    #                     # need to sort by spectra
+    #
+    #                 # nmrAtoms = [nA for nA in assignment if nA and nA.nmrResidue is nmrResidue and nA is not nmrAtom]
+    #                 #
+    #                 # for nA in nmrAtoms:
+    #                 #     if (nA, nmrAtom, peak) not in atomPairList:
+    #                 #         atomPairList.add((nmrAtom, nA, peak))
+    #
+    #     return atomPairing if atomPairingCount else None
 
-            # print ('  >>>connections')
-            # for ii in connections:
-            #   print ('        >>>', ii)
-
-            # find the minus links and update the links to the previousNmrResidue
-            minusResList = []
-            for inCon in connections:
-                newCon = list(inCon)
-                for conNum in range(0, 2):
-                    if inCon[conNum].nmrResidue.relativeOffset == -1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
-
-                        # this is a minus residue so find connected, have to traverse to the previousNmrResidue
-                        # will it always exist?
-                        conName = inCon[conNum].name
-                        preN = inCon[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
-                        if preN:
-                            newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
-                            if newConSwap:
-                                newCon[conNum] = newConSwap[0]
-
-                    # if newCon:
-                    #   cc = (newCC[0], cc[1])    # replace the minus residue
-
-                minusResList.append(newCon)
-
-                if ('A.31' in inCon[0].pid):
-                    pass
-
-            # the original routine to add the links to adjacent atoms
-            # sometimes the link maybe a huge distance away on the scene
-            for ii, connection in enumerate(minusResList):  # ejb - was connections
-
-                # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
-                #                self.project._data2Obj.get(connection[1]).nmrAtom]
-                # sorting makes sure drawing is done properly
-                guiNmrAtomPair = [self.guiNmrAtomDict.get(a) for a in sorted(connection[0:2], reverse=True)]
-                guiNmrResiduePair = [a for a in sorted(connection[0:2], reverse=True)]
-
-                if None not in guiNmrAtomPair:
-                    # displacement = min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
-
-                    displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
-                    # peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
-                    # peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
-
-                    peak0 = connection[2]
-                    peak1 = connection[2]
-
-                    # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
-                    if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or \
-                            self._SGwidget.checkBoxes['treeView']['checkBox'].isChecked() is False:
-
-                        if guiNmrAtomPair[0].nmrAtom.nmrResidue is guiNmrAtomPair[1].nmrAtom.nmrResidue:
-
-                            # add the internal line to the guiNmrResidueGroup, should now move when group is moved
-                            group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
-                            self._addConnectingLineToGroup(group,
-                                                           guiNmrAtomPair[0],
-                                                           guiNmrAtomPair[1],
-                                                           spectrum.positiveContourColour,
-                                                           2.0, displacement=displacement,
-                                                           peak=peak0)
-                        else:
-
-                            # do not connect to a group yet, possibly add to another group that requires updating on create/delete nmrResidues
-                            self._addConnectingLine(guiNmrAtomPair[0],
-                                                    guiNmrAtomPair[1],
-                                                    spectrum.positiveContourColour,
-                                                    2.0, displacement=displacement,
-                                                    peak=peak0)
-
-                        guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
-                        guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
-
-                    elif (guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) > 0:
-                        # add a new 'ghost' atom below the line and link to it instead
-                        # only goes to the right so far...
-
-                        # print ('>>>right ', guiNmrResiduePair[0].nmrResidue.pid, guiNmrResiduePair[1].nmrResidue.pid)
-                        tempAtoms = self.addGhostResidue(guiNmrResiduePair[1].nmrResidue,
-                                                         guiNmrAtomPair[0],
-                                                         guiNmrResiduePair[0].nmrResidue,
-                                                         guiNmrResiduePair[1].name,
-                                                         guiNmrResiduePair[0].name,
-                                                         True)
-
-                        displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
-
-                        self._addConnectingLine(guiNmrAtomPair[0],
-                                                tempAtoms[guiNmrResiduePair[1].name],
-                                                spectrum.positiveContourColour,
-                                                2.0, displacement,
-                                                peak=peak0)
-
-                        guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
-                        guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
-
-                        # make a duplicate going the other way
-                        # print ('>>>left  ', guiNmrResiduePair[0].nmrResidue.pid, guiNmrResiduePair[1].nmrResidue.pid)
-                        tempAtoms = self.addGhostResidue(guiNmrResiduePair[0].nmrResidue,
-                                                         guiNmrAtomPair[1],
-                                                         guiNmrResiduePair[1].nmrResidue,
-                                                         guiNmrResiduePair[0].name,
-                                                         guiNmrResiduePair[1].name,
-                                                         False)
-
-                        displacement = guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])
-
-                        self._addConnectingLine(guiNmrAtomPair[1],
-                                                tempAtoms[guiNmrResiduePair[0].name],
-                                                spectrum.positiveContourColour,
-                                                2.0, displacement,
-                                                peak=peak1)
-                        # self._addConnectingLineToGroup(guiNmrAtomPair[0].nmrAtom.nmrResidue,
-                        #                         guiNmrAtomPair[1],
-                        #                         tempAtoms[guiNmrResiduePair[0].name],
-                        #                         spectrum.positiveContourColour,
-                        #                         2.0, displacement=displacement,
-                        #                         peak=peak1)
-
-                        # already done above
-                        # guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
-                        # guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
-        pass
+    # def _getAssignmentsFromSpectra(self):
+    #     """Get the peak assignments attached to the nmrResidues and display as lines, coloured by spectrum, to
+    #     the nmrResidues.
+    #     """
+    #     for spectrum in self.project.spectra:
+    #         connections = [x for y in list(nmrAtomPairsByDimensionTransfer(spectrum.peakLists).values())
+    #                        for x in y]
+    #
+    #         # print ('  >>>connections')
+    #         # for ii in connections:
+    #         #   print ('        >>>', ii)
+    #
+    #         # find the minus links and update the links to the previousNmrResidue
+    #         minusResList = []
+    #         for inCon in connections:
+    #             newCon = list(inCon)
+    #             for conNum in range(0, 2):
+    #                 if inCon[conNum].nmrResidue.relativeOffset == -1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+    #
+    #                     # this is a minus residue so find connected, have to traverse to the previousNmrResidue
+    #                     # will it always exist?
+    #                     conName = inCon[conNum].name
+    #                     preN = inCon[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
+    #                     if preN:
+    #                         newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+    #                         if newConSwap:
+    #                             newCon[conNum] = newConSwap[0]
+    #
+    #                 # if newCon:
+    #                 #   cc = (newCC[0], cc[1])    # replace the minus residue
+    #
+    #             minusResList.append(newCon)
+    #
+    #             if ('A.31' in inCon[0].pid):
+    #                 pass
+    #
+    #         # the original routine to add the links to adjacent atoms
+    #         # sometimes the link maybe a huge distance away on the scene
+    #         for ii, connection in enumerate(minusResList):  # ejb - was connections
+    #
+    #             # nmrAtomPair = [self.project._data2Obj.get(connection[0]).nmrAtom,
+    #             #                self.project._data2Obj.get(connection[1]).nmrAtom]
+    #             # sorting makes sure drawing is done properly
+    #             guiNmrAtomPair = [self.guiNmrAtomDict.get(a) for a in sorted(connection[0:2], reverse=True)]
+    #             guiNmrResiduePair = [a for a in sorted(connection[0:2], reverse=True)]
+    #
+    #             if None not in guiNmrAtomPair:
+    #                 # displacement = min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
+    #
+    #                 displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+    #                 # peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+    #                 # peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+    #
+    #                 peak0 = connection[2]
+    #                 peak1 = connection[2]
+    #
+    #                 # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
+    #                 if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or \
+    #                         self._SGwidget.checkBoxes['treeView']['checkBox'].isChecked() is False:
+    #
+    #                     if guiNmrAtomPair[0].nmrAtom.nmrResidue is guiNmrAtomPair[1].nmrAtom.nmrResidue:
+    #
+    #                         # add the internal line to the guiNmrResidueGroup, should now move when group is moved
+    #                         group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+    #                         self._addConnectingLineToGroup(group,
+    #                                                        guiNmrAtomPair[0],
+    #                                                        guiNmrAtomPair[1],
+    #                                                        spectrum.positiveContourColour,
+    #                                                        2.0, displacement=displacement,
+    #                                                        peak=peak0)
+    #                     else:
+    #
+    #                         # do not connect to a group yet, possibly add to another group that requires updating on create/delete nmrResidues
+    #                         self._addConnectingLine(guiNmrAtomPair[0],
+    #                                                 guiNmrAtomPair[1],
+    #                                                 spectrum.positiveContourColour,
+    #                                                 2.0, displacement=displacement,
+    #                                                 peak=peak0)
+    #
+    #                     guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+    #                     guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+    #
+    #                 elif (guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) > 0:
+    #                     # add a new 'ghost' atom below the line and link to it instead
+    #                     # only goes to the right so far...
+    #
+    #                     # print ('>>>right ', guiNmrResiduePair[0].nmrResidue.pid, guiNmrResiduePair[1].nmrResidue.pid)
+    #                     tempAtoms = self.addGhostResidue(guiNmrResiduePair[1].nmrResidue,
+    #                                                      guiNmrAtomPair[0],
+    #                                                      guiNmrResiduePair[0].nmrResidue,
+    #                                                      guiNmrResiduePair[1].name,
+    #                                                      guiNmrResiduePair[0].name,
+    #                                                      True)
+    #
+    #                     displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+    #
+    #                     self._addConnectingLine(guiNmrAtomPair[0],
+    #                                             tempAtoms[guiNmrResiduePair[1].name],
+    #                                             spectrum.positiveContourColour,
+    #                                             2.0, displacement,
+    #                                             peak=peak0)
+    #
+    #                     guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+    #                     guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+    #
+    #                     # make a duplicate going the other way
+    #                     # print ('>>>left  ', guiNmrResiduePair[0].nmrResidue.pid, guiNmrResiduePair[1].nmrResidue.pid)
+    #                     tempAtoms = self.addGhostResidue(guiNmrResiduePair[0].nmrResidue,
+    #                                                      guiNmrAtomPair[1],
+    #                                                      guiNmrResiduePair[1].nmrResidue,
+    #                                                      guiNmrResiduePair[0].name,
+    #                                                      guiNmrResiduePair[1].name,
+    #                                                      False)
+    #
+    #                     displacement = guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])
+    #
+    #                     self._addConnectingLine(guiNmrAtomPair[1],
+    #                                             tempAtoms[guiNmrResiduePair[0].name],
+    #                                             spectrum.positiveContourColour,
+    #                                             2.0, displacement,
+    #                                             peak=peak1)
 
     def _addPeakAssignmentLinesToGroup(self, assignments, lineList):
         for specAssignments in assignments.values():
@@ -1803,14 +1775,7 @@ class SequenceGraphModule(CcpnModule):
                 # get the peak and the spectrum
                 peak = guiNmrAtomPair[2]
                 spectrum = peak.peakList.spectrum
-
                 displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
-
-                # # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
-                # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or \
-                #         self._SGwidget.checkBoxes['treeView']['checkBox'].isChecked() is False:
-                #     # if guiNmrAtomPair[0].nmrAtom.nmrResidue is guiNmrAtomPair[1].nmrAtom.nmrResidue:
-                #
 
                 # add the internal line to the guiNmrResidueGroup, should now move when group is moved
                 group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
@@ -1825,7 +1790,7 @@ class SequenceGraphModule(CcpnModule):
                 guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
                 guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
 
-    def _addPeakAssignmentLinesToAdjacentGroup(self, assignments, lineList):
+    def _addPeakAssignmentLinesToAdjacentGroup(self, nmrResidue, assignments, lineList):
         for specAssignments in assignments.values():
             for nmrAtomPair in specAssignments:
 
@@ -1834,29 +1799,56 @@ class SequenceGraphModule(CcpnModule):
                                   nmrAtomPair[2]
                                   )
 
-                if None in guiNmrAtomPair:
-                    continue
-
-                # displacement = min(guiNmrAtomPair[0].connectedAtoms, guiNmrAtomPair[1].connectedAtoms)
-
                 # get the peak and the spectrum
                 peak = guiNmrAtomPair[2]
                 spectrum = peak.peakList.spectrum
 
-                displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
-                # peak0 = guiNmrAtomPair[0].nmrAtom.assignedPeaks[0]  # must be true to draw the line
-                # peak1 = guiNmrAtomPair[1].nmrAtom.assignedPeaks[0]  # must be true to draw the line
+                if guiNmrAtomPair[0] is None and guiNmrAtomPair[1] is None:
+                    continue
 
-                # peak0 = connection[2]
-                # peak1 = connection[2]
+                if guiNmrAtomPair[0] is None:
+                    if nmrAtomPair[1].nmrResidue.nmrChain is not nmrResidue.nmrChain:
+                        continue
 
-                # if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or self.assignmentsTreeCheckBox.isChecked() is False:
-                if (abs(guiNmrAtomPair[0].x() - guiNmrAtomPair[1].x()) < 6 * self.atomSpacing) or \
-                        self._SGwidget.checkBoxes['treeView']['checkBox'].isChecked() is False:
-                    # if guiNmrAtomPair[0].nmrAtom.nmrResidue is guiNmrAtomPair[1].nmrAtom.nmrResidue:
+                    newGhostResidue = self.addGhostResidue(nmrAtomPair[0].nmrResidue,
+                                                           guiNmrAtomPair[1],
+                                                           nmrAtomPair[1].nmrResidue,
+                                                           nmrAtomPair[0].name,
+                                                           nmrAtomPair[1].name,
+                                                           True,
+                                                           lineList=lineList)
+                    guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
+                                      self.guiNmrAtomDict.get(nmrAtomPair[1]),
+                                      nmrAtomPair[2]
+                                      )
 
-                    # add the internal line to the guiNmrResidueGroup, should now move when group is moved
-                    group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+                    group = self.guiNmrResidues[nmrAtomPair[1].nmrResidue]
+                    displacement = guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])
+                    self._addConnectingLineToGroup(group,
+                                                   guiNmrAtomPair[1],
+                                                   guiNmrAtomPair[0],
+                                                   spectrum.positiveContourColour,
+                                                   2.0, displacement=displacement,
+                                                   peak=peak, lineList=lineList)
+
+                elif guiNmrAtomPair[1] is None:
+                    if nmrAtomPair[0].nmrResidue.nmrChain is not nmrResidue.nmrChain:
+                        continue
+
+                    newGhostResidue = self.addGhostResidue(nmrAtomPair[1].nmrResidue,
+                                                           guiNmrAtomPair[0],
+                                                           nmrAtomPair[0].nmrResidue,
+                                                           nmrAtomPair[1].name,
+                                                           nmrAtomPair[0].name,
+                                                           True,
+                                                           lineList=lineList)
+                    guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
+                                      self.guiNmrAtomDict.get(nmrAtomPair[1]),
+                                      nmrAtomPair[2]
+                                      )
+
+                    group = self.guiNmrResidues[nmrAtomPair[0].nmrResidue]
+                    displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
                     self._addConnectingLineToGroup(group,
                                                    guiNmrAtomPair[0],
                                                    guiNmrAtomPair[1],
@@ -1864,85 +1856,81 @@ class SequenceGraphModule(CcpnModule):
                                                    2.0, displacement=displacement,
                                                    peak=peak, lineList=lineList)
 
-                    guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
-                    guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+                else:
+                    if nmrAtomPair[0].nmrResidue.nmrChain is nmrResidue.nmrChain:
+                        group = self.guiNmrResidues[nmrAtomPair[0].nmrResidue]
+                        displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+                        self._addConnectingLineToGroup(group,
+                                                       guiNmrAtomPair[0],
+                                                       guiNmrAtomPair[1],
+                                                       spectrum.positiveContourColour,
+                                                       2.0, displacement=displacement,
+                                                       peak=peak, lineList=lineList)
+
+                    elif nmrAtomPair[1].nmrResidue.nmrChain is nmrResidue.nmrChain:
+                        group = self.guiNmrResidues[nmrAtomPair[1].nmrResidue]
+                        displacement = guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])
+                        self._addConnectingLineToGroup(group,
+                                                       guiNmrAtomPair[1],
+                                                       guiNmrAtomPair[0],
+                                                       spectrum.positiveContourColour,
+                                                       2.0, displacement=displacement,
+                                                       peak=peak, lineList=lineList)
+                    else:
+                        continue
+
+                guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+                guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
 
     def addGhostResidue(self, nmrResidueCon1: NmrResidue,
                         guiRef: GuiNmrAtom,
                         nmrResidueCon0: NmrResidue,
                         name1: str, name0: str,
                         offsetAdjust,
-                        atomSpacing=None):
-        """
-        Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
+                        atomSpacing=None, lineList=None):
+        """Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
         corresponding to the Nmr Residue.
         Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
         beneath Nmr Residue name
         """
 
         # need to keep a list of the atoms that have been added so don't repeat
-        count = 1
-        for nmL in self.ghostList:
-            if nmL[1] == nmrResidueCon0.pid:
-                count += 1
-                if nmL[0] == nmrResidueCon1.pid:
-                    return nmL[2]
+        count = 0
+        if nmrResidueCon0 in self.ghostList:
+            count = len(self.ghostList[nmrResidueCon0])
+            if nmrResidueCon1 in self.ghostList[nmrResidueCon0]:
+                # already exists in the dict so exit
+                return
+        else:
+            self.ghostList[nmrResidueCon0] = ()
 
         nmrResidue = nmrResidueCon1
         atoms = {}
         if atomSpacing:
             self.atomSpacing = atomSpacing
         nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
+        residueAtoms = DEFAULT_RESIDUE_ATOMS.copy()
 
-        residueAtoms = {"H" : np.array([0, 0]),
-                        "N" : np.array([0, -1 * self.atomSpacing]),
-                        "CA": np.array([self.atomSpacing, -1 * self.atomSpacing]),
-                        "CB": np.array([self.atomSpacing, -2 * self.atomSpacing]),
-                        "CO": np.array([2 * self.atomSpacing, -1 * self.atomSpacing])
-                        }
         if nmrResidue.residueType == 'GLY':
             del residueAtoms['CB']
-        # if self.residueCount == 0:
-        #   for k, v in residueAtoms.items():
-        #     if k in nmrAtoms:
-        #       nmrAtom = nmrResidue.fetchNmrAtom(name=k)
-        #     else:
-        #       nmrAtom = None
-        #     atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
-        #   self.guiResiduesShown.append(atoms)
-        # self.predictedStretch.append(nmrResidue)
-
-        # else:
 
         for k, v in residueAtoms.items():
             if k in nmrAtoms:
                 nmrAtom = nmrResidue.fetchNmrAtom(name=k)
             else:
                 nmrAtom = None
-            # atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
-            # self.guiResiduesShown.append(atoms)
+            atoms[k] = self._createGhostGuiNmrAtom(k, v, nmrAtom)
 
-            # pos = np.array([guiRef['H'].x()-3*self.atomSpacing, guiRef['H'].y()]-3*self.atomSpacing)
-            if offsetAdjust:
-                newX = guiRef.x() - 1.5 * self.atomSpacing
-                newY = guiRef.y() + (2 + (count * 3)) * self.atomSpacing
-                offsetX = (residueAtoms[name0][0] - residueAtoms[name1][0])
-                offsetY = (residueAtoms[name0][1] - residueAtoms[name1][1])
-                pos = np.array([newX - offsetX, newY - offsetY])
-            else:
-                newX = guiRef.x() - 1.5 * self.atomSpacing
-                newY = guiRef.y() + (2 + (count * 3)) * self.atomSpacing
-                pos = np.array([newX, newY])
-            atoms[k] = self._createGhostGuiNmrAtom(k, v + pos, nmrAtom)
+        newGuiResidueGroup = self._assembleGhostResidue(nmrResidue, atoms, lineList=lineList)
+        newGuiResidueGroup.crossChainCount = count
+        newGuiResidueGroup.crossChainResidue = nmrResidueCon0       # self.guiNmrResidues[nmrResidueCon0]
 
-        self._assembleGhostResidue(nmrResidue, atoms)
-
-        self.ghostList.append((nmrResidueCon1.pid, nmrResidueCon0.pid, atoms))
+        # self.ghostList.append((nmrResidueCon1.pid, nmrResidueCon0.pid, atoms))
+        self.ghostList[nmrResidueCon0] += (nmrResidueCon1,)
         return atoms
 
     def _getDisplays(self):
-        """
-        Return list of displays to navigate - if needed
+        """Return list of displays to navigate - if needed
         """
         displays = []
         # check for valid displays
@@ -1955,8 +1943,7 @@ class SequenceGraphModule(CcpnModule):
         return displays
 
     def navigateToNmrResidue(self, selectedNmrResidue=None):
-        """
-        Navigate in selected displays to nmrResidue; skip if none defined
+        """Navigate in selected displays to nmrResidue; skip if none defined
         """
         nmrResidue = self.current.nmrResidue
         if not nmrResidue:
@@ -2089,6 +2076,8 @@ DEFAULT_RESIDUE_ATOMS = {'H' : np.array([0, 0]),
                          'CB': np.array([atomSpacing, -2 * atomSpacing]),
                          'CO': np.array([2 * atomSpacing, -1 * atomSpacing])
                          }
+
+# Use loadCompoundPickle from chemBuild to load the structure for these; found in compound.variants.bonds
 
 ATOM_POSITION_DICT = {
 
