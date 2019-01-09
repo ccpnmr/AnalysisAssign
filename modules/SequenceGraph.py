@@ -151,6 +151,8 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
         else:
             return 0
 
+    def clearConnectedList(self):
+        self.connectedList = {}
 
 class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
     """
@@ -580,7 +582,7 @@ class SequenceGraphModule(CcpnModule):
         self._preMouserelease = self.scene.mouseReleaseEvent
         self.scene.mouseReleaseEvent = self._sceneMouseRelease
 
-        self._updateSpectra()
+        self._updateMagnetisationTransfers()
 
         if nmrChain is not None:
             self.selectSequence(nmrChain)
@@ -611,6 +613,16 @@ class SequenceGraphModule(CcpnModule):
         """
         pass
 
+    def _updateMagnetisationTransfers(self):
+        """Generate the list that defines which couplings there are between the nmrAtoms attached to each peak.
+        """
+        self.magnetisationTransfers = OrderedDict()
+        for spec in self.project.spectra:
+            if not spec._flaggedForDelete:
+                self.magnetisationTransfers[spec] = {}
+                for mt in spec.magnetisationTransfers:
+                    self.magnetisationTransfers[spec][mt] = set()
+
     def _updateSpectra(self, data=None):
         """Update list of current spectra and generate new magnetisationTransfer list
         """
@@ -621,12 +633,21 @@ class SequenceGraphModule(CcpnModule):
             object = data[Notifier.OBJECT]
             print('>>> spectrum:', trigger, object)
 
-        # generate the list that defines which couplings there are between the nmrAtoms attached to each peak
-        self.magnetisationTransfers = OrderedDict()
-        for spec in self.project.spectra:
-            self.magnetisationTransfers[spec] = {}
-            for mt in spec.magnetisationTransfers:
-                self.magnetisationTransfers[spec][mt] = set()
+            self._updateMagnetisationTransfers()
+
+            if trigger in [Notifier.CREATE, Notifier.DELETE]:
+                nmrChainPid = self.nmrChainPulldown.getText()
+                if nmrChainPid:
+                    self.setUpdatesEnabled(False)
+                    self.scene.blockSignals(True)
+
+                    self._rebuildPeakAssignments(nmrChainPid)
+
+                    self.scene.blockSignals(False)
+                    self.setUpdatesEnabled(True)
+
+                    # resize to the new items and spawns a repaint
+                    self.scene.setSceneRect(self.scene.itemsBoundingRect().adjusted(-20, -20, 20, 20))
 
     def selectSequence(self, nmrChain=None):
         """Manually select a Sequence from the pullDown
@@ -660,21 +681,28 @@ class SequenceGraphModule(CcpnModule):
         #                                       Peak.__name__,
         #                                       self._updateShownAssignments,
         #                                       onceOnly=True)
-        #
-        # # self._peakNotifier = self.setNotifier(self.project,
-        # #                               [Notifier.CHANGE, Notifier.DELETE],
-        # #                               Peak.__name__,
-        # #                               self._updatePeaks,
-        # #                               onceOnly=True)
-        #
+
+        self._peakNotifier = self.setNotifier(self.project,
+                                      [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                      Peak.className,
+                                      self._updatePeaks,
+                                      onceOnly=True)
+
+        self._nmrAtomNotifier = self.setNotifier(self.project,
+                                      [Notifier.CHANGE, Notifier.DELETE],
+                                      NmrAtom.className,
+                                      self._updateNmrAtoms,
+                                      onceOnly=True)
+
         # self._spectrumNotifier = self.setNotifier(self.project,
         #                                           [Notifier.CHANGE],
         #                                           Spectrum.__name__,
         #                                           self._updateShownAssignments)
 
+        # notifier to change the magnetisationTransfer list when new spectrum added
         self._spectrumListNotifier = self.setNotifier(self.project,
                                                       [Notifier.CREATE, Notifier.DELETE],
-                                                      Spectrum.__name__,
+                                                      Spectrum.className,
                                                       self._updateSpectra)
 
         # # notifier for changing the selected chain - draw new display
@@ -768,23 +796,85 @@ class SequenceGraphModule(CcpnModule):
 
         if trigger == Notifier.DELETE:
 
-            # print ('>>>delete peak')
+            print ('>>>delete peak', peak)
 
-            items = [item for item in self.scene.items() if isinstance(item, AssignmentLine) and item._peak]
-            items2 = [item for item in items if item._peak == peak]
-
-            for item in items2:
-                # print ('  removing', item._peak)
+            items = [item for item in self.assignmentLines if item._peak is peak]
+            for item in items:
+                print ('  removing', item)
                 self.scene.removeItem(item)
 
         elif trigger == Notifier.CREATE:
 
-            pass
+            print ('>>>create peak - no action', peak)
 
         elif trigger == Notifier.CHANGE:
 
-            # modify the line in the table
-            pass
+            print ('>>>change peak', peak)
+
+    def _updateNmrAtoms(self, data):
+        """
+        update the nmrAtoms in the display
+        :param data:
+        """
+        nmrAtom = data[Notifier.OBJECT]
+
+        print('>>>_updateNmrAtoms', nmrAtom)
+        trigger = data[Notifier.TRIGGER]
+
+        if trigger == Notifier.DELETE:
+
+            print ('>>>delete nmrAtom', nmrAtom)
+
+            items = [item for item in self.assignmentLines if item.atom1.nmrAtom is nmrAtom or item.atom2.nmrAtom is nmrAtom]
+            for item in items:
+                print ('  removing', item)
+                self.scene.removeItem(item)
+
+        elif trigger == Notifier.CREATE:
+
+            print ('>>>create nmrAtom - no action', nmrAtom)
+
+        elif trigger == Notifier.CHANGE:
+
+            print ('>>>change nmrAtom', nmrAtom)
+
+    def _rebuildPeakAssignments(self, nmrChainOrPid):
+
+        if isinstance(nmrChainOrPid, str):
+            if not Pid.isValid(nmrChainOrPid):
+                return
+            nmrChain = self.project.getByPid(nmrChainOrPid)
+        else:
+            nmrChain = nmrChainOrPid
+
+        # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
+        if not nmrChain:
+            return
+
+        # update the endpoints
+        for peakLine in self.assignmentLines:
+            self.scene.removeItem(peakLine)
+
+        self.assignmentLines = []
+
+        # reset the displacement values
+        for guiAtom in self.guiNmrAtomDict.values():
+            guiAtom.clearConnectedList()
+
+        # add the peakAssignments
+        if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+            for nmrResidue in nmrChain.nmrResidues:
+                if nmrResidue is nmrResidue.mainNmrResidue:
+                    # add the internally connected Lines
+                    internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
+                    self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                    self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                    self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+                                                                self.assignmentLines, self.connectingLines)
+
+        # update the endpoints
+        for peakLine in self.assignmentLines:
+            peakLine.updateEndPoints()
 
     # @profile
     def setNmrChainDisplay(self, nmrChainOrPid):
@@ -813,9 +903,6 @@ class SequenceGraphModule(CcpnModule):
             ###nmrChain = self.project.getByPid(nmrChainPid)
             ###if self.modePulldown.currentText() == 'fragment':
             if True:
-
-                self.assignmentLines = []
-                self.connectingLines = []
 
                 connectingLinesNeeded = set()
                 if self.nmrResiduesCheckBox.isChecked():
@@ -870,7 +957,8 @@ class SequenceGraphModule(CcpnModule):
                             internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
                             self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
                             self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
-                            self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments, self.assignmentLines)
+                            self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+                                                                        self.assignmentLines, self.connectingLines)
 
                 # update the group positions
                 for ii, res in enumerate(self.guiNmrResidues.items()):
@@ -1084,6 +1172,8 @@ class SequenceGraphModule(CcpnModule):
         self.guiNmrAtomDict = {}
         self.guiGhostNmrResidues = OrderedDict()
         self.ghostList = {}
+        self.connectingLines = []
+        self.assignmentLines = []
         self.scene.clear()
 
     def resetScene(self):
@@ -1434,21 +1524,12 @@ class SequenceGraphModule(CcpnModule):
                                  parent=self, style=style, peak=peak,
                                  atom1=atom1, atom2=atom2, displacement=displacement)
 
-        group.addToGroup(newLine)
+        # not sure why this is different
+        # group.addToGroup(newLine)
+        newLine.setParentItem(group)
+
         lineList.append(newLine)
         return newLine
-
-    # def _addConnectingLineToAdjacentGroup(self, group: GuiNmrResidueGroup, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
-    #                                       colour: str, width: float, displacement: float, style: str = None,
-    #                                       peak: Peak = None, lineList=None):
-    #     """Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
-    #     """
-    #     newLine = AssignmentLine(0, 0, 0, 0, colour, width,
-    #                              parent=self, style=style, peak=peak,
-    #                              atom1=atom1, atom2=atom2, displacement=displacement)
-    #     group.addToGroup(newLine)
-    #     lineList.append(newLine)
-    #     return newLine
 
     def _createGuiNmrAtom(self, atomType: str, position: tuple, nmrAtom: NmrAtom = None) -> GuiNmrAtom:
         """Creates a GuiNmrAtom specified by the atomType and graphical position supplied.
@@ -1787,11 +1868,15 @@ class SequenceGraphModule(CcpnModule):
                                                2.0, displacement=displacement,
                                                peak=peak, lineList=lineList)
 
+                # print('>>>_group', group)
+                # for child in group.childItems():
+                #     print('   >>>_child', child)
+
                 # update displacements for both guiNmrAtoms
                 guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
                 guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
 
-    def _addPeakAssignmentLinesToAdjacentGroup(self, nmrResidue, assignments, lineList):
+    def _addPeakAssignmentLinesToAdjacentGroup(self, nmrResidue, assignments, peaklineList, connectingLineList):
         for specAssignments in assignments.values():
             for nmrAtomPair in specAssignments:
 
@@ -1817,7 +1902,7 @@ class SequenceGraphModule(CcpnModule):
                                                            nmrAtomPair[0].name,
                                                            nmrAtomPair[1].name,
                                                            True,
-                                                           lineList=lineList)
+                                                           lineList=connectingLineList)
                     guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
                                       self.guiNmrAtomDict.get(nmrAtomPair[1]),
                                       nmrAtomPair[2]
@@ -1830,7 +1915,7 @@ class SequenceGraphModule(CcpnModule):
                                                    guiNmrAtomPair[0],
                                                    spectrum.positiveContourColour,
                                                    2.0, displacement=displacement,
-                                                   peak=peak, lineList=lineList)
+                                                   peak=peak, lineList=peaklineList)
 
                 elif guiNmrAtomPair[1] is None:
                     if nmrAtomPair[0].nmrResidue.nmrChain is not nmrResidue.nmrChain:
@@ -1842,7 +1927,7 @@ class SequenceGraphModule(CcpnModule):
                                                            nmrAtomPair[1].name,
                                                            nmrAtomPair[0].name,
                                                            True,
-                                                           lineList=lineList)
+                                                           lineList=connectingLineList)
                     guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
                                       self.guiNmrAtomDict.get(nmrAtomPair[1]),
                                       nmrAtomPair[2]
@@ -1855,7 +1940,7 @@ class SequenceGraphModule(CcpnModule):
                                                    guiNmrAtomPair[1],
                                                    spectrum.positiveContourColour,
                                                    2.0, displacement=displacement,
-                                                   peak=peak, lineList=lineList)
+                                                   peak=peak, lineList=peaklineList)
 
                 else:
                     if nmrAtomPair[0].nmrResidue.nmrChain is nmrResidue.nmrChain:
@@ -1866,7 +1951,7 @@ class SequenceGraphModule(CcpnModule):
                                                        guiNmrAtomPair[1],
                                                        spectrum.positiveContourColour,
                                                        2.0, displacement=displacement,
-                                                       peak=peak, lineList=lineList)
+                                                       peak=peak, lineList=peaklineList)
 
                     elif nmrAtomPair[1].nmrResidue.nmrChain is nmrResidue.nmrChain:
                         group = self.guiNmrResidues[nmrAtomPair[1].nmrResidue]
@@ -1876,7 +1961,7 @@ class SequenceGraphModule(CcpnModule):
                                                        guiNmrAtomPair[0],
                                                        spectrum.positiveContourColour,
                                                        2.0, displacement=displacement,
-                                                       peak=peak, lineList=lineList)
+                                                       peak=peak, lineList=peaklineList)
                     else:
                         continue
 
