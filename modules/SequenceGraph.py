@@ -254,7 +254,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
                 painter.fillRect(pixmap.rect(), QtGui.QColor(0, 0, 0, 240))
                 painter.end()
                 drag.setPixmap(pixmap)
-                drag.setHotSpot(QtCore.QPoint(dragLabel.width() / 2, dragLabel.height() / 2))
+                drag.setHotSpot(QtCore.QPoint(dragLabel.width() // 2, dragLabel.height() // 2))
 
                 drag.exec_(QtCore.Qt.MoveAction)  # ejb - same as BackboneAssignment
 
@@ -473,7 +473,7 @@ class SequenceGraphModule(CcpnModule):
         # add the settings widgets defined from the following orderedDict - test for refactored
         settingsDict = OrderedDict((('peakAssignments', {'label'   : 'Show peak assignments:',
                                                          'tipText' : 'Show peak assignments on display coloured by positiveContourColour.',
-                                                         'callBack': None,  #self.showNmrChainFromPulldown,
+                                                         'callBack': self.showNmrChainFromPulldown,
                                                          'enabled' : True,
                                                          'checked' : True,
                                                          '_init'   : None,
@@ -552,7 +552,7 @@ class SequenceGraphModule(CcpnModule):
                                                           fixedWidths=(colwidth, 15),
                                                           orientation='right', hAlign='left',
                                                           tipText='Show all the NmrResidues in the NmrChain',
-                                                          callback=None,  #self.showNmrChainFromPulldown,
+                                                          callback=self.showNmrChainFromPulldown,
                                                           grid=(0, 3), gridSpan=(1, 1))
 
         # # add a callback that fires when the layout changes the state of the checkbox
@@ -840,6 +840,9 @@ class SequenceGraphModule(CcpnModule):
                             nmrResidue = nmrResidue.previousNmrResidue
                     elif nmrChain.isConnected or nmrChain.chain:  # either NC:# or NC:A type nmrChains but not NC:@
                         nmrResidue = nmrChain.mainNmrResidues[0]
+                    else:
+                        # uses current nmrResidue
+                        nmrResidue = nmrChain.nmrResidues[0]
 
                     while nmrResidue:  # add all of connected stretch
                         self.addResidue(nmrResidue, '+1', lineList=self.connectingLines)
@@ -860,16 +863,14 @@ class SequenceGraphModule(CcpnModule):
                                                        self._lineColour, 1.0, lineList=self.connectingLines)
 
                 # add the peakAssignments
-                if self.nmrResiduesCheckBox.isChecked():
+                if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
                     for nmrResidue in nmrChain.nmrResidues:
                         if nmrResidue is nmrResidue.mainNmrResidue:
-
-                            if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-                                # add the internally connected Lines
-                                internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
-                                self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
-                                self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
-                                self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments, self.assignmentLines)
+                            # add the internally connected Lines
+                            internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
+                            self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                            self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                            self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments, self.assignmentLines)
 
                 # update the group positions
                 for ii, res in enumerate(self.guiNmrResidues.items()):
@@ -1932,9 +1933,12 @@ class SequenceGraphModule(CcpnModule):
     def _getDisplays(self):
         """Return list of displays to navigate - if needed
         """
+        if not self.application:
+            return []
+
         displays = []
         # check for valid displays
-        gids = self.displaysWidget.getTexts()
+        gids = self._SGwidget.displaysWidget.getTexts()
         if len(gids) == 0: return displays
         if ALL in gids:
             displays = self.application.ui.mainWindow.spectrumDisplays
@@ -1962,7 +1966,7 @@ class SequenceGraphModule(CcpnModule):
             log('navigateToNmrResidue', selectedNmrResidue=repr(nmrResidue.pid))
 
             # optionally clear the marks
-            if self.autoClearMarksWidget.checkBox.isChecked():
+            if self._SGwidget.checkBoxes['autoClearMarks']['checkBox'].isChecked():
                 self.mainWindow.clearMarks()
 
             # navigate the displays
@@ -1975,8 +1979,8 @@ class SequenceGraphModule(CcpnModule):
                     navigateToNmrResidueInDisplay(nmrResidue, display, stripIndex=0,
                                                   widths=newWidths,  #['full'] * len(display.strips[0].axisCodes),
                                                   showSequentialResidues=(len(display.axisCodes) > 2) and
-                                                                         self.sequentialStripsWidget.checkBox.isChecked(),
-                                                  markPositions=self.markPositionsWidget.checkBox.isChecked()
+                                                                         self._SGwidget.checkBoxes['sequentialStrips']['checkBox'].isChecked(),
+                                                  markPositions=self._SGwidget.checkBoxes['markPositions']['checkBox'].isChecked()
                                                   )
 
     def _raiseContextMenu(self, object, event: QtGui.QMouseEvent):
