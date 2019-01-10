@@ -799,8 +799,10 @@ class SequenceGraphModule(CcpnModule):
             print ('>>>delete peak', peak)
 
             items = [item for item in self.assignmentLines if item._peak is peak]
+            if items:
+                print ('  >>>removing peaks')
+
             for item in items:
-                print ('  removing', item)
                 self.scene.removeItem(item)
 
         elif trigger == Notifier.CREATE:
@@ -809,7 +811,7 @@ class SequenceGraphModule(CcpnModule):
 
         elif trigger == Notifier.CHANGE:
 
-            print ('>>>change peak', peak)
+            print ('>>>change peak - no action', peak)
 
     def _updateNmrAtoms(self, data):
         """
@@ -826,8 +828,10 @@ class SequenceGraphModule(CcpnModule):
             print ('>>>delete nmrAtom', nmrAtom)
 
             items = [item for item in self.assignmentLines if item.atom1.nmrAtom is nmrAtom or item.atom2.nmrAtom is nmrAtom]
+            if items:
+                print('  >>>removing nmrAtoms')
+
             for item in items:
-                print ('  removing', item)
                 self.scene.removeItem(item)
 
         elif trigger == Notifier.CREATE:
@@ -836,7 +840,7 @@ class SequenceGraphModule(CcpnModule):
 
         elif trigger == Notifier.CHANGE:
 
-            print ('>>>change nmrAtom', nmrAtom)
+            print ('>>>change nmrAtom - no action', nmrAtom)
 
     def _rebuildPeakAssignments(self, nmrChainOrPid):
 
