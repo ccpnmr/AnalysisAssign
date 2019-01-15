@@ -51,6 +51,7 @@ from ccpn.util.Logging import getLogger
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.ui.gui.widgets.PlaneToolbar import STRIPLABEL_CONNECTDIR, STRIPLABEL_CONNECTNONE, \
     STRIPCONNECT_LEFT, STRIPCONNECT_RIGHT
+from ccpn.core.lib.ContextManagers import undoBlock
 
 
 ALL = '<all>'
@@ -192,9 +193,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             showWarning('startAssignment', 'Undefined match module;\nselect in settings first or unselect "Find matches"')
             return
 
-        self.application._startCommandBlock(
-                'BackboneAssignmentModule.navigateToNmrResidue(project.getByPid(%r))' % nmrResidue.pid)
-        try:
+        with undoBlock():
+        # self.application._startCommandBlock(
+        #         'BackboneAssignmentModule.navigateToNmrResidue(project.getByPid(%r))' % nmrResidue.pid)
+        # try:
 
             # optionally clear the marks
             if self.nmrResidueTableSettings.autoClearMarksWidget.checkBox.isChecked():
@@ -216,7 +218,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                         newWidths = []  #_getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
                     else:
                         # set the width in case of nD (n>2)
-                        _widths = {'H': 0.3, 'C': 1.0, 'N': 1.0}
+                        _widths = {'H': 2.5, 'C': 1.0, 'N': 1.0}
                         _ac = display.strips[0].axisCodes[0]
                         _w = _widths.setdefault(_ac[0], 1.0)
                         newWidths = [_w, 'full']
@@ -291,8 +293,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             self.application.current.nmrResidue = nmrResidue
             self.application.current.nmrChain = nmrResidue.nmrChain
 
-        finally:
-            self.application._endCommandBlock()
+        # finally:
+        #     self.application._endCommandBlock()
 
     def findAndDisplayMatches(self, nmrResidue):
         "Find and displays the matches to nmrResidue"
