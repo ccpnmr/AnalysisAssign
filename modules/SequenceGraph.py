@@ -670,12 +670,12 @@ class SequenceGraphModule(CcpnModule):
         """
         # self.current.registerNotify(self._updateModule, 'nmrChains')      # doesn't work
 
-        # self._nmrResidueNotifier = self.setNotifier(self.project,
-        #                                             [Notifier.RENAME, Notifier.CHANGE],
-        #                                             NmrResidue.__name__,
-        #                                             self._resetNmrResiduePidForAssigner,
-        #                                             onceOnly=True)
-        #
+        self._nmrResidueNotifier = self.setNotifier(self.project,
+                                                    [Notifier.RENAME, Notifier.CHANGE],
+                                                    NmrResidue.__name__,
+                                                    self._resetNmrResiduePidForAssigner,
+                                                    onceOnly=True)
+
         # self._peakNotifier = self.setNotifier(self.project,
         #                                       [Notifier.CHANGE],
         #                                       Peak.__name__,
@@ -811,7 +811,21 @@ class SequenceGraphModule(CcpnModule):
 
         elif trigger == Notifier.CHANGE:
 
-            print ('>>>change peak - no action', peak)
+            print ('>>>change peak', peak)
+
+            # the change is undetermined so just process for the moment
+
+            for peakLine in self.assignmentLines:
+                if peak is peakLine.peak:
+
+                    # found a peak
+                    for assignment in peak.assignedNmrAtoms:
+
+                        if peakLine.atoms1.nmrAtom in assignment and peakLine.atoms2.nmrAtom in assignment:
+
+                            # found assignment
+                            print('>>> found assignment', assignment)
+
 
     def _updateNmrAtoms(self, data):
         """
@@ -1106,14 +1120,17 @@ class SequenceGraphModule(CcpnModule):
         print('>>>_resetNmrResiduePidForAssigner')
 
         nmrResidue = data['object']
+        trigger = data[Notifier.TRIGGER]
 
-        nmrChainPid = self.nmrChainPulldown.getText()
-        if self.project.getByPid(nmrChainPid):
+        if trigger == Notifier.RENAME:
+            nmrChainPid = self.nmrChainPulldown.getText()
+            if self.project.getByPid(nmrChainPid):
 
-            for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
-                for guiNmrResidueGroup in self.guiNmrResidues.values():
-                    if guiNmrResidueGroup.nmrResidue is nr:
-                        guiNmrResidueGroup.nmrResidueLabel._update()
+                for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
+                    for guiNmrResidueGroup in self.guiNmrResidues.values():
+                        if guiNmrResidueGroup.nmrResidue is nr:
+                            guiNmrResidueGroup.nmrResidueLabel._update()
+
 
     def deassignPeak(self, selectedPeak=None, selectedNmrAtom=None):
         """Deassign the peak by removing the assigned nmrAtoms from the list
@@ -1124,8 +1141,9 @@ class SequenceGraphModule(CcpnModule):
 
                 try:
                     newList = []
+                    # remove the nmrAtom from the list and replace with None
                     for atomList in selectedPeak.assignedNmrAtoms:
-                        atoms = [atom for atom in list(atomList) if atom != selectedNmrAtom]
+                        atoms = [(atom if atom != selectedNmrAtom else None) for atom in list(atomList)]
                         newList.append(tuple(atoms))
 
                     selectedPeak.assignedNmrAtoms = tuple(newList)
