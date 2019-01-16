@@ -806,6 +806,74 @@ class SequenceGraphModule(CcpnModule):
             nmr = nmr.mainNmrResidue
             residueSet.add(nmr)
 
+    def _rebuildPeakLines(self, peak, rebuildPeakLines=False, makeListFromPeak=False):
+        """Clear all lines on the display associated with peak.
+        """
+        # find the current lines associated with the notified peak
+        peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
+        guiNmrAtomSet = set()
+        nmrResidueSet = set()
+
+        if not makeListFromPeak:
+            # make a list of all the guiNmrAtoms/nmrResidues that are associated with the peak
+            for peakLine in peakLines:
+                # current associated guiNmrAtoms
+                guiNmrAtomSet.add(peakLine.atom1)
+                guiNmrAtomSet.add(peakLine.atom2)
+
+                # current associated nmrResidues and their previous/nextNmrResidues
+                self._addAdjacentResiduesToSet(peakLine.atom1.nmrAtom.nmrResidue, nmrResidueSet)
+                self._addAdjacentResiduesToSet(peakLine.atom2.nmrAtom.nmrResidue, nmrResidueSet)
+
+        else:
+            try:
+                # make a new list for creating a peak; necessary for undo of delete peak as the assignedNmrAtom list exists
+                for assignment in peak.assignments:
+                    for nmrAtom in assignment:
+
+                        if nmrAtom not in self.guiNmrAtomDict:
+                            self.guiNmrAtomDict[nmrAtom] = ...
+
+                        guiNmrAtomSet.add(self.guiNmrAtomDict[nmrAtom])
+                        self._addAdjacentResiduesToSet(nmrAtom.nmrResidue, nmrResidueSet)
+            except Exception as es:
+                pass
+
+        try:
+            for guiAtom in guiNmrAtomSet:
+                for peakLineList in self.assignmentLines.values():
+                    peakLines = [peakLine for peakLine in peakLineList
+                                 if peakLine.atom1 is guiAtom or peakLine.atom2 is guiAtom]
+
+                    # remove all graphic lines
+                    for peakLine in peakLines:
+                        peakLineList.remove(peakLine)
+                        self.scene.removeItem(peakLine)
+
+                # clear connectivity list of guiNmrAtoms
+                guiAtom.clearConnectedList()
+
+            if rebuildPeakLines:
+                # now rebuild for the new peak values
+                # assumes that the peakAssignments have changed - possibly use different notifier
+                if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+                    for nmrResidue in nmrResidueSet:
+
+                        # only process residues in the current visible chain
+                        if nmrResidue is nmrResidue.mainNmrResidue and nmrResidue.nmrChain is self.nmrChain:
+                            # add the internally connected Lines
+                            internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue,
+                                                                                                                                   nmrAtomIncludeList=tuple(guiAtom.nmrAtom for guiAtom in guiNmrAtomSet))
+                            self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                            self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                            self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+                                                                        self.assignmentLines, self.connectingLines)
+
+                # update the endpoints
+                self._updateEndPoints(self.assignmentLines)
+        except Exception as es:
+            pass
+
     def _updatePeaks(self, data):
         """
         update the peaks in the display
@@ -820,16 +888,13 @@ class SequenceGraphModule(CcpnModule):
 
             print ('>>>delete peak', peak)
 
-            peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
-            if peakLines:
-                print ('  >>>removing peaks')
-
-            for peakLine in peakLines:
-                self.scene.removeItem(peakLine)
+            self._rebuildPeakLines(peak, rebuildPeakLines=True)
 
         elif trigger == Notifier.CREATE:
 
-            print ('>>>create peak - no action', peak)
+            print ('>>>create peak', peak)
+
+            self._rebuildPeakLines(peak, rebuildPeakLines=True, makeListFromPeak=True)
 
         elif trigger == Notifier.CHANGE:
 
@@ -837,55 +902,53 @@ class SequenceGraphModule(CcpnModule):
 
             # the change is undetermined so just process for the moment
 
-            linesToDelete = []
-            residuesToUpdate = set()
+            # # find the current lines associated with the notified peak
+            # peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
+            # guiNmrAtomSet = set()
+            # nmrResidueSet = set()
+            #
+            # # make a list of all the guiNmrAtoms/nmrResidues that are associated with the peak
+            # for peakLine in peakLines:
+            #     # current associated guiNmrAtoms
+            #     guiNmrAtomSet.add(peakLine.atom1)
+            #     guiNmrAtomSet.add(peakLine.atom2)
+            #
+            #     # current associated nmrResidues and their previous/nextNmrResidues
+            #     self._addAdjacentResiduesToSet(peakLine.atom1.nmrAtom.nmrResidue, nmrResidueSet)
+            #     self._addAdjacentResiduesToSet(peakLine.atom2.nmrAtom.nmrResidue, nmrResidueSet)
+            #
+            # for guiAtom in guiNmrAtomSet:
+            #     for peakLineList in self.assignmentLines.values():
+            #         peakLines = [peakLine for peakLine in peakLineList
+            #                         if peakLine.atom1 is guiAtom or peakLine.atom2 is guiAtom]
+            #
+            #         # remove all graphic lines
+            #         for peakLine in peakLines:
+            #             peakLineList.remove(peakLine)
+            #             self.scene.removeItem(peakLine)
+            #
+            #     # clear connectivity list of guiNmrAtoms
+            #     guiAtom.clearConnectedList()
 
-            peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
-            guiNmrAtomSet = set()
-            nmrResidueSet = set()
+            self._rebuildPeakLines(peak, rebuildPeakLines=True)
 
-            for peakLine in peakLines:
-                # current affected nmrAtoms
-
-                guiNmrAtomSet.add(peakLine.atom1)
-                guiNmrAtomSet.add(peakLine.atom2)
-
-                self._addAdjacentResiduesToSet(peakLine.atom1.nmrAtom.nmrResidue, nmrResidueSet)
-                self._addAdjacentResiduesToSet(peakLine.atom2.nmrAtom.nmrResidue, nmrResidueSet)
-
-                # nmrResidueSet._add(peakLine.atom1.nmrAtom.nmrResidue)
-                # nmrResidueSet.add(peakLine.atom2.nmrAtom.nmrResidue)
-
-            print('>>>', peakLines)
-            print('>>>', [guiAtom.nmrAtom for guiAtom in guiNmrAtomSet])
-            for guiAtom in guiNmrAtomSet:
-                for peakLineList in self.assignmentLines.values():
-                    peakLines = [peakLine for peakLine in peakLineList
-                                    if peakLine.atom1 is guiAtom or peakLine.atom2 is guiAtom]
-
-                    for peakLine in peakLines:
-                        peakLineList.remove(peakLine)
-                        self.scene.removeItem(peakLine)
-
-                guiAtom.clearConnectedList()
-
-            # now rebuild for the new peak values
-            # add the peakAssignments
-            if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-                for nmrResidue in nmrResidueSet:
-
-                    # only process residues in the current visible chain
-                    if nmrResidue is nmrResidue.mainNmrResidue and nmrResidue.nmrChain is self.nmrChain:
-                        # add the internally connected Lines
-                        internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue,
-                                                                                                                               nmrAtomIncludeList=tuple(guiAtom.nmrAtom for guiAtom in guiNmrAtomSet))
-                        self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
-                        self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
-                        self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
-                                                                    self.assignmentLines, self.connectingLines)
-
-            # update the endpoints
-            self._updateEndPoints(self.assignmentLines)
+            # # now rebuild for the new peak values
+            # # assumes that the peakAssignments have changed - possibly use different notifier
+            # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+            #     for nmrResidue in nmrResidueSet:
+            #
+            #         # only process residues in the current visible chain
+            #         if nmrResidue is nmrResidue.mainNmrResidue and nmrResidue.nmrChain is self.nmrChain:
+            #             # add the internally connected Lines
+            #             internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue,
+            #                                                                                                                    nmrAtomIncludeList=tuple(guiAtom.nmrAtom for guiAtom in guiNmrAtomSet))
+            #             self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+            #             self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+            #             self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+            #                                                         self.assignmentLines, self.connectingLines)
+            #
+            # # update the endpoints
+            # self._updateEndPoints(self.assignmentLines)
 
             return
 
@@ -1702,6 +1765,11 @@ class SequenceGraphModule(CcpnModule):
         for nmrAtom in nmrResidue.nmrAtoms:
 
             for peak in nmrAtom.assignedPeaks:
+
+                # ignore peaks that are due for delete (can probably also use the notifier list)
+                if peak._flaggedForDelete:
+                    continue
+
                 spec = peak.peakList.spectrum
                 for assignment in peak.assignments:
 
