@@ -142,6 +142,15 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
         else:
             self.connectedList[keyVal] = 1
 
+    def removeConnectedList(self, connectedAtom):
+        # keyVal = str(connectedAtom.nmrAtom.pid)
+
+        keyVal = connectedAtom
+        if keyVal in self.connectedList:
+            self.connectedList[keyVal] -= 1
+        else:
+            raise RuntimeError('Connection does not exist')
+
     def getConnectedList(self, connectedAtom):
         # keyVal = str(connectedAtom.nmrAtom.pid)
 
@@ -152,6 +161,8 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
             return 0
 
     def clearConnectedList(self):
+        for keyVal in self.connectedList:
+            del keyVal.connectedList[self]
         self.connectedList = {}
 
 class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
@@ -784,6 +795,17 @@ class SequenceGraphModule(CcpnModule):
             self.predictedStretch.remove(nmrResidue)
         # print('>>>end')
 
+    def _addAdjacentResiduesToSet(self, nmrResidue, residueSet):
+        residueSet.add(nmrResidue)
+        nmr = nmrResidue.previousNmrResidue
+        if nmr:
+            nmr = nmr.mainNmrResidue
+            residueSet.add(nmr)
+        nmr = nmrResidue.nextNmrResidue
+        if nmr:
+            nmr = nmr.mainNmrResidue
+            residueSet.add(nmr)
+
     def _updatePeaks(self, data):
         """
         update the peaks in the display
@@ -798,12 +820,12 @@ class SequenceGraphModule(CcpnModule):
 
             print ('>>>delete peak', peak)
 
-            items = [item for item in self.assignmentLines if item._peak is peak]
-            if items:
+            peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
+            if peakLines:
                 print ('  >>>removing peaks')
 
-            for item in items:
-                self.scene.removeItem(item)
+            for peakLine in peakLines:
+                self.scene.removeItem(peakLine)
 
         elif trigger == Notifier.CREATE:
 
@@ -815,17 +837,104 @@ class SequenceGraphModule(CcpnModule):
 
             # the change is undetermined so just process for the moment
 
-            for peakLine in self.assignmentLines:
-                if peak is peakLine.peak:
+            linesToDelete = []
+            residuesToUpdate = set()
 
-                    # found a peak
-                    for assignment in peak.assignedNmrAtoms:
+            peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
+            guiNmrAtomSet = set()
+            nmrResidueSet = set()
 
-                        if peakLine.atoms1.nmrAtom in assignment and peakLine.atoms2.nmrAtom in assignment:
+            for peakLine in peakLines:
+                # current affected nmrAtoms
 
-                            # found assignment
-                            print('>>> found assignment', assignment)
+                guiNmrAtomSet.add(peakLine.atom1)
+                guiNmrAtomSet.add(peakLine.atom2)
 
+                self._addAdjacentResiduesToSet(peakLine.atom1.nmrAtom.nmrResidue, nmrResidueSet)
+                self._addAdjacentResiduesToSet(peakLine.atom2.nmrAtom.nmrResidue, nmrResidueSet)
+
+                # nmrResidueSet._add(peakLine.atom1.nmrAtom.nmrResidue)
+                # nmrResidueSet.add(peakLine.atom2.nmrAtom.nmrResidue)
+
+            print('>>>', peakLines)
+            print('>>>', [guiAtom.nmrAtom for guiAtom in guiNmrAtomSet])
+            for guiAtom in guiNmrAtomSet:
+                for peakLineList in self.assignmentLines.values():
+                    peakLines = [peakLine for peakLine in peakLineList
+                                    if peakLine.atom1 is guiAtom or peakLine.atom2 is guiAtom]
+
+                    for peakLine in peakLines:
+                        peakLineList.remove(peakLine)
+                        self.scene.removeItem(peakLine)
+
+                guiAtom.clearConnectedList()
+
+            # now rebuild for the new peak values
+            # add the peakAssignments
+            if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+                for nmrResidue in nmrResidueSet:
+
+                    # only process residues in the current visible chain
+                    if nmrResidue is nmrResidue.mainNmrResidue and nmrResidue.nmrChain is self.nmrChain:
+                        # add the internally connected Lines
+                        internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue,
+                                                                                                                               nmrAtomIncludeList=tuple(guiAtom.nmrAtom for guiAtom in guiNmrAtomSet))
+                        self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                        self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                        self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+                                                                    self.assignmentLines, self.connectingLines)
+
+            # update the endpoints
+            self._updateEndPoints(self.assignmentLines)
+
+            return
+
+
+
+
+
+
+            for peakLine in peakLines:
+                # found a peak
+                for assignment in peak.assignedNmrAtoms:
+
+                    if peakLine.atom1.nmrAtom in assignment and peakLine.atom2.nmrAtom in assignment:
+
+                        pass
+
+                    elif peakLine.atom1.nmrAtom in assignment or peakLine.atom2.nmrAtom in assignment:
+
+                        # found assignment
+                        print('>>> found assignment one end:', peakLine, assignment)
+
+                        linesToDelete.append((peakLine, peakLine.atom1.connectedList(peakLine.atom2)))
+
+                        residuesToUpdate.add(peakLine.atom1.guiNmrResidueGroup)
+                        residuesToUpdate.add(peakLine.atom2.guiNmrResidueGroup)
+
+                        # update displacements
+                        # if peakLine.atom1.nmrAtom in assignment:
+                        #     # first nmrAtom exists
+                        #
+                        #
+                        # else:
+                        #     # second exists
+
+                    else:
+
+                        pass
+
+            for peakLine, peakLineCount in linesToDelete:
+                # delete from the scene and the assignment list
+                self.scene.removeItem(peakLine)
+                for peakLineList in self.assignmentLines.values():
+                    if peakLine in peakLineList:
+                        peakLineList.remove(peakLine)
+
+                        atom1Count = peakLine.atom1.removeConnectedList(peakLine.atom2)
+                        atom2Count = peakLine.atom2.removeConnectedList(peakLine.atom1)
+
+                print('>>>removing', peakLine, atom1Count, atom2Count)
 
     def _updateNmrAtoms(self, data):
         """
@@ -841,13 +950,6 @@ class SequenceGraphModule(CcpnModule):
 
             print ('>>>delete nmrAtom', nmrAtom)
 
-            items = [item for item in self.assignmentLines if item.atom1.nmrAtom is nmrAtom or item.atom2.nmrAtom is nmrAtom]
-            if items:
-                print('  >>>removing nmrAtoms')
-
-            for item in items:
-                self.scene.removeItem(item)
-
         elif trigger == Notifier.CREATE:
 
             print ('>>>create nmrAtom - no action', nmrAtom)
@@ -855,6 +957,22 @@ class SequenceGraphModule(CcpnModule):
         elif trigger == Notifier.CHANGE:
 
             print ('>>>change nmrAtom - no action', nmrAtom)
+
+    def _removeLinesFromScene(self, lineDist):
+        """Remove all the peakLines from the scene.
+        """
+        for lineList in lineDist.values():
+            for line in lineList:
+                self.scene.removeItem(line)
+
+        self.assignmentLines = {}
+
+    def _updateEndPoints(self, lineDict):
+        """Update the end points from the dict.
+        """
+        for lineList in lineDict.values():
+            for line in lineList:
+                line.updateEndPoints()
 
     def _rebuildPeakAssignments(self, nmrChainOrPid):
 
@@ -869,11 +987,7 @@ class SequenceGraphModule(CcpnModule):
         if not nmrChain:
             return
 
-        # update the endpoints
-        for peakLine in self.assignmentLines:
-            self.scene.removeItem(peakLine)
-
-        self.assignmentLines = []
+        self._removePeakLinesFromScene(self.assignmentLines)
 
         # reset the displacement values
         for guiAtom in self.guiNmrAtomDict.values():
@@ -891,8 +1005,7 @@ class SequenceGraphModule(CcpnModule):
                                                                 self.assignmentLines, self.connectingLines)
 
         # update the endpoints
-        for peakLine in self.assignmentLines:
-            peakLine.updateEndPoints()
+        self._updateEndPoints(self.assignmentLines)
 
     # @profile
     def setNmrChainDisplay(self, nmrChainOrPid):
@@ -965,7 +1078,7 @@ class SequenceGraphModule(CcpnModule):
                     if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
                         self._addConnectingLineToGroup(tuple(self.guiNmrResidues.values())[ii],
                                                        res['CO'], self.guiResiduesShown[ii + 1]['N'],
-                                                       self._lineColour, 1.0, lineList=self.connectingLines)
+                                                       self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
 
                 # add the peakAssignments
                 if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
@@ -995,10 +1108,8 @@ class SequenceGraphModule(CcpnModule):
                                                   newPosy + (count * 2.5 + 5.0) * self.atomSpacing))
 
                 # update the endpoints
-                for connectingLine in self.connectingLines:
-                    connectingLine.updateEndPoints()
-                for peakLine in self.assignmentLines:
-                    peakLine.updateEndPoints()
+                self._updateEndPoints(self.connectingLines)
+                self._updateEndPoints(self.assignmentLines)
 
             # if self._SGwidget.assignmentsCheckBox.isChecked():
             # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
@@ -1119,6 +1230,8 @@ class SequenceGraphModule(CcpnModule):
         """
         print('>>>_resetNmrResiduePidForAssigner')
 
+        return
+
         nmrResidue = data['object']
         trigger = data[Notifier.TRIGGER]
 
@@ -1194,8 +1307,8 @@ class SequenceGraphModule(CcpnModule):
         self.guiNmrAtomDict = {}
         self.guiGhostNmrResidues = OrderedDict()
         self.ghostList = {}
-        self.connectingLines = []
-        self.assignmentLines = []
+        self.connectingLines = {}
+        self.assignmentLines = {}
         self.scene.clear()
 
     def resetScene(self):
@@ -1261,13 +1374,13 @@ class SequenceGraphModule(CcpnModule):
         # modify the group
         nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
         if "CB" in list(atoms.keys()):
-            self._addConnectingLineToGroup(guiResidueGroup, atoms['CA'], atoms['CB'], self._lineColour, 1.0, lineList=lineList)
+            self._addConnectingLineToGroup(guiResidueGroup, atoms['CA'], atoms['CB'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
         if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
-            self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList)
+            self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
-        self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
-        self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
+        self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+        self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
         self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
 
@@ -1289,13 +1402,13 @@ class SequenceGraphModule(CcpnModule):
         # modify the group
         nmrAtoms = [atom.name for atom in nmrResidue.nmrAtoms]
         if "CB" in list(atoms.keys()):
-            self._addConnectingLineToGroup(guiResidueGroup, atoms['CA'], atoms['CB'], self._lineColour, 1.0, lineList=lineList)
+            self._addConnectingLineToGroup(guiResidueGroup, atoms['CA'], atoms['CB'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
         if "H" in list(atoms.keys()) and nmrResidue.residueType != 'PRO':
-            self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList)
+            self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
-        self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
-        self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList)
+        self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+        self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
         # self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
 
@@ -1539,7 +1652,7 @@ class SequenceGraphModule(CcpnModule):
 
     def _addConnectingLineToGroup(self, group: GuiNmrResidueGroup, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
                                   colour: str, width: float, displacement: float = None, style: str = None,
-                                  peak: Peak = None, lineList=None):
+                                  peak: Peak = None, lineList=None, lineId='default'):
         """Adds a line between two GuiNmrAtoms using the width, colour, displacement and style specified.
         """
         newLine = AssignmentLine(0, 0, 0, 0, colour, width,
@@ -1550,7 +1663,10 @@ class SequenceGraphModule(CcpnModule):
         # group.addToGroup(newLine)
         newLine.setParentItem(group)
 
-        lineList.append(newLine)
+        itemKey = id(lineId)
+        if itemKey not in lineList:
+            lineList[itemKey] = []
+        lineList[itemKey].append(newLine)
         return newLine
 
     def _createGuiNmrAtom(self, atomType: str, position: tuple, nmrAtom: NmrAtom = None) -> GuiNmrAtom:
@@ -1569,7 +1685,7 @@ class SequenceGraphModule(CcpnModule):
         self.guiNmrAtomDict[nmrAtom] = atom
         return atom
 
-    def _getPeakAssignmentsForResidue(self, nmrResidue):
+    def _getPeakAssignmentsForResidue(self, nmrResidue, nmrAtomIncludeList=None):
         """Get the list of peak assignments from the nmrAtoms
         interResidueAtomPairing is the linking within the same nmrResidue
         interChainAtomPairing is the linking within the same chain but to different nmrResidues
@@ -1630,6 +1746,10 @@ class SequenceGraphModule(CcpnModule):
                         nmrAtom1 = nmrAtom1 if nmrAtom1 else None
 
                         if not None in (nmrAtom0, nmrAtom1):
+
+                            # ignore nmrAtoms that are not in the include list (if specified)
+                            if nmrAtomIncludeList and not (nmrAtom0 in nmrAtomIncludeList or nmrAtom1 in nmrAtomIncludeList):
+                                continue
 
                             if (nmrAtom0.nmrResidue is nmrResidue) and (nmrAtom1.nmrResidue is nmrResidue):
 
@@ -1882,13 +2002,17 @@ class SequenceGraphModule(CcpnModule):
                 displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
 
                 # add the internal line to the guiNmrResidueGroup, should now move when group is moved
-                group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+                try:
+                    group = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+                except Exception as es:
+                    pass
+
                 self._addConnectingLineToGroup(group,
                                                guiNmrAtomPair[0],
                                                guiNmrAtomPair[1],
                                                spectrum.positiveContourColour,
                                                2.0, displacement=displacement,
-                                               peak=peak, lineList=lineList)
+                                               peak=peak, lineList=lineList, lineId=peak)
 
                 # print('>>>_group', group)
                 # for child in group.childItems():
@@ -1937,7 +2061,7 @@ class SequenceGraphModule(CcpnModule):
                                                    guiNmrAtomPair[0],
                                                    spectrum.positiveContourColour,
                                                    2.0, displacement=displacement,
-                                                   peak=peak, lineList=peaklineList)
+                                                   peak=peak, lineList=peaklineList, lineId=nmrResidue)
 
                 elif guiNmrAtomPair[1] is None:
                     if nmrAtomPair[0].nmrResidue.nmrChain is not nmrResidue.nmrChain:
@@ -1962,7 +2086,7 @@ class SequenceGraphModule(CcpnModule):
                                                    guiNmrAtomPair[1],
                                                    spectrum.positiveContourColour,
                                                    2.0, displacement=displacement,
-                                                   peak=peak, lineList=peaklineList)
+                                                   peak=peak, lineList=peaklineList, lineId=nmrResidue)
 
                 else:
                     if nmrAtomPair[0].nmrResidue.nmrChain is nmrResidue.nmrChain:
@@ -1973,7 +2097,7 @@ class SequenceGraphModule(CcpnModule):
                                                        guiNmrAtomPair[1],
                                                        spectrum.positiveContourColour,
                                                        2.0, displacement=displacement,
-                                                       peak=peak, lineList=peaklineList)
+                                                       peak=peak, lineList=peaklineList, lineId=nmrResidue)
 
                     elif nmrAtomPair[1].nmrResidue.nmrChain is nmrResidue.nmrChain:
                         group = self.guiNmrResidues[nmrAtomPair[1].nmrResidue]
@@ -1983,7 +2107,7 @@ class SequenceGraphModule(CcpnModule):
                                                        guiNmrAtomPair[0],
                                                        spectrum.positiveContourColour,
                                                        2.0, displacement=displacement,
-                                                       peak=peak, lineList=peaklineList)
+                                                       peak=peak, lineList=peaklineList, lineId=nmrResidue)
                     else:
                         continue
 
