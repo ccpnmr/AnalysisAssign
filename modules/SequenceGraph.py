@@ -826,18 +826,20 @@ class SequenceGraphModule(CcpnModule):
                 self._addAdjacentResiduesToSet(peakLine.atom2.nmrAtom.nmrResidue, nmrResidueSet)
 
         else:
-            try:
-                # make a new list for creating a peak; necessary for undo of delete peak as the assignedNmrAtom list exists
-                for assignment in peak.assignments:
-                    for nmrAtom in assignment:
+            # make a new list for creating a peak; necessary for undo of delete peak as the assignedNmrAtom list exists
+            for assignment in peak.assignments:
+                for nmrAtom in assignment:
 
-                        if nmrAtom not in self.guiNmrAtomDict:
-                            self.guiNmrAtomDict[nmrAtom] = ...
-
+                    try:
+                        # if nmrAtom not in self.guiNmrAtomDict:
+                        #     self.guiNmrAtomDict[nmrAtom] = ...
+                        #
                         guiNmrAtomSet.add(self.guiNmrAtomDict[nmrAtom])
                         self._addAdjacentResiduesToSet(nmrAtom.nmrResidue, nmrResidueSet)
-            except Exception as es:
-                pass
+                    except Exception as es:
+
+                        # okay, as these lines were never in the display :)
+                        print('>>>_rebuildPeakLines error recovering guiNmrAtom from', nmrAtom)
 
         try:
             for guiAtom in guiNmrAtomSet:
