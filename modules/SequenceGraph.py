@@ -163,6 +163,15 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
             return 0
 
     def clearConnectedList(self):
+        """Clear all connections for this guiNmrAtom but do not delete.
+        """
+        for keyVal in self.connectedList:
+            keyVal.connectedList[self] = 0
+            self.connectedList[keyVal] = 0
+
+    def deleteConnectedList(self):
+        """Delete all connections for this guiNmrAtom.
+        """
         for keyVal in self.connectedList:
             del keyVal.connectedList[self]
         self.connectedList = {}
@@ -349,57 +358,61 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
         """Update the endPoints of the line to point. Co-ordinates are relative to the group to
         which the graphicsItem belongs, in this case the guiNmrResidue group. GuiNmrResidue group is the top level relative to the scene.
         """
-        atom1 = self.atom1
-        atom2 = self.atom2
-        residue1 = atom1.guiNmrResidueGroup
-        residue2 = atom2.guiNmrResidueGroup
-        rx1 = residue1.x()
-        ry1 = residue1.y()
-        rx2 = residue2.x()
-        ry2 = residue2.y()
+        try:
+            atom1 = self.atom1
+            atom2 = self.atom2
+            residue1 = atom1.guiNmrResidueGroup
+            residue2 = atom2.guiNmrResidueGroup
 
-        atom1Rect = atom1.boundingRect()
-        atom2Rect = atom2.boundingRect()
-        w1 = atom1Rect.width()
-        h1 = atom1Rect.height()
-        w2 = atom2Rect.width()
-        h2 = atom2Rect.height()
+            rx1 = residue1.x()
+            ry1 = residue1.y()
+            rx2 = residue2.x()
+            ry2 = residue2.y()
 
-        if atom2.x() < atom1.x():
-            x1 = atom1.x()  # + rx1
-            y1 = atom1.y()  # + ry1
-            x2 = atom2.x() + (rx2 - rx1)
-            y2 = atom2.y() + (ry2 - ry1)
-        else:
-            x1 = atom2.x() + (rx2 - rx1)
-            y1 = atom2.y() + (ry2 - ry1)
-            x2 = atom1.x()  # + rx1
-            y2 = atom1.y()  # + ry1
+            atom1Rect = atom1.boundingRect()
+            atom2Rect = atom2.boundingRect()
+            w1 = atom1Rect.width()
+            h1 = atom1Rect.height()
+            w2 = atom2Rect.width()
+            h2 = atom2Rect.height()
 
-        dx = x2 - x1
-        dy = y2 - y1
-        length = 2.0 * pow(dx * dx + dy * dy, 0.5)
-        if self.displacement is not None:
-            count = (atom1.connectedList[atom2] - 1) // 2
-            disp = 6.0 * (self.displacement - count) / length
-        else:
-            disp = 0.0
-        offsetX = dy * disp
-        offsetY = -dx * disp
-        kx1 = (w1 * dx) / length  # shorten the lines along length
-        ky1 = (h1 * dy) / length
-        kx2 = (w2 * dx) / length
-        ky2 = (h2 * dy) / length
+            if atom2.x() < atom1.x():
+                x1 = atom1.x()  # + rx1
+                y1 = atom1.y()  # + ry1
+                x2 = atom2.x() + (rx2 - rx1)
+                y2 = atom2.y() + (ry2 - ry1)
+            else:
+                x1 = atom2.x() + (rx2 - rx1)
+                y1 = atom2.y() + (ry2 - ry1)
+                x2 = atom1.x()  # + rx1
+                y2 = atom1.y()  # + ry1
 
-        xOff1 = w1 / 2.0  # offset to centre of bounding box
-        yOff1 = h1 / 2.0
-        xOff2 = w2 / 2.0
-        yOff2 = h2 / 2.0
+            dx = x2 - x1
+            dy = y2 - y1
+            length = 2.0 * pow(dx * dx + dy * dy, 0.5)
+            if self.displacement is not None:
+                count = (atom1.connectedList[atom2] - 1) // 2
+                disp = 6.0 * (self.displacement - count) / length
+            else:
+                disp = 0.0
+            offsetX = dy * disp
+            offsetY = -dx * disp
+            kx1 = (w1 * dx) / length  # shorten the lines along length
+            ky1 = (h1 * dy) / length
+            kx2 = (w2 * dx) / length
+            ky2 = (h2 * dy) / length
 
-        x1 += xOff1 + kx1 + offsetX
-        y1 += yOff1 + ky1 + offsetY
-        x2 += xOff2 - kx2 + offsetX
-        y2 += yOff2 - ky2 + offsetY
+            xOff1 = w1 / 2.0  # offset to centre of bounding box
+            yOff1 = h1 / 2.0
+            xOff2 = w2 / 2.0
+            yOff2 = h2 / 2.0
+
+            x1 += xOff1 + kx1 + offsetX
+            y1 += yOff1 + ky1 + offsetY
+            x2 += xOff2 - kx2 + offsetX
+            y2 += yOff2 - ky2 + offsetY
+        except Exception as es:
+            pass
 
         self.setLine(x1, y1, x2, y2)
 
@@ -703,11 +716,11 @@ class SequenceGraphModule(CcpnModule):
         """
         # self.current.registerNotify(self._updateModule, 'nmrChains')      # doesn't work
 
-        self._nmrResidueNotifier = self.setNotifier(self.project,
-                                                    [Notifier.RENAME, Notifier.CHANGE],
-                                                    NmrResidue.__name__,
-                                                    self._resetNmrResiduePidForAssigner,
-                                                    onceOnly=True)
+        # self._nmrResidueNotifier = self.setNotifier(self.project,
+        #                                             [Notifier.RENAME, Notifier.CHANGE],
+        #                                             NmrResidue.__name__,
+        #                                             self._resetNmrResiduePidForAssigner,
+        #                                             onceOnly=True)
 
         # self._peakNotifier = self.setNotifier(self.project,
         #                                       [Notifier.CHANGE],
@@ -721,11 +734,11 @@ class SequenceGraphModule(CcpnModule):
                                               self._updatePeaks,
                                               onceOnly=True)
 
-        self._nmrAtomNotifier = self.setNotifier(self.project,
-                                                 [Notifier.CHANGE, Notifier.DELETE],
-                                                 NmrAtom.className,
-                                                 self._updateNmrAtoms,
-                                                 onceOnly=True)
+        # self._nmrAtomNotifier = self.setNotifier(self.project,
+        #                                          [Notifier.CHANGE, Notifier.DELETE],
+        #                                          NmrAtom.className,
+        #                                          self._updateNmrAtoms,
+        #                                          onceOnly=True)
 
         # self._spectrumNotifier = self.setNotifier(self.project,
         #                                           [Notifier.CHANGE],
@@ -940,15 +953,17 @@ class SequenceGraphModule(CcpnModule):
         for lineList in lineDist.values():
             for line in lineList:
                 self.scene.removeItem(line)
-
-        self.assignmentLines = {}
+        lineDist.clear()
 
     def _updateEndPoints(self, lineDict):
         """Update the end points from the dict.
         """
         for lineList in lineDict.values():
             for line in lineList:
-                line.updateEndPoints()
+                try:
+                    line.updateEndPoints()
+                except Exception as es:
+                    pass
 
     def _updateGuiResiduePositions(self, updateMainChain=True, updateConnectedChains=True):
         """Update the positions of the residues and connected residues in other chains if required.
@@ -976,7 +991,8 @@ class SequenceGraphModule(CcpnModule):
         self._updateEndPoints(self.assignmentLines)
 
     def _rebuildPeakAssignments(self, nmrChainOrPid):
-
+        """Rebuild all the peak assignments in the display after changing the number of spectra.
+        """
         if isinstance(nmrChainOrPid, str):
             if not Pid.isValid(nmrChainOrPid):
                 return
@@ -988,9 +1004,10 @@ class SequenceGraphModule(CcpnModule):
         if not nmrChain:
             return
 
-        self._removePeakLinesFromScene(self.assignmentLines)
+        # remove all previous assignment lines and reset the dict
+        self._removeLinesFromScene(self.assignmentLines)
 
-        # reset the displacement values
+        # clear the displacement values but keep the dict connections
         for guiAtom in self.guiNmrAtomDict.values():
             guiAtom.clearConnectedList()
 
@@ -1003,7 +1020,7 @@ class SequenceGraphModule(CcpnModule):
                     self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
                     self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
                     self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
-                                                                self.assignmentLines, self.connectingLines)
+                                                                    self.assignmentLines, self.connectingLines)
 
         # update the endpoints
         self._updateEndPoints(self.assignmentLines)
@@ -1584,7 +1601,7 @@ class SequenceGraphModule(CcpnModule):
             for peak in nmrAtom.assignedPeaks:
 
                 # ignore peaks that are due for delete (can probably also use the notifier list)
-                if peak._flaggedForDelete:
+                if peak._flaggedForDelete or peak.isDeleted:
                     continue
 
                 spec = peak.peakList.spectrum
