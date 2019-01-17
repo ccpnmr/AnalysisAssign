@@ -1201,7 +1201,7 @@ class SequenceGraphModule(CcpnModule):
     def _resetNmrResiduePidForAssigner(self, data):  #nmrResidue, oldPid:str):
         """Reset pid for NmrResidue and all offset NmrResidues
         """
-        print('>>>_resetNmrResiduePidForAssigner')
+        print('>>>_resetNmrResiduePidForAssigner - no action')
 
         return
 
