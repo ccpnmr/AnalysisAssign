@@ -1128,12 +1128,16 @@ class SequenceGraphModule(CcpnModule):
                         self.current.nmrResidue.unlinkPreviousNmrResidue()
                     except Exception as es:
                         showWarning(str(self.windowTitle()), str(es))
+                        if self.application._isInDebugMode:
+                            raise es
             elif self.current.nmrResidue.mainNmrResidue.previousNmrResidue:
                 with progressManager(self.mainWindow, 'unlinking Next NmrResidue to:\n ' + selected):
                     try:
                         self.current.nmrResidue.unlinkNextNmrResidue()
                     except Exception as es:
                         showWarning(str(self.windowTitle()), str(es))
+                        if self.application._isInDebugMode:
+                            raise es
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
@@ -1146,6 +1150,8 @@ class SequenceGraphModule(CcpnModule):
                     self.current.nmrResidue.disconnectPrevious()
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
@@ -1158,6 +1164,8 @@ class SequenceGraphModule(CcpnModule):
                     self.current.nmrResidue.disconnect()
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
@@ -1170,6 +1178,8 @@ class SequenceGraphModule(CcpnModule):
                     self.current.nmrResidue.disconnectNext()
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
@@ -1182,6 +1192,8 @@ class SequenceGraphModule(CcpnModule):
                     self.current.nmrResidue.disconnectAll()
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
@@ -1194,6 +1206,8 @@ class SequenceGraphModule(CcpnModule):
                     self.current.nmrResidue.deassignNmrChain()
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
@@ -1236,6 +1250,8 @@ class SequenceGraphModule(CcpnModule):
 
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
     def deassignNmrAtom(self, selectedNmrAtom=None):
         """Remove the selected peaks from the assignedPeaks list
@@ -1263,6 +1279,8 @@ class SequenceGraphModule(CcpnModule):
 
                 except Exception as es:
                     showWarning(str(self.windowTitle()), str(es))
+                    if self.application._isInDebugMode:
+                        raise es
 
     def clearAllItems(self):
         """Removes all displayed residues in the sequence graph and resets items count to zero.
