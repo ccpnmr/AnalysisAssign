@@ -1608,7 +1608,7 @@ class SequenceGraphModule(CcpnModule):
                             else:
                                 newCon[conNum] = None                   # not connected so skip
 
-                        elif assignment[conNum].nmrResidue.relativeOffset == +1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+                        elif assignment[conNum] and assignment[conNum].nmrResidue.relativeOffset == +1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
 
                             # this is a plus residue so find connected, have to traverse to the nextNmrResidue
                             # will it always exist?
