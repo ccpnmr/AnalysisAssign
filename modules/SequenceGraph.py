@@ -936,11 +936,12 @@ class SequenceGraphModule(CcpnModule):
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-                print('>>>delete nmrResidue - no action', nmrResidue)
+                print('>>>delete nmrResidue', nmrResidue)
                 self._deleteNmrResidues(nmrResidue)
 
             elif trigger == Notifier.CREATE:
-                print('>>>create nmrResidue - no action', nmrResidue)
+                print('>>>create nmrResidue', nmrResidue)
+                self._createNmrResidues(nmrResidue)
 
             elif trigger == Notifier.CHANGE:
                 print('>>>change nmrResidue - no action', nmrResidue)
@@ -990,8 +991,9 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrResidues = makeIterableList(nmrResidues)
 
-        for nmrResidue in nmrResidues:
-            pass
+        nmrResidues = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain is self.nmrChain]
+        self._buildNmrResidues(nmrResidues)
+
 
     def _deleteNmrResidues(self, nmrResidues):
         """Delete the nmrResidue from the scene
@@ -1002,7 +1004,6 @@ class SequenceGraphModule(CcpnModule):
 
             # ignore if not in the visible chain
             if nmrResidue in self.predictedStretch:
-                print('>>>_deleteNmrResidues', nmrResidue)
 
                 ii = self.predictedStretch.index(nmrResidue)
                 # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
@@ -1130,6 +1131,49 @@ class SequenceGraphModule(CcpnModule):
         # update the endpoints
         self._updateEndPoints(self.assignmentLines)
 
+    def _buildNmrResidues(self, nmrResidueList):
+        """Build the new residues in the list, inserting into the predicted stretch at the correct index.
+        """
+        connectingLinesNeeded = set()
+        if self.nmrResiduesCheckBox.isChecked():
+            for nmrResidue in nmrResidueList:
+                if nmrResidue is nmrResidue.mainNmrResidue:
+
+                    ii = self.nmrChain.nmrResidues.index(nmrResidue)
+                    self.addResidue(nmrResidue, ii, lineList=self.connectingLines)
+
+                    # add a connecting line to the adjacent residue
+                    if nmrResidue.nextNmrResidue:
+                        connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
+        else:
+            # find where to add in the predicted stretch
+            raise RuntimeError('error - not implemented yet')
+
+        if len(self.predictedStretch) > 2:
+            self.predictSequencePosition(self.predictedStretch)
+
+        # add the connecting lines
+        guiNmrResidues = [self.guiNmrResidues[nmrResidue] for nmrResidue in nmrResidueList]
+
+        for ii, res in enumerate(guiNmrResidues):
+            if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
+                self._addConnectingLineToGroup(tuple(self.guiNmrResidues.values())[ii],
+                                               res['CO'], self.guiResiduesShown[ii + 1]['N'],
+                                               self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
+
+        # add the peakAssignments
+        if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+            for nmrResidue in nmrResidueList:
+                if nmrResidue is nmrResidue.mainNmrResidue:
+                    # add the internally connected Lines
+                    internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
+                    self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                    self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                    self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+                                                                self.assignmentLines, self.connectingLines)
+
+        self._updateGuiResiduePositions(updateMainChain=True, updateConnectedChains=True)
+
     def setNmrChainDisplay(self, nmrChainOrPid):
 
         if isinstance(nmrChainOrPid, str):
@@ -1161,17 +1205,11 @@ class SequenceGraphModule(CcpnModule):
                 if self.nmrResiduesCheckBox.isChecked():
                     for nmrResidue in nmrChain.nmrResidues:
                         if nmrResidue is nmrResidue.mainNmrResidue:
-                            self.addResidue(nmrResidue, '+1', lineList=self.connectingLines)
+                            self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
 
                             # add a connecting line to the adjacent residue
                             if nmrResidue.nextNmrResidue:
                                 connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
-
-                            # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-                            #     # add the internally connected Lines
-                            #     internalAssignments, interChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
-                            #     self._addPeakAssignmentLinesToGroup(internalAssignments)
-                            #     self._addPeakAssignmentLinesToAdjacentGroup(interChainAssignments)
 
                 else:
                     nmrResidue = self.current.nmrResidue
@@ -1185,11 +1223,10 @@ class SequenceGraphModule(CcpnModule):
                         nmrResidue = nmrChain.nmrResidues[0]
 
                     while nmrResidue:  # add all of connected stretch
-                        self.addResidue(nmrResidue, '+1', lineList=self.connectingLines)
+                        self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
                         nmrResidue = nmrResidue.nextNmrResidue
 
                 if len(self.predictedStretch) > 2:
-                    # TODO:ED causes a crash from here GuiNmrResidue has been deleted
                     self.predictSequencePosition(self.predictedStretch)
 
                 # add the connecting lines
@@ -1525,7 +1562,7 @@ class SequenceGraphModule(CcpnModule):
             guiResidueGroup.addToGroup(item)
             item.guiNmrResidueGroup = guiResidueGroup
 
-    def addResidue(self, nmrResidue: NmrResidue, direction: str, atomSpacing=None, lineList=None):
+    def addResidue(self, nmrResidue: NmrResidue, nmrResidueIndex: int, atomSpacing=None, lineList=None):
         """Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
         corresponding to the Nmr Residue.
         Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
@@ -1565,28 +1602,18 @@ class SequenceGraphModule(CcpnModule):
                     nmrAtom = nmrResidue.fetchNmrAtom(name=k)
                 else:
                     nmrAtom = None
-
-                # if direction == '-1':
-                #
-                #     # # use the 'H' as the reference
-                #     # pos = np.array([self.guiResiduesShown[0]['H'].x() - 3 * self.atomSpacing, self.guiResiduesShown[0]['H'].y()])
-                #     # atoms[k] = self._createGuiNmrAtom(k, v + pos, nmrAtom)
-                #     atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
-                #
-                # else:
-                #     # pos = np.array([self.guiResiduesShown[-1]['H'].x() + 3 * self.atomSpacing, self.guiResiduesShown[-1]['H'].y()])
-                #     # atoms[k] = self._createGuiNmrAtom(k, v + pos, nmrAtom)
-                #     atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
-
                 atoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
 
-            # insert into the list at the correct position
-            if direction == '-1':
-                self.guiResiduesShown.insert(0, atoms)
-                self.predictedStretch.insert(0, nmrResidue)
-            else:
-                self.guiResiduesShown.append(atoms)
-                self.predictedStretch.append(nmrResidue)
+            # # insert into the list at the correct position
+            # if direction == '-1':
+            #     self.guiResiduesShown.insert(0, atoms)
+            #     self.predictedStretch.insert(0, nmrResidue)
+            # else:
+            #     self.guiResiduesShown.append(atoms)
+            #     self.predictedStretch.append(nmrResidue)
+
+            self.guiResiduesShown.insert(nmrResidueIndex, atoms)
+            self.predictedStretch.insert(nmrResidueIndex, nmrResidue)
 
             # add the sideChain atoms
             if self._SGwidget.checkBoxes['showSideChain']['checkBox'].isChecked():
