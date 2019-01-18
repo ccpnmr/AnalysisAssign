@@ -56,6 +56,7 @@ from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, ListCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 from ccpn.core.NmrChain import NmrChain
+from ccpn.util.Common import makeIterableList
 
 from ccpn.util.Constants import ccpnmrJsonData
 from ccpn.util.Logging import getLogger
@@ -358,61 +359,52 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
         """Update the endPoints of the line to point. Co-ordinates are relative to the group to
         which the graphicsItem belongs, in this case the guiNmrResidue group. GuiNmrResidue group is the top level relative to the scene.
         """
-        try:
-            atom1 = self.atom1
-            atom2 = self.atom2
-            residue1 = atom1.guiNmrResidueGroup
-            residue2 = atom2.guiNmrResidueGroup
+        atom1 = self.atom1
+        atom2 = self.atom2
+        residue1 = atom1.guiNmrResidueGroup
+        residue2 = atom2.guiNmrResidueGroup
 
-            rx1 = residue1.x()
-            ry1 = residue1.y()
-            rx2 = residue2.x()
-            ry2 = residue2.y()
+        rx1 = residue1.x()
+        ry1 = residue1.y()
+        rx2 = residue2.x()
+        ry2 = residue2.y()
 
-            atom1Rect = atom1.boundingRect()
-            atom2Rect = atom2.boundingRect()
-            w1 = atom1Rect.width()
-            h1 = atom1Rect.height()
-            w2 = atom2Rect.width()
-            h2 = atom2Rect.height()
+        atom1Rect = atom1.boundingRect()
+        atom2Rect = atom2.boundingRect()
+        w1 = atom1Rect.width()
+        h1 = atom1Rect.height()
+        w2 = atom2Rect.width()
+        h2 = atom2Rect.height()
 
-            if atom2.x() < atom1.x():
-                x1 = atom1.x()  # + rx1
-                y1 = atom1.y()  # + ry1
-                x2 = atom2.x() + (rx2 - rx1)
-                y2 = atom2.y() + (ry2 - ry1)
-            else:
-                x1 = atom2.x() + (rx2 - rx1)
-                y1 = atom2.y() + (ry2 - ry1)
-                x2 = atom1.x()  # + rx1
-                y2 = atom1.y()  # + ry1
+        x1 = atom1.x()  # + rx1
+        y1 = atom1.y()  # + ry1
+        x2 = atom2.x() + (rx2 - rx1)
+        y2 = atom2.y() + (ry2 - ry1)
 
-            dx = x2 - x1
-            dy = y2 - y1
-            length = 2.0 * pow(dx * dx + dy * dy, 0.5)
-            if self.displacement is not None:
-                count = (atom1.connectedList[atom2] - 1) // 2
-                disp = 6.0 * (self.displacement - count) / length
-            else:
-                disp = 0.0
-            offsetX = dy * disp
-            offsetY = -dx * disp
-            kx1 = (w1 * dx) / length  # shorten the lines along length
-            ky1 = (h1 * dy) / length
-            kx2 = (w2 * dx) / length
-            ky2 = (h2 * dy) / length
+        dx = x2 - x1
+        dy = y2 - y1
+        length = 2.0 * pow(dx * dx + dy * dy, 0.5)
+        if self.displacement is not None:
+            count = (atom1.connectedList[atom2] - 1) // 2
+            disp = 6.0 * (self.displacement - count) / length
+        else:
+            disp = 0.0
+        offsetX = dy * disp
+        offsetY = -dx * disp
+        kx1 = (w1 * dx) / length  # shorten the lines along length
+        ky1 = (h1 * dy) / length
+        kx2 = (w2 * dx) / length
+        ky2 = (h2 * dy) / length
 
-            xOff1 = w1 / 2.0  # offset to centre of bounding box
-            yOff1 = h1 / 2.0
-            xOff2 = w2 / 2.0
-            yOff2 = h2 / 2.0
+        xOff1 = w1 / 2.0  # offset to centre of bounding box
+        yOff1 = h1 / 2.0
+        xOff2 = w2 / 2.0
+        yOff2 = h2 / 2.0
 
-            x1 += xOff1 + kx1 + offsetX
-            y1 += yOff1 + ky1 + offsetY
-            x2 += xOff2 - kx2 + offsetX
-            y2 += yOff2 - ky2 + offsetY
-        except Exception as es:
-            pass
+        x1 += xOff1 + kx1 + offsetX
+        y1 += yOff1 + ky1 + offsetY
+        x2 += xOff2 - kx2 + offsetX
+        y2 += yOff2 - ky2 + offsetY
 
         self.setLine(x1, y1, x2, y2)
 
@@ -714,60 +706,35 @@ class SequenceGraphModule(CcpnModule):
     def _registerNotifiers(self):
         """Register the required notifiers
         """
-        # self.current.registerNotify(self._updateModule, 'nmrChains')      # doesn't work
-
-        # self._nmrResidueNotifier = self.setNotifier(self.project,
-        #                                             [Notifier.RENAME, Notifier.CHANGE],
-        #                                             NmrResidue.__name__,
-        #                                             self._resetNmrResiduePidForAssigner,
-        #                                             onceOnly=True)
-
-        # self._peakNotifier = self.setNotifier(self.project,
-        #                                       [Notifier.CHANGE],
-        #                                       Peak.__name__,
-        #                                       self._updateShownAssignments,
-        #                                       onceOnly=True)
-
         self._peakNotifier = self.setNotifier(self.project,
                                               [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
                                               Peak.className,
                                               self._updatePeaks,
                                               onceOnly=True)
 
-        # self._nmrAtomNotifier = self.setNotifier(self.project,
-        #                                          [Notifier.CHANGE, Notifier.DELETE],
-        #                                          NmrAtom.className,
-        #                                          self._updateNmrAtoms,
-        #                                          onceOnly=True)
+        self._nmrChainNotifier = self.setNotifier(self.project,
+                                                  [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                                  NmrChain.className,
+                                                  self._updateNmrChains,
+                                                  onceOnly=True)
 
-        # self._spectrumNotifier = self.setNotifier(self.project,
-        #                                           [Notifier.CHANGE],
-        #                                           Spectrum.__name__,
-        #                                           self._updateShownAssignments)
+        self._nmrResidueNotifier = self.setNotifier(self.project,
+                                                    [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                                    NmrResidue.className,
+                                                    self._updateNmrResidues,
+                                                    onceOnly=True)
+
+        self._nmrAtomNotifier = self.setNotifier(self.project,
+                                                 [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                                 NmrAtom.className,
+                                                 self._updateNmrAtoms,
+                                                 onceOnly=True)
 
         # notifier to change the magnetisationTransfer list when new spectrum added
         self._spectrumListNotifier = self.setNotifier(self.project,
                                                       [Notifier.CREATE, Notifier.DELETE],
                                                       Spectrum.className,
                                                       self._updateSpectra)
-
-        # # notifier for changing the selected chain - draw new display
-        # self._nmrChainNotifier = self.setNotifier(self.project,
-        #                                           [Notifier.CHANGE, Notifier.DELETE],
-        #                                           NmrChain.__name__,
-        #                                           self._updateChain,
-        #                                           onceOnly=True)
-
-    # def _unRegisterNotifiers(self):
-    #     # use the new notifier class
-    #     if self._nmrResidueNotifier:
-    #         self._nmrResidueNotifier.unRegister()
-    #     if self._peakNotifier:
-    #         self._peakNotifier.unRegister()
-    #     if self._spectrumNotifier:
-    #         self._spectrumNotifier.unRegister()
-    #     if self._nmrChainNotifier:
-    #         self._nmrChainNotifier.unRegister()
 
     def _repopulateModule(self):
         """CCPN Internal: Repopulate the required widgets in the module
@@ -805,27 +772,6 @@ class SequenceGraphModule(CcpnModule):
     #   else:
     #     logger.warning('No valid NmrChain is selected.')
 
-    def _deleteNmrResidue(self, data):
-        """Delete the nmrResidue from the scene
-        """
-        nmrResidue = data[Notifier.OBJECT]
-        print('>>>_deleteNmrResidue', nmrResidue)
-
-        if nmrResidue in self.predictedStretch:
-            # print('  >>>delete items')
-
-            sceneItems = self.scene.items()
-            for item in sceneItems:
-                if isinstance(item, GuiNmrResidueGroup):
-                    if item.nmrResidue == nmrResidue:
-                        self.scene.removeItem(item)
-                # elif isinstance(item, GuiNmrAtom):
-                #   if item.nmrAtom and item.nmrAtom.nmrResidue == nmrResidue:
-                #     print('    >>>delete atomItem:', item)
-                #     self.scene.removeItem(item)
-
-            self.predictedStretch.remove(nmrResidue)
-
     def _addAdjacentResiduesToSet(self, nmrResidue, residueSet):
         residueSet.add(nmrResidue)
         nmr = nmrResidue.previousNmrResidue
@@ -837,11 +783,13 @@ class SequenceGraphModule(CcpnModule):
             nmr = nmr.mainNmrResidue
             residueSet.add(nmr)
 
-    def _rebuildPeakLines(self, peak, rebuildPeakLines=False, makeListFromPeak=False):
+    def _rebuildPeakLines(self, peaks, rebuildPeakLines=False, makeListFromPeak=False):
         """Clear all lines on the display associated with peak.
         """
-        # find the current lines associated with the notified peak
-        peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak is peak]
+        # find the current lines associated with the notified peak (or list of peaks)
+        peaks = makeIterableList(peaks)
+
+        peakLines = [peakLine for peakLineList in self.assignmentLines.values() for peakLine in peakLineList if peakLine._peak in peaks]
         guiNmrAtomSet = set()
         nmrResidueSet = set()
 
@@ -858,12 +806,18 @@ class SequenceGraphModule(CcpnModule):
 
         else:
             # make a new list for creating a peak; necessary for undo of delete peak as the assignedNmrAtom list exists
-            for assignment in peak.assignments:
-                for nmrAtom in assignment:
-
-                    if nmrAtom in self.guiNmrAtomDict:
-                        guiNmrAtomSet.add(self.guiNmrAtomDict[nmrAtom])
-                        self._addAdjacentResiduesToSet(nmrAtom.nmrResidue, nmrResidueSet)
+            assignmentAtoms = [nmrAtom for peak in peaks
+                               for assignment in peak.assignments
+                               for nmrAtom in assignment
+                               if nmrAtom in self.guiNmrAtomDict]
+            for nmrAtom in assignmentAtoms:
+            # for peak in peaks:
+            #     for assignment in peak.assignments:
+            #         for nmrAtom in assignment:
+            #
+            #             if nmrAtom in self.guiNmrAtomDict:
+                guiNmrAtomSet.add(self.guiNmrAtomDict[nmrAtom])
+                self._addAdjacentResiduesToSet(nmrAtom.nmrResidue, nmrResidueSet)
 
         for guiAtom in guiNmrAtomSet:
             for peakLineList in self.assignmentLines.values():
@@ -909,22 +863,50 @@ class SequenceGraphModule(CcpnModule):
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-
-                print('>>>delete peak', peak)
-
                 self._rebuildPeakLines(peak, rebuildPeakLines=True)
 
             elif trigger == Notifier.CREATE:
-
-                print('>>>create peak', peak)
-
                 self._rebuildPeakLines(peak, rebuildPeakLines=True, makeListFromPeak=True)
 
             elif trigger == Notifier.CHANGE:
-
-                print('>>>change peak', peak)
-
                 self._rebuildPeakLines(peak, rebuildPeakLines=True)
+
+    def _updateNmrChains(self, data):
+        """Update the nmrChains in the display.
+        """
+        nmrChain = data[Notifier.OBJECT]
+
+        print('>>>_updateNmrChains', nmrChain)
+        trigger = data[Notifier.TRIGGER]
+
+        with self.sceneBlocking():
+            if trigger == Notifier.DELETE:
+                print('>>>delete nmrChain - no action', nmrChain)
+
+            elif trigger == Notifier.CREATE:
+                print('>>>create nmrChain - no action', nmrChain)
+
+            elif trigger == Notifier.CHANGE:
+                print('>>>change nmrChain - no action', nmrChain)
+
+    def _updateNmrResidues(self, data):
+        """Update the nmrResidues in the display.
+        """
+        nmrResidue = data[Notifier.OBJECT]
+
+        print('>>>_updateNmrResidues', nmrResidue)
+        trigger = data[Notifier.TRIGGER]
+
+        with self.sceneBlocking():
+            if trigger == Notifier.DELETE:
+                print('>>>delete nmrResidue - no action', nmrResidue)
+                self._deleteNmrResidue(nmrResidue)
+
+            elif trigger == Notifier.CREATE:
+                print('>>>create nmrResidue - no action', nmrResidue)
+
+            elif trigger == Notifier.CHANGE:
+                print('>>>change nmrResidue - no action', nmrResidue)
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
@@ -936,16 +918,60 @@ class SequenceGraphModule(CcpnModule):
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-
                 print('>>>delete nmrAtom', nmrAtom)
+                self._deleteNmrAtoms(nmrAtom)
 
             elif trigger == Notifier.CREATE:
-
-                print('>>>create nmrAtom - no action', nmrAtom)
+                print('>>>create nmrAtom', nmrAtom)
+                self._createNmrAtoms(nmrAtom)
 
             elif trigger == Notifier.CHANGE:
-
                 print('>>>change nmrAtom - no action', nmrAtom)
+
+    def _resetNmrResiduePidForAssigner(self, data):  #nmrResidue, oldPid:str):
+        """Reset pid for NmrResidue and all offset NmrResidues
+        """
+        print('>>>_resetNmrResiduePidForAssigner - no action')
+
+        return
+
+        nmrResidue = data['object']
+        trigger = data[Notifier.TRIGGER]
+
+        with self.sceneBlocking():
+            if trigger == Notifier.RENAME:
+                nmrChainPid = self.nmrChainPulldown.getText()
+                if self.project.getByPid(nmrChainPid):
+
+                    for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
+                        for guiNmrResidueGroup in self.guiNmrResidues.values():
+                            if guiNmrResidueGroup.nmrResidue is nr:
+                                guiNmrResidueGroup.nmrResidueLabel._update()
+
+    def _deleteNmrResidues(self, nmrResidues):
+        """Delete the nmrResidue from the scene
+        """
+        nmrResidues = makeIterableList(nmrResidues)
+
+        for nmrResidue in nmrResidues:
+            pass
+
+    def _createNmrAtoms(self, nmrAtoms):
+        """Create new peak lines associated with the created/undeleted nmrAtoms.
+        """
+        nmrAtoms = makeIterableList(nmrAtoms)
+        peaks = [peak for nmrAtom in nmrAtoms for peak in nmrAtom.assignedPeaks]
+
+        self._rebuildPeakLines(peaks, rebuildPeakLines=True, makeListFromPeak=True)
+
+    def _deleteNmrAtoms(self, nmrAtoms):
+        """Delete peak lines associated with the deleted nmrAtoms.
+        """
+        nmrAtoms = makeIterableList(nmrAtoms)
+        peakLines = self._searchPeakLines(nmrAtoms, includeDeleted=True)
+        peaks = [peakLine._peak for peakLine in peakLines]
+
+        self._rebuildPeakLines(peaks, rebuildPeakLines=True)
 
     def _removeLinesFromScene(self, lineDist):
         """Remove all the peakLines from the scene.
@@ -954,6 +980,21 @@ class SequenceGraphModule(CcpnModule):
             for line in lineList:
                 self.scene.removeItem(line)
         lineDist.clear()
+
+    def _searchPeakLines(self, nmrAtoms, includeDeleted=False):
+        """Return a list of the peakLines containing one of the nmrAtoms in the list.
+        """
+        peakLines = []
+        for lineList in self.assignmentLines.values():
+            for line in lineList:
+                nmrAtom = line.atom1.nmrAtom if line.atom1 else None
+                if nmrAtom in nmrAtoms and (includeDeleted or not (nmrAtom.isDeleted or nmrAtom._flaggedForDelete)):
+                    peakLines.append(line)
+                nmrAtom = line.atom2.nmrAtom if line.atom2 else None
+                if nmrAtom in nmrAtoms and (includeDeleted or not (nmrAtom.isDeleted or nmrAtom._flaggedForDelete)):
+                    peakLines.append(line)
+
+        return peakLines
 
     def _updateEndPoints(self, lineDict):
         """Update the end points from the dict.
@@ -1233,26 +1274,6 @@ class SequenceGraphModule(CcpnModule):
 
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
-
-    def _resetNmrResiduePidForAssigner(self, data):  #nmrResidue, oldPid:str):
-        """Reset pid for NmrResidue and all offset NmrResidues
-        """
-        print('>>>_resetNmrResiduePidForAssigner - no action')
-
-        return
-
-        nmrResidue = data['object']
-        trigger = data[Notifier.TRIGGER]
-
-        with self.sceneBlocking():
-            if trigger == Notifier.RENAME:
-                nmrChainPid = self.nmrChainPulldown.getText()
-                if self.project.getByPid(nmrChainPid):
-
-                    for nr in [nmrResidue] + list(nmrResidue.offsetNmrResidues):
-                        for guiNmrResidueGroup in self.guiNmrResidues.values():
-                            if guiNmrResidueGroup.nmrResidue is nr:
-                                guiNmrResidueGroup.nmrResidueLabel._update()
 
     def deassignPeak(self, selectedPeak=None, selectedNmrAtom=None):
         """Deassign the peak by removing the assigned nmrAtoms from the list
@@ -1603,6 +1624,9 @@ class SequenceGraphModule(CcpnModule):
 
         for nmrAtom in nmrResidue.nmrAtoms:
 
+            if nmrAtom._flaggedForDelete or nmrAtom.isDeleted:
+                continue
+
             for peak in nmrAtom.assignedPeaks:
 
                 # ignore peaks that are due for delete (can probably also use the notifier list)
@@ -1649,8 +1673,8 @@ class SequenceGraphModule(CcpnModule):
                     for mag in self.magnetisationTransfers[spec]:
                         nmrAtom0 = assignment[mag[0] - 1]
                         nmrAtom1 = assignment[mag[1] - 1]
-                        nmrAtom0 = nmrAtom0 if nmrAtom0 else None
-                        nmrAtom1 = nmrAtom1 if nmrAtom1 else None
+                        nmrAtom0 = nmrAtom0 if nmrAtom0 and not (nmrAtom0.isDeleted or nmrAtom0._flaggedForDelete) else None
+                        nmrAtom1 = nmrAtom1 if nmrAtom1 and not (nmrAtom1.isDeleted or nmrAtom1._flaggedForDelete) else None
 
                         if not None in (nmrAtom0, nmrAtom1):
 
