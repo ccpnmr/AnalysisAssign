@@ -1119,6 +1119,11 @@ class SequenceGraphModule(CcpnModule):
             with self.sceneBlocking():
                 self.setNmrChainDisplay(nmrChainPid)
 
+        else:
+            # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
+            self.scene.clear()
+            self.scene.setSceneRect(self.scene.itemsBoundingRect())
+
     def resetSequenceGraph(self):
         """Reset the module to the default nmrChain.
         """
