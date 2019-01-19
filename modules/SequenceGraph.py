@@ -718,9 +718,15 @@ class SequenceGraphModule(CcpnModule):
                                                   onceOnly=True)
 
         self._nmrResidueNotifier = self.setNotifier(self.project,
-                                                    [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+                                                    [Notifier.CREATE, Notifier.DELETE],
                                                     NmrResidue.className,
                                                     self._updateNmrResidues,
+                                                    onceOnly=True)
+
+        self._nmrResidueChangeNotifier = self.setNotifier(self.project,
+                                                    [Notifier.CHANGE],
+                                                    NmrResidue.className,
+                                                    self._changeNmrResidues,
                                                     onceOnly=True)
 
         self._nmrAtomNotifier = self.setNotifier(self.project,
@@ -946,6 +952,20 @@ class SequenceGraphModule(CcpnModule):
             elif trigger == Notifier.CHANGE:
                 print('>>>change nmrResidue - no action', nmrResidue)
 
+            elif trigger == Notifier.OBSERVE:
+                print('>>>observe nmrResidue - no action', nmrResidue)
+
+    def _changeNmrResidues(self, data):
+        """Update the nmrResidues in the display.
+        """
+        nmrResidue = data[Notifier.OBJECT]
+
+        print('>>>_changeNmrResidues', nmrResidue)
+        trigger = data[Notifier.TRIGGER]
+
+        with self.sceneBlocking():
+            print('>>>change nmrResidue - no action', nmrResidue)
+
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
         """
@@ -990,10 +1010,8 @@ class SequenceGraphModule(CcpnModule):
         """Create new nmrResidues in the scene
         """
         nmrResidues = makeIterableList(nmrResidues)
-
         nmrResidues = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain is self.nmrChain]
         self._buildNmrResidues(nmrResidues)
-
 
     def _deleteNmrResidues(self, nmrResidues):
         """Delete the nmrResidue from the scene
@@ -1141,6 +1159,8 @@ class SequenceGraphModule(CcpnModule):
 
                     ii = self.nmrChain.nmrResidues.index(nmrResidue)
                     self.addResidue(nmrResidue, ii, lineList=self.connectingLines)
+                    # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
+                    #                  callback=self._changeNmrResidue)
 
                     # add a connecting line to the adjacent residue
                     if nmrResidue.nextNmrResidue:
@@ -1174,6 +1194,22 @@ class SequenceGraphModule(CcpnModule):
 
         self._updateGuiResiduePositions(updateMainChain=True, updateConnectedChains=True)
 
+    def removeNmrChainNotifiers(self):
+        """Remove notifiers that are set on nmrChains.
+        """
+        nmrChains = tuple(self.project.nmrChains)
+        foundNotifiers = self.searchNotifiers(objects=nmrChains, triggers=[Notifier.OBSERVE], targetName='nmrResidues')
+        for notifier in foundNotifiers:
+            print('>>>deleting notifier', notifier)
+            self.deleteNotifier(notifier)
+
+    def addNmrChainNotifiers(self):
+        """Add new notifiers for all nmrChains in the project.
+        """
+        for nmrChain in self.project.nmrChains:
+            self.setNotifier(nmrChain, triggers=[Notifier.OBSERVE], targetName='nmrResidues',
+                             callback=self._changeNmrResidues)
+
     def setNmrChainDisplay(self, nmrChainOrPid):
 
         if isinstance(nmrChainOrPid, str):
@@ -1196,6 +1232,8 @@ class SequenceGraphModule(CcpnModule):
             log('setNmrChainDisplay', nmrChainOrPid=repr(nmrChain.pid))
 
             self.clearAllItems()
+            # self.removeNmrChainNotifiers()
+            # self.addNmrChainNotifiers()
 
             ###nmrChain = self.project.getByPid(nmrChainPid)
             ###if self.modePulldown.currentText() == 'fragment':
@@ -1206,6 +1244,8 @@ class SequenceGraphModule(CcpnModule):
                     for nmrResidue in nmrChain.nmrResidues:
                         if nmrResidue is nmrResidue.mainNmrResidue:
                             self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
+                            # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
+                            #                  callback=self._changeNmrResidues)
 
                             # add a connecting line to the adjacent residue
                             if nmrResidue.nextNmrResidue:
@@ -1224,6 +1264,8 @@ class SequenceGraphModule(CcpnModule):
 
                     while nmrResidue:  # add all of connected stretch
                         self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
+                        # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
+                        #                  callback=self._changeNmrResidues)
                         nmrResidue = nmrResidue.nextNmrResidue
 
                 if len(self.predictedStretch) > 2:
