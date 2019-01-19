@@ -973,6 +973,9 @@ class SequenceGraphModule(CcpnModule):
                 print('>>>change nmrResidue - delete', nmrResidue)
                 self._deleteBadNmrResidues(nmrResidue)
 
+            else:
+                print('>>>change nmrResidue - create', nmrResidue)
+                self._createNmrResidues(nmrResidue)
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
