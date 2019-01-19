@@ -964,7 +964,8 @@ class SequenceGraphModule(CcpnModule):
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
-            print('>>>change nmrResidue - no action', nmrResidue)
+            if nmrResidue in self.nmrChain.nmrResidues:
+                print('>>>change nmrResidue - no action', nmrResidue)
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
