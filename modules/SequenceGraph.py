@@ -965,9 +965,14 @@ class SequenceGraphModule(CcpnModule):
 
         with self.sceneBlocking():
             if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.guiNmrResidues:
-                print('\n>>>change nmrResidue - no action', nmrResidue)
+                print('>>>change nmrResidue - create', nmrResidue)
+                self._createNmrResidues(nmrResidue)
 
-                # add the nmrResidue here
+            elif nmrResidue in self.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
+                # not in chain, but in residues as other chain
+                print('>>>change nmrResidue - delete', nmrResidue)
+                self._deleteBadNmrResidues(nmrResidue)
+
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
@@ -1033,9 +1038,40 @@ class SequenceGraphModule(CcpnModule):
                 self.predictedStretch.pop(ii)
                 self.guiResiduesShown.pop(ii)
 
-                if nmrResidue.previousNmrResidue:
-                    previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
+                if ii:
+                    previousNmrResidue = self.predictedStretch[ii-1]
                     self._rebuildNmrResidues(previousNmrResidue)
+
+                # if nmrResidue.previousNmrResidue:
+                #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
+                #     self._rebuildNmrResidues(previousNmrResidue)
+
+                self.scene.removeItem(self.guiNmrResidues[nmrResidue])
+
+    def _deleteBadNmrResidues(self, nmrResidues):
+        """Delete the nmrResidue from the scene
+        """
+        nmrResidues = makeIterableList(nmrResidues)
+
+        for nmrResidue in nmrResidues:
+
+            # ignore if not in the visible chain
+            if nmrResidue in self.predictedStretch:
+
+                ii = self.predictedStretch.index(nmrResidue)
+                # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
+
+                # remove from the visible list
+                self.predictedStretch.pop(ii)
+                self.guiResiduesShown.pop(ii)
+
+                if ii:
+                    previousNmrResidue = self.predictedStretch[ii-1]
+                    self._rebuildNmrResidues(previousNmrResidue)
+
+                # if nmrResidue.previousNmrResidue:
+                #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
+                #     self._rebuildNmrResidues(previousNmrResidue)
 
                 self.scene.removeItem(self.guiNmrResidues[nmrResidue])
 
