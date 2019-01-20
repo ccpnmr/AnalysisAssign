@@ -974,7 +974,7 @@ class SequenceGraphModule(CcpnModule):
                 self._deleteBadNmrResidues(nmrResidue)
 
             else:
-                print('>>>change nmrResidue - create', nmrResidue)
+                print('>>>change2 nmrResidue - create', nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
     def _updateNmrAtoms(self, data):
@@ -1136,9 +1136,9 @@ class SequenceGraphModule(CcpnModule):
         """
         if updateMainChain:
             # update the group positions
-            for ii, res in enumerate(self.guiNmrResidues.items()):
-                # second element of tuple; res is (k, v)
-                res[1].setPos(QtCore.QPointF(ii * self.atomSpacing * 3.0, 0.0))
+            for ii, res in enumerate(self.predictedStretch):
+                guiItem = self.guiNmrResidues[res]
+                guiItem.setPos(QtCore.QPointF(ii * self.atomSpacing * 3.0, 0.0))
 
         if updateConnectedChains:
             # update crossChainResidue positions
@@ -1199,7 +1199,7 @@ class SequenceGraphModule(CcpnModule):
             for nmrResidue in nmrResidueList:
                 if nmrResidue is nmrResidue.mainNmrResidue:
 
-                    ii = self.nmrChain.nmrResidues.index(nmrResidue)
+                    ii = self.nmrChain.mainNmrResidues.index(nmrResidue)
                     self.addResidue(nmrResidue, ii, lineList=self.connectingLines)
                     # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
                     #                  callback=self._changeNmrResidue)
@@ -1223,9 +1223,18 @@ class SequenceGraphModule(CcpnModule):
                                                res['CO'], self.guiResiduesShown[ii + 1]['N'],
                                                self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
 
+        newList = set()
+        for nmr in nmrResidueList:
+            newList.add(nmr)
+            if nmr.nextNmrResidue and nmr.nextNmrResidue.mainNmrResidue:
+                newList.add(nmr.nextNmrResidue.mainNmrResidue)
+
+        self._rebuildNmrResidues(nmrResidueList)
+        return
+
         # add the peakAssignments
         if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-            for nmrResidue in nmrResidueList:
+            for nmrResidue in newList:
                 if nmrResidue is nmrResidue.mainNmrResidue:
                     # add the internally connected Lines
                     internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
