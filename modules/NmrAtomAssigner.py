@@ -49,7 +49,7 @@ import copy
 from functools import partial
 from collections import OrderedDict
 from PyQt5 import QtCore, QtGui, QtWidgets
-
+from contextlib import contextmanager
 from ccpn.core.Peak import Peak
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.NmrAtom import NmrAtom
@@ -476,45 +476,72 @@ class NmrAtomAssignerModule(CcpnModule):
         atomCodes = ['H', 'C', 'N', 'Other']
         self.axisCodeOptions.setButtons(texts=list(atomCodes), tipTexts=list(atomCodes), silent=True)
 
+    def _blockEvents(self):
+        """Block all updates/signals/notifiers in the module.
+        """
+        self.setUpdatesEnabled(False)
+        self.blockSignals(True)
+
+    def _unblockEvents(self):
+        """Unblock all updates/signals/notifiers in the module.
+        """
+        self.blockSignals(False)
+        self.setUpdatesEnabled(True)
+
+    @contextmanager
+    def _moduleBlocking(self):
+        """Context manager to handle blocking, unblocking of the module.
+        """
+        self._blockEvents()
+        try:
+            # pass control to the calling function
+            yield
+
+        except Exception as es:
+            raise es
+        finally:
+            self._unblockEvents()
+
     def _updateWidget(self, dataDict=None):  # also used as notifier callback function
         "Update the widget to reflect the proper state"
         # try:
         ii = jj = 0
-        self._setPeaksLabel()
-        if self.current.nmrResidue is not None:
-            # self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
-            self._nmrResidue.select(self.current.nmrResidue.pid)
-            self._assignWidgetHide()
+        with self._moduleBlocking():
+            self._setPeaksLabel()
+            if self.current.nmrResidue is not None:
+                # self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
+                self._nmrResidue.select(self.current.nmrResidue.pid)
+                self._assignWidgetHide()
 
-            # dimensionalities = set([len(peak.position) for peak in self.current.peaks])
-            # if len(dimensionalities) > 1:
-            #     self.currentPeaksLabel.setText(MSG)
-            #     getLogger().warning('Not all peaks have the same number of dimensions.')
-            #     return False
+                # dimensionalities = set([len(peak.position) for peak in self.current.peaks])
+                # if len(dimensionalities) > 1:
+                #     self.currentPeaksLabel.setText(MSG)
+                #     getLogger().warning('Not all peaks have the same number of dimensions.')
+                #     return False
 
-            if self.current.peaks:
-                self._setPeakAxisCodes(self.current.peaks)
+                if self.current.peaks:
+                    self._setPeakAxisCodes(self.current.peaks)
 
-            if self.radioButton1.isChecked():
-                for w in self._sidechainModifiers:
-                    w.hide()
-                ii, jj = self._createBackBoneButtons()
-            elif self.radioButton2.isChecked():
-                for w in self._sidechainModifiers:
-                    w.show()
-                ii, jj = self._createSideChainButtons()
-            self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
+                if self.radioButton1.isChecked():
+                    for w in self._sidechainModifiers:
+                        w.hide()
+                    ii, jj = self._createBackBoneButtons()
+                elif self.radioButton2.isChecked():
+                    for w in self._sidechainModifiers:
+                        w.show()
+                    ii, jj = self._createSideChainButtons()
+                self._setCheckedButtonOfAssignedAtoms(self.current.nmrResidue)
 
-            # add a spacer to the radiobutton box
-            Spacer(self._assignWidget, 3, 3,
-                   QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
-                   grid=(30, 30), gridSpan=(1, 1))
+                # add a spacer to the radiobutton box
+                Spacer(self._assignWidget, 3, 3,
+                       QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
+                       grid=(30, 30), gridSpan=(1, 1))
 
-            if self.current.peaks:
-                self._predictHighlight(self.current.peaks)
-                self._assignWidgetShow()
-        else:
-            self._assignWidgetHide()
+                if self.current.peaks:
+                    self._predictHighlight(self.current.peaks)
+                    self._assignWidgetShow()
+            else:
+                self._assignWidgetHide()
 
     def _removeOffsetFromButtonText(self, text: str):
         p = text.split(' ')
