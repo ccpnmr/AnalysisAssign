@@ -672,12 +672,12 @@ class SequenceGraphModule(CcpnModule):
     def _updateSpectra(self, data=None):
         """Update list of current spectra and generate new magnetisationTransfer list
         """
-        print('>>>_updateSpectra')
+        # print('>>>_updateSpectra')
 
         if data:
             trigger = data[Notifier.TRIGGER]
             object = data[Notifier.OBJECT]
-            print('>>> spectrum:', trigger, object)
+            # print('>>> spectrum:', trigger, object)
 
             self._updateMagnetisationTransfers()
 
@@ -711,11 +711,11 @@ class SequenceGraphModule(CcpnModule):
                                               self._updatePeaks,
                                               onceOnly=True)
 
-        self._nmrChainNotifier = self.setNotifier(self.project,
-                                                  [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
-                                                  NmrChain.className,
-                                                  self._updateNmrChains,
-                                                  onceOnly=True)
+        # self._nmrChainNotifier = self.setNotifier(self.project,
+        #                                           [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
+        #                                           NmrChain.className,
+        #                                           self._updateNmrChains,
+        #                                           onceOnly=True)
 
         self._nmrResidueNotifier = self.setNotifier(self.project,
                                                     [Notifier.CREATE, Notifier.DELETE],
@@ -913,7 +913,7 @@ class SequenceGraphModule(CcpnModule):
         """
         peak = data[Notifier.OBJECT]
 
-        print('>>>_updatePeaks', peak)
+        # print('>>>_updatePeaks', peak)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
@@ -931,62 +931,62 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrChain = data[Notifier.OBJECT]
 
-        print('>>>_updateNmrChains', nmrChain)
+        # print('>>>_updateNmrChains', nmrChain)
         trigger = data[Notifier.TRIGGER]
 
-        with self.sceneBlocking():
-            if trigger == Notifier.DELETE:
-                print('>>>delete nmrChain - no action', nmrChain)
-
-            elif trigger == Notifier.CREATE:
-                print('>>>create nmrChain - no action', nmrChain)
-
-            elif trigger == Notifier.CHANGE:
-                print('>>>change nmrChain - no action', nmrChain)
+        # with self.sceneBlocking():
+        #     if trigger == Notifier.DELETE:
+        #         print('>>>delete nmrChain - no action', nmrChain)
+        #
+        #     elif trigger == Notifier.CREATE:
+        #         print('>>>create nmrChain - no action', nmrChain)
+        #
+        #     elif trigger == Notifier.CHANGE:
+        #         print('>>>change nmrChain - no action', nmrChain)
 
     def _updateNmrResidues(self, data):
         """Update the nmrResidues in the display.
         """
         nmrResidue = data[Notifier.OBJECT]
 
-        print('>>>_updateNmrResidues', nmrResidue)
+        # print('>>>_updateNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-                print('>>>delete nmrResidue', nmrResidue)
+                # print('>>>delete nmrResidue', nmrResidue)
                 self._deleteNmrResidues(nmrResidue)
 
             elif trigger == Notifier.CREATE:
-                print('>>>create nmrResidue', nmrResidue)
+                # print('>>>create nmrResidue', nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
-            elif trigger == Notifier.CHANGE:
-                print('>>>change nmrResidue - no action', nmrResidue)
-
-            elif trigger == Notifier.OBSERVE:
-                print('>>>observe nmrResidue - no action', nmrResidue)
+            # elif trigger == Notifier.CHANGE:
+            #     print('>>>change nmrResidue - no action', nmrResidue)
+            #
+            # elif trigger == Notifier.OBSERVE:
+            #     print('>>>observe nmrResidue - no action', nmrResidue)
 
     def _changeNmrResidues(self, data):
         """Update the nmrResidues in the display.
         """
         nmrResidue = data[Notifier.OBJECT]
 
-        print('>>>_changeNmrResidues', nmrResidue)
+        # print('>>>_changeNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
             if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.guiNmrResidues:
-                print('>>>change nmrResidue - create', nmrResidue)
+                # print('>>>change nmrResidue - create', nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
             elif nmrResidue in self.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
                 # not in chain, but in residues as other chain
-                print('>>>change nmrResidue - delete', nmrResidue)
+                # print('>>>change nmrResidue - delete', nmrResidue)
                 self._deleteBadNmrResidues(nmrResidue)
 
             else:
-                print('>>>change2 nmrResidue - create', nmrResidue)
+                # print('>>>change2 nmrResidue - create', nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
     def _updateNmrAtoms(self, data):
@@ -994,25 +994,25 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrAtom = data[Notifier.OBJECT]
 
-        print('>>>_updateNmrAtoms', nmrAtom)
+        # print('>>>_updateNmrAtoms', nmrAtom)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-                print('>>>delete nmrAtom', nmrAtom)
+                # print('>>>delete nmrAtom', nmrAtom)
                 self._deleteNmrAtoms(nmrAtom)
 
             elif trigger == Notifier.CREATE:
-                print('>>>create nmrAtom', nmrAtom)
+                # print('>>>create nmrAtom', nmrAtom)
                 self._createNmrAtoms(nmrAtom)
 
-            elif trigger == Notifier.CHANGE:
-                print('>>>change nmrAtom - no action', nmrAtom)
+            # elif trigger == Notifier.CHANGE:
+            #     print('>>>change nmrAtom - no action', nmrAtom)
 
     def _resetNmrResiduePidForAssigner(self, data):  #nmrResidue, oldPid:str):
         """Reset pid for NmrResidue and all offset NmrResidues
         """
-        print('>>>_resetNmrResiduePidForAssigner - no action')
+        # print('>>>_resetNmrResiduePidForAssigner - no action')
 
         return
 
@@ -1311,7 +1311,7 @@ class SequenceGraphModule(CcpnModule):
         nmrChains = tuple(self.project.nmrChains)
         foundNotifiers = self.searchNotifiers(objects=nmrChains, triggers=[Notifier.OBSERVE], targetName='nmrResidues')
         for notifier in foundNotifiers:
-            print('>>>deleting notifier', notifier)
+            # print('>>>deleting notifier', notifier)
             self.deleteNotifier(notifier)
 
     def addNmrChainNotifiers(self):
@@ -1407,7 +1407,7 @@ class SequenceGraphModule(CcpnModule):
     def showNmrChainFromPulldown(self, data=None):
         """Clear and redraw the nmrChain selected from the pulldown.
         """
-        print('>>>showNmrChainFromPulldown')
+        # print('>>>showNmrChainFromPulldown')
 
         nmrChainPid = self.nmrChainPulldown.getText()
         if nmrChainPid:
