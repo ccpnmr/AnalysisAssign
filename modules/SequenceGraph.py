@@ -824,6 +824,18 @@ class SequenceGraphModule(CcpnModule):
                     self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
                                                                 self.assignmentLines, self.connectingLines)
 
+                if nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
+                    nextNmrResidue = nmrResidue.nextNmrResidue.mainNmrResidue
+
+                    # only process residues in the current visible chain
+                    # add the internally connected Lines
+                    internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nextNmrResidue,
+                                                                                                                           nmrAtomIncludeList=nmrAtomIncludeList)
+                    self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                    self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                    self._addPeakAssignmentLinesToAdjacentGroup(nextNmrResidue, crossChainAssignments,
+                                                                self.assignmentLines, self.connectingLines)
+
         self._updateGuiResiduePositions(updateMainChain=True, updateConnectedChains=True)
 
     def _rebuildPeakLines(self, peaks, rebuildPeakLines=False, makeListFromPeak=False):
@@ -1049,6 +1061,30 @@ class SequenceGraphModule(CcpnModule):
                 #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
                 #     self._rebuildNmrResidues(previousNmrResidue)
 
+                guiNmrAtomSet = set([self.guiNmrAtomDict[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms])
+
+                for guiAtom in guiNmrAtomSet:
+                    for guiLineList in self.assignmentLines.values():
+                        guiLines = [guiLine for guiLine in guiLineList
+                                     if guiLine.atom1 is guiAtom or guiLine.atom2 is guiAtom]
+
+                        # remove all graphic lines
+                        for guiLine in guiLines:
+                            guiLineList.remove(guiLine)
+                            self.scene.removeItem(guiLine)
+
+                    for guiLineList in self.connectingLines.values():
+                        guiLines = [guiLine for guiLine in guiLineList
+                                     if guiLine.atom1 is guiAtom or guiLine.atom2 is guiAtom]
+
+                        # remove all graphic lines
+                        for guiLine in guiLines:
+                            guiLineList.remove(guiLine)
+                            self.scene.removeItem(guiLine)
+
+                    # clear connectivity list of guiNmrAtoms
+                    guiAtom.clearConnectedList()
+
                 self.scene.removeItem(self.guiNmrResidues[nmrResidue])
 
     def _deleteBadNmrResidues(self, nmrResidues):
@@ -1075,6 +1111,30 @@ class SequenceGraphModule(CcpnModule):
                 # if nmrResidue.previousNmrResidue:
                 #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
                 #     self._rebuildNmrResidues(previousNmrResidue)
+
+                guiNmrAtomSet = set([self.guiNmrAtomDict[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms])
+
+                for guiAtom in guiNmrAtomSet:
+                    for guiLineList in self.assignmentLines.values():
+                        guiLines = [guiLine for guiLine in guiLineList
+                                     if guiLine.atom1 is guiAtom or guiLine.atom2 is guiAtom]
+
+                        # remove all graphic lines
+                        for guiLine in guiLines:
+                            guiLineList.remove(guiLine)
+                            self.scene.removeItem(guiLine)
+
+                    for guiLineList in self.connectingLines.values():
+                        guiLines = [guiLine for guiLine in guiLineList
+                                     if guiLine.atom1 is guiAtom or guiLine.atom2 is guiAtom]
+
+                        # remove all graphic lines
+                        for guiLine in guiLines:
+                            guiLineList.remove(guiLine)
+                            self.scene.removeItem(guiLine)
+
+                    # clear connectivity list of guiNmrAtoms
+                    guiAtom.clearConnectedList()
 
                 self.scene.removeItem(self.guiNmrResidues[nmrResidue])
 
@@ -1234,7 +1294,7 @@ class SequenceGraphModule(CcpnModule):
 
         # add the peakAssignments
         if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-            for nmrResidue in newList:
+            for nmrResidue in nmrResidueList:
                 if nmrResidue is nmrResidue.mainNmrResidue:
                     # add the internally connected Lines
                     internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
