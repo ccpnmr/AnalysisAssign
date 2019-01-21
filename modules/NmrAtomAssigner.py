@@ -260,7 +260,7 @@ class NmrAtomAssignerModule(CcpnModule):
     #================================================================================================================
 
     def _filterResidues(self, pids):
-        """Filter function for the resdidue pulldown
+        """Filter function for the residue pulldown
         Add any nmrResidue defined by selected peaks at the top of the list
         """
 
@@ -983,7 +983,7 @@ class NmrAtomAssignerModule(CcpnModule):
         if ll:
             return ll[0]
         else:
-            return nmrChain.fetchNmrResidue(sequenceCode)
+            return nmrChain.getNmrResidue(sequenceCode)
 
     def _getCorrectResidue(self, nmrResidue, offset: str, atomType: str):
         name = atomType
@@ -1090,8 +1090,11 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _peaksCallback(self, data):
         "Callback for the peaks notifier"
+
+        print('>>>changing current peak')
         peaks = data[Notifier.VALUE]
-        self._setPeaksLabel()
+        # self._setPeaksLabel()
+        self._updateWidget()
         self._nmrResidue.update()
 
     # def _predictAssignments(self, peaks: typing.List[Peak]):

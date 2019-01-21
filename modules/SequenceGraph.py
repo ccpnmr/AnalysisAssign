@@ -997,6 +997,7 @@ class SequenceGraphModule(CcpnModule):
         # print('>>>_updateNmrAtoms', nmrAtom)
         trigger = data[Notifier.TRIGGER]
 
+        # only mainNmrResidues are shown on the screen
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
                 # print('>>>delete nmrAtom', nmrAtom)
@@ -1005,9 +1006,6 @@ class SequenceGraphModule(CcpnModule):
             elif trigger == Notifier.CREATE:
                 # print('>>>create nmrAtom', nmrAtom)
                 self._createNmrAtoms(nmrAtom)
-
-            # elif trigger == Notifier.CHANGE:
-            #     print('>>>change nmrAtom - no action', nmrAtom)
 
     def _resetNmrResiduePidForAssigner(self, data):  #nmrResidue, oldPid:str):
         """Reset pid for NmrResidue and all offset NmrResidues
@@ -1275,7 +1273,7 @@ class SequenceGraphModule(CcpnModule):
             self.predictSequencePosition(self.predictedStretch)
 
         # add the connecting lines
-        guiNmrResidues = [self.guiNmrResidues[nmrResidue] for nmrResidue in nmrResidueList]
+        guiNmrResidues = [self.guiNmrResidues[nmrResidue] for nmrResidue in nmrResidueList if nmrResidue is nmrResidue.mainNmrResidue]
 
         for ii, res in enumerate(guiNmrResidues):
             if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
@@ -1708,12 +1706,13 @@ class SequenceGraphModule(CcpnModule):
             ii = self.predictedStretch.index(nmrResidue)
             self.guiResiduesShown[ii].update(atoms)
 
-        guiResidueGroup = self.guiNmrResidues[nmrResidue]
+        if nmrResidue in self.guiNmrResidues:
+            guiResidueGroup = self.guiNmrResidues[nmrResidue]
 
-        # add the atoms to the group and set the reverse link
-        for item in atoms.values():
-            guiResidueGroup.addToGroup(item)
-            item.guiNmrResidueGroup = guiResidueGroup
+            # add the atoms to the group and set the reverse link
+            for item in atoms.values():
+                guiResidueGroup.addToGroup(item)
+                item.guiNmrResidueGroup = guiResidueGroup
 
     def addResidue(self, nmrResidue: NmrResidue, nmrResidueIndex: int, atomSpacing=None, lineList=None):
         """Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
