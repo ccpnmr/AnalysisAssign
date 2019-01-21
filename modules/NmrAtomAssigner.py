@@ -180,7 +180,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         _f = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
         self._nmrChain = NmrChainPulldown(_f, project=self.project,
-                                          labelText='Filter:', default=0, showSelectName=True,
+                                          labelText='Filter:', showSelectName=True,
                                           setCurrent=False,
                                           callback=self._nmrChainCallback,
                                           grid=(0, 1), hPolicy='minimal', minimumWidths=None)
