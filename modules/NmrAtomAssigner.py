@@ -296,19 +296,11 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _nmrChainPullDownCallback(self, value):
         "Callback for the NmrChain selection"
-
-        print('>>>_nmrChainPullDownCallback')
         self._nmrResidue.update()
-
-    # def _nmrResiduePullDownCallback(self, value):
-    #     "Callback for the NmrResidue selection"
-    #
-    #     print('>>>_nmrResiduePullDownCallback - no action')
 
     def _handleNmrResidue(self, dataDict):
         """drop event handler to accept NmrResidue pids
         """
-        #print("NmrAtomAssigner.dropEvent>>>", dataDict, type(dataDict))
         pids = dataDict.get(DropBase.PIDS)
         if pids:
             objs = [self.project.getByPid(pid) for pid in pids]
@@ -1097,14 +1089,10 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _currentNmrResiduesCallback(self, data):
         "Callback for the nmrResidues notifier"
-
-        print('>>>changing current nmrResidue')
         self._updateWidget()
 
     def _currentPeaksCallback(self, data):
         "Callback for the peaks notifier"
-
-        print('>>>changing current peak')
         peaks = data[Notifier.VALUE]
         # self._setPeaksLabel()
         self._updateWidget()
