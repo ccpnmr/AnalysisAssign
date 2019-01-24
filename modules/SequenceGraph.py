@@ -205,8 +205,8 @@ class GuiNmrAtom(QtWidgets.QGraphicsTextItem):
         self.nmrAtom = nmrAtom
 
         self.connectedAtoms = 0
-        self.connectedList = {}             # maintain connectivity between guiNmrAtoms
-                                            # so that lines do not overlap
+        self.connectedList = {}  # maintain connectivity between guiNmrAtoms
+        # so that lines do not overlap
 
         self.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
 
@@ -493,7 +493,7 @@ class NmrResidueList(object):
         """Add a new nmrResidue at the required position.
         """
         self._addNmrResidue(nmrResidue, nmrResidueIndex=index, lineList=self.connectingLines)
-        
+
     def _addNmrResidue(self, nmrResidue, nmrResidueIndex=0, lineList=None):
         """Takes an Nmr Residue, and adds a residue to the sequence graph
         corresponding to the Nmr Residue at the required index.
@@ -543,11 +543,11 @@ class NmrResidueList(object):
         return newGuiResidueGroup
 
     def _addGhostResidue(self, nmrResidueCon1: NmrResidue,
-                        guiRef: GuiNmrAtom,
-                        nmrResidueCon0: NmrResidue,
-                        name1: str, name0: str,
-                        offsetAdjust,
-                        atomSpacing=None, lineList=None):
+                         guiRef: GuiNmrAtom,
+                         nmrResidueCon0: NmrResidue,
+                         name1: str, name0: str,
+                         offsetAdjust,
+                         atomSpacing=None, lineList=None):
         """Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
         corresponding to the Nmr Residue.
         Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
@@ -630,7 +630,7 @@ class NmrResidueList(object):
                 else:
                     nmrAtom = None
                 newAtom = self._createGuiNmrAtom(k, position, nmrAtom)
-                
+
                 # self.scene.addItem(newAtom)
                 # residue[k] = newAtom
                 guiAtoms[k] = newAtom
@@ -674,7 +674,7 @@ class NmrResidueList(object):
         """Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
         creates a graphical representation of a residue in the assigner
         """
-        guiResidueGroup = GuiNmrResidueGroup(self, nmrResidue, guiAtoms['CA'], 0)
+        guiResidueGroup = GuiNmrResidueGroup(nmrResidue, guiAtoms['CA'], 0)
         self.guiGhostNmrResidues[nmrResidue] = guiResidueGroup
         self._scene.addItem(guiResidueGroup)
 
@@ -729,7 +729,6 @@ class NmrResidueList(object):
             thisRes, thisGuiAtoms = this
 
             if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes) and connectsNeeded:
-
                 # connect from this 'N' to the previous 'CO'
                 self._addConnectingLineToGroup(self.guiNmrResidues[thisRes],
                                                thisGuiAtoms['N'], prevGuiAtoms['CO'],
@@ -779,7 +778,6 @@ class NmrResidueList(object):
                 newPosy = link.y()
                 res.setPos(QtCore.QPointF(newPosx + (count * 0.5 - 1.0) * self.atomSpacing,
                                           newPosy + (count * 2.5 + 5.0) * self.atomSpacing))
-
 
     #==========================================================================================
 
@@ -858,12 +856,12 @@ class NmrResidueList(object):
                         continue
 
                     newGhostResidue = self._addGhostResidue(nmrAtomPair[0].nmrResidue,
-                                                           guiNmrAtomPair[1],
-                                                           nmrAtomPair[1].nmrResidue,
-                                                           nmrAtomPair[0].name,
-                                                           nmrAtomPair[1].name,
-                                                           True,
-                                                           lineList=connectingLineList)
+                                                            guiNmrAtomPair[1],
+                                                            nmrAtomPair[1].nmrResidue,
+                                                            nmrAtomPair[0].name,
+                                                            nmrAtomPair[1].name,
+                                                            True,
+                                                            lineList=connectingLineList)
                     guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
                                       self.guiNmrAtomDict.get(nmrAtomPair[1]),
                                       nmrAtomPair[2]
@@ -883,12 +881,12 @@ class NmrResidueList(object):
                         continue
 
                     newGhostResidue = self._addGhostResidue(nmrAtomPair[1].nmrResidue,
-                                                           guiNmrAtomPair[0],
-                                                           nmrAtomPair[0].nmrResidue,
-                                                           nmrAtomPair[1].name,
-                                                           nmrAtomPair[0].name,
-                                                           True,
-                                                           lineList=connectingLineList)
+                                                            guiNmrAtomPair[0],
+                                                            nmrAtomPair[0].nmrResidue,
+                                                            nmrAtomPair[1].name,
+                                                            nmrAtomPair[0].name,
+                                                            True,
+                                                            lineList=connectingLineList)
                     guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
                                       self.guiNmrAtomDict.get(nmrAtomPair[1]),
                                       nmrAtomPair[2]
@@ -1135,7 +1133,6 @@ class SequenceGraphModule(CcpnModule):
         self.atomSpacing = 66
         self.nmrResidueList = NmrResidueList(self.project, self._SGwidget, self._lineColour, self._textColour, self.atomSpacing,
                                              self.scene, self)
-
 
         colwidth = 140
         self._MWwidget = Widget(self.mainWidget, setLayout=True,
@@ -1968,7 +1965,6 @@ class SequenceGraphModule(CcpnModule):
 
         if isinstance(nmrChainOrPid, str):
             if not Pid.isValid(nmrChainOrPid):
-                
                 self.resetScene()
                 return
 
@@ -1978,7 +1974,6 @@ class SequenceGraphModule(CcpnModule):
 
         # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
         if not nmrChain:
-            
             self.resetScene()
             return
 
@@ -1998,11 +1993,10 @@ class SequenceGraphModule(CcpnModule):
                 if self.nmrResiduesCheckBox.isChecked():
                     for nmrResidue in nmrChain.nmrResidues:
                         if nmrResidue is nmrResidue.mainNmrResidue:
-                            
                             self.nmrResidueList.addNmrResidue(nmrResidue, index=self.nmrResidueList.size)
-                            
+
                             # self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
-                            
+
                             # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
                             #                  callback=self._changeNmrResidues)
 
