@@ -605,8 +605,7 @@ class SequenceGraphModule(CcpnModule):
         # install the event filter to handle maximising from floated dock
         # self.installMaximiseEventHandler(self._maximise, self._closeModule)
 
-        if nmrChain is not None:
-            self.selectSequence(nmrChain)
+        self.selectSequence(nmrChain)
 
     def _sceneMouseRelease(self, event):
         if event.button() == QtCore.Qt.RightButton:
@@ -691,8 +690,9 @@ class SequenceGraphModule(CcpnModule):
         """Manually select a Sequence from the pullDown
         """
         if nmrChain is None:
-            logger.warning('select: No Sequence selected')
-            raise ValueError('select: No Sequence selected')
+            # logger.warning('select: No Sequence selected')
+            # raise ValueError('select: No Sequence selected')
+            self.nmrChainPulldown.selectFirstItem()
         else:
             if not isinstance(nmrChain, NmrChain):
                 logger.warning('select: Object is not of type Sequence')
