@@ -358,7 +358,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
                 drag.exec_(QtCore.Qt.MoveAction)  # ejb - same as BackboneAssignment
 
     def _mousePressEvent(self, event):
-        self.current.nmrResidue = self.nmrResidue
+        self._parent.current.nmrResidue = self.nmrResidue
         self.setSelected(True)
 
     def _mouseDoubleClickEvent(self, event):
@@ -404,13 +404,13 @@ class GuiNmrResidueGroup(QtWidgets.QGraphicsItemGroup):
     Group item to group all nmrAtoms/connecting lines of nmrResidue
     """
 
-    def __init__(self, nmrResidue, caAtom, pos):
+    def __init__(self, mainWindow, nmrResidue, caAtom, pos):
         super().__init__()
 
-        # self.mainWindow = parent.mainWindow
-        # self.application = self.mainWindow.application
-        # self.project = self.mainWindow.project
-        # self.current = self.mainWindow.application.current
+        self.mainWindow = mainWindow
+        self.application = mainWindow.application
+        self.project = mainWindow.project
+        self.current = mainWindow.application.current
 
         self.nmrResidue = nmrResidue
         self.setPos(QtCore.QPointF(pos, 0.0))
@@ -439,11 +439,15 @@ class NmrResidueList(object):
     A Class to hold the information about each gui object in the scene
     """
 
-    def __init__(self, project, settingsWidget, lineColour, textColour, atomSpacing, scene, module):
+    def __init__(self, mainWindow, settingsWidget, lineColour, textColour, atomSpacing, scene, module):
         """Initialise the new object.
         """
+        self.mainWindow = mainWindow
+        self.application = mainWindow.application
+        self.project = mainWindow.project
+        self.current = mainWindow.application.current
+
         self.reset()
-        self._project = project
         self._SGwidget = settingsWidget
         self._lineColour = lineColour
         self._textColour = textColour
@@ -641,7 +645,7 @@ class NmrResidueList(object):
         """Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
         creates a graphical representation of a residue in the assigner
         """
-        guiResidueGroup = GuiNmrResidueGroup(nmrResidue, guiAtoms['CA'], 0)
+        guiResidueGroup = GuiNmrResidueGroup(self.mainWindow, nmrResidue, guiAtoms['CA'], 0)
 
         # insert into the gui list and add to the scene
         self.guiNmrResidues[nmrResidue] = guiResidueGroup
@@ -674,7 +678,7 @@ class NmrResidueList(object):
         """Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
         creates a graphical representation of a residue in the assigner
         """
-        guiResidueGroup = GuiNmrResidueGroup(nmrResidue, guiAtoms['CA'], 0)
+        guiResidueGroup = GuiNmrResidueGroup(self.mainWindow, nmrResidue, guiAtoms['CA'], 0)
         self.guiGhostNmrResidues[nmrResidue] = guiResidueGroup
         self._scene.addItem(guiResidueGroup)
 
@@ -741,7 +745,7 @@ class NmrResidueList(object):
         """Gets predictions for residue type based on BMRB statistics and determines label positions
         based on caAtom position.
         """
-        predictions = list(set(map(tuple, (getNmrResiduePrediction(nmrResidue, self._project.chemicalShiftLists[0])))))
+        predictions = list(set(map(tuple, (getNmrResiduePrediction(nmrResidue, self.project.chemicalShiftLists[0])))))
         predictions.sort(key=lambda a: float(a[1][:-1]), reverse=True)
         for prediction in predictions:
             predictionLabel = QtWidgets.QGraphicsTextItem()
@@ -1188,7 +1192,7 @@ class SequenceGraphModule(CcpnModule):
         self.initialiseScene()
         self.residueCount = 0
         self.atomSpacing = 66
-        self.nmrResidueList = NmrResidueList(self.project, self._SGwidget, self._lineColour, self._textColour, self.atomSpacing,
+        self.nmrResidueList = NmrResidueList(self.mainWindow, self._SGwidget, self._lineColour, self._textColour, self.atomSpacing,
                                              self.scene, self)
 
         colwidth = 140
@@ -2003,15 +2007,6 @@ class SequenceGraphModule(CcpnModule):
                         if nmrResidue is nmrResidue.mainNmrResidue:
                             self.nmrResidueList.addNmrResidue(nmrResidue, index=self.nmrResidueList.size)
 
-                            # self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
-
-                            # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
-                            #                  callback=self._changeNmrResidues)
-
-                            # add a connecting line to the adjacent residue
-                            # if nmrResidue.nextNmrResidue:
-                            #     connectingLinesNeeded.add(len(self.guiResiduesShown) - 1)
-
                 else:
                     nmrResidue = self.current.nmrResidue
                     if nmrResidue in nmrChain.nmrResidues:
@@ -2027,35 +2022,16 @@ class SequenceGraphModule(CcpnModule):
 
                         self.nmrResidueList.addNmrResidue(nmrResidue, index=self.nmrResidueList.size)
 
-                        # self.addResidue(nmrResidue, len(self.predictedStretch), lineList=self.connectingLines)
-                        # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
-                        #                  callback=self._changeNmrResidues)
                         nmrResidue = nmrResidue.nextNmrResidue
 
-                # if len(self.predictedStretch) > 2:
-                #     self.predictSequencePosition(self.predictedStretch)
+                if self.nmrResidueList.size > 2:
+                    self.predictSequencePosition(self.nmrResidueList.allNmrResidues)
 
                 # add the connecting lines
                 self.nmrResidueList.addConnectionsBetweenGroups()
 
-                # for ii, res in enumerate(self.guiResiduesShown[:-1]):
-                #     if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
-                #         self._addConnectingLineToGroup(tuple(self.guiNmrResidues.values())[ii],
-                #                                        res['CO'], self.guiResiduesShown[ii + 1]['N'],
-                #                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
-
-                # # add the peakAssignments
+                # add the peakAssignments
                 self.nmrResidueList._addAllPeakAssignments()
-
-                # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-                #     for nmrResidue in nmrChain.nmrResidues:
-                #         if nmrResidue is nmrResidue.mainNmrResidue:
-                #             # add the internally connected Lines
-                #             internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
-                #             self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
-                #             self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
-                #             self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
-                #                                                         self.assignmentLines, self.connectingLines)
 
                 self._updateGuiResiduePositions(updateMainChain=True, updateConnectedChains=True)
 
@@ -2458,12 +2434,14 @@ class SequenceGraphModule(CcpnModule):
     #                                caAtom.y() + (30 * (predictions.index(prediction) + 2)))
     #         self.scene.addItem(predictionLabel)
 
-    def predictSequencePosition(self, nmrResidues: list):
+    def predictSequencePosition(self, nmrResidueList: list):
         """
         Predicts sequence position for Nmr residues displayed in the Assigner and highlights appropriate
         positions in the Sequence Module if it is displayed.
         """
         if self.project.chains and self.project.chemicalShiftLists:
+
+            nmrResidues = [item[0] for item in nmrResidueList]
 
             matchesDict = {}
             for chainNum, chain in enumerate(self.project.chains):
