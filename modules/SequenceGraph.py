@@ -986,7 +986,10 @@ class SequenceGraphModule(CcpnModule):
                 self._deleteBadNmrResidues(nmrResidue)
 
             else:
-                # print('>>>change2 nmrResidue - create', nmrResidue)
+                # print('>>>change2 nmrResidue - create **** rename', nmrResidue)
+
+                # this is the event htat fires on a name change
+                self._deleteBadNmrResidues(nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
     def _updateNmrAtoms(self, data):
