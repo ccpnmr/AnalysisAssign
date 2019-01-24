@@ -542,6 +542,52 @@ class NmrResidueList(object):
 
         return newGuiResidueGroup
 
+    def _addGhostResidue(self, nmrResidueCon1: NmrResidue,
+                        guiRef: GuiNmrAtom,
+                        nmrResidueCon0: NmrResidue,
+                        name1: str, name0: str,
+                        offsetAdjust,
+                        atomSpacing=None, lineList=None):
+        """Takes an Nmr Residue and a direction, either '-1 or '+1', and adds a residue to the sequence graph
+        corresponding to the Nmr Residue.
+        Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
+        beneath Nmr Residue name
+        """
+
+        # need to keep a list of the atoms that have been added so don't repeat
+        count = 0
+        if nmrResidueCon0 in self.ghostList:
+            count = len(self.ghostList[nmrResidueCon0])
+            if nmrResidueCon1 in self.ghostList[nmrResidueCon0]:
+                # already exists in the dict so exit
+                return
+        else:
+            self.ghostList[nmrResidueCon0] = ()
+
+        nmrResidue = nmrResidueCon1
+        atoms = {}
+        if atomSpacing:
+            self.atomSpacing = atomSpacing
+        nmrAtoms = [nmrAtom.name for nmrAtom in nmrResidue.nmrAtoms]
+        residueAtoms = DEFAULT_RESIDUE_ATOMS.copy()
+
+        if nmrResidue.residueType == 'GLY':
+            del residueAtoms['CB']
+
+        for k, v in residueAtoms.items():
+            if k in nmrAtoms:
+                nmrAtom = nmrResidue.fetchNmrAtom(name=k)
+            else:
+                nmrAtom = None
+            atoms[k] = self._createGhostGuiNmrAtom(k, v, nmrAtom)
+
+        newGuiResidueGroup = self._assembleGhostResidue(nmrResidue, atoms, lineList=lineList)
+        newGuiResidueGroup.crossChainCount = count
+        newGuiResidueGroup.crossChainResidue = nmrResidueCon0
+
+        self.ghostList[nmrResidueCon0] += (nmrResidueCon1,)
+        return atoms
+
     #==========================================================================================
 
     def _createGuiNmrAtom(self, atomType: str, position: tuple, nmrAtom: NmrAtom = None) -> GuiNmrAtom:
@@ -624,6 +670,35 @@ class NmrResidueList(object):
 
         return guiResidueGroup
 
+    def _assembleGhostResidue(self, nmrResidue: NmrResidue, guiAtoms: typing.Dict[str, GuiNmrAtom], lineList=None):
+        """Takes an Nmr Residue and a dictionary of atom names and GuiNmrAtoms and
+        creates a graphical representation of a residue in the assigner
+        """
+        guiResidueGroup = GuiNmrResidueGroup(self, nmrResidue, guiAtoms['CA'], 0)
+        self.guiGhostNmrResidues[nmrResidue] = guiResidueGroup
+        self._scene.addItem(guiResidueGroup)
+
+        # add the atoms to the group and set the reverse link
+        for item in guiAtoms.values():
+            guiResidueGroup.addToGroup(item)
+            item.guiNmrResidueGroup = guiResidueGroup
+
+        # add the backbone lines - sidechain will be added in the future
+        if "CB" in list(guiAtoms.keys()):
+            self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['CA'], guiAtoms['CB'],
+                                           self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+
+        if "H" in list(guiAtoms.keys()) and nmrResidue.residueType != 'PRO':
+            self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['H'], guiAtoms['N'],
+                                           self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+
+        self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['N'], guiAtoms['CA'],
+                                       self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+        self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['CO'], guiAtoms['CA'],
+                                       self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+
+        return guiResidueGroup
+
     #==========================================================================================
 
     def _addConnectingLineToGroup(self, group: GuiNmrResidueGroup, atom1: GuiNmrAtom, atom2: GuiNmrAtom,
@@ -653,7 +728,7 @@ class NmrResidueList(object):
             prevRes, prevGuiAtoms = prev
             thisRes, thisGuiAtoms = this
 
-            if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes) or connectsNeeded:
+            if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes) and connectsNeeded:
 
                 # connect from this 'N' to the previous 'CO'
                 self._addConnectingLineToGroup(self.guiNmrResidues[thisRes],
@@ -708,7 +783,246 @@ class NmrResidueList(object):
 
     #==========================================================================================
 
+    def _addAllPeakAssignments(self):
+        """Add all the peak assignments to the scene.
+        """
+        if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
+
+            for item in self.allNmrResidues:
+                nmrResidue, guiRes = item
+
+                # add the internally connected Lines
+                internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
+
+                self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
+                self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
+                self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
+                                                            self.assignmentLines, self.connectingLines)
+
     #==========================================================================================
+
+    def _addPeakAssignmentLinesToGroup(self, assignments, lineList):
+        """Add the local peak assignments to each guiNmrResidue.
+        """
+        for specAssignments in assignments.values():
+            for nmrAtomPair in specAssignments:
+
+                guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
+                                  self.guiNmrAtomDict.get(nmrAtomPair[1]),
+                                  nmrAtomPair[2]
+                                  )
+
+                # skip if not defined
+                if None in guiNmrAtomPair:
+                    continue
+
+                # get the peak and the spectrum
+                peak = guiNmrAtomPair[2]
+                spectrum = peak.peakList.spectrum
+                displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+
+                # add the internal line to the guiNmrResidueGroup, should now move when group is moved
+                guiNmrResidue = self.guiNmrResidues[guiNmrAtomPair[0].nmrAtom.nmrResidue]
+
+                self._addConnectingLineToGroup(guiNmrResidue,
+                                               guiNmrAtomPair[0],
+                                               guiNmrAtomPair[1],
+                                               spectrum.positiveContourColour,
+                                               2.0, displacement=displacement,
+                                               peak=peak, lineList=lineList, lineId=peak)
+
+                # update displacements for both guiNmrAtoms
+                guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+                guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+
+    def _addPeakAssignmentLinesToAdjacentGroup(self, nmrResidue, assignments, peaklineList, connectingLineList):
+        """Add the peak assignments to nmrResidues in the same chain.
+        """
+        for specAssignments in assignments.values():
+            for nmrAtomPair in specAssignments:
+
+                guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
+                                  self.guiNmrAtomDict.get(nmrAtomPair[1]),
+                                  nmrAtomPair[2]
+                                  )
+
+                # get the peak and the spectrum
+                peak = guiNmrAtomPair[2]
+                spectrum = peak.peakList.spectrum
+
+                if guiNmrAtomPair[0] is None and guiNmrAtomPair[1] is None:
+                    continue
+
+                if guiNmrAtomPair[0] is None:
+                    if nmrAtomPair[1].nmrResidue.nmrChain is not nmrResidue.nmrChain:
+                        continue
+
+                    newGhostResidue = self._addGhostResidue(nmrAtomPair[0].nmrResidue,
+                                                           guiNmrAtomPair[1],
+                                                           nmrAtomPair[1].nmrResidue,
+                                                           nmrAtomPair[0].name,
+                                                           nmrAtomPair[1].name,
+                                                           True,
+                                                           lineList=connectingLineList)
+                    guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
+                                      self.guiNmrAtomDict.get(nmrAtomPair[1]),
+                                      nmrAtomPair[2]
+                                      )
+
+                    group = self.guiNmrResidues[nmrAtomPair[1].nmrResidue]
+                    displacement = guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])
+                    self._addConnectingLineToGroup(group,
+                                                   guiNmrAtomPair[1],
+                                                   guiNmrAtomPair[0],
+                                                   spectrum.positiveContourColour,
+                                                   2.0, displacement=displacement,
+                                                   peak=peak, lineList=peaklineList, lineId=nmrResidue)
+
+                elif guiNmrAtomPair[1] is None:
+                    if nmrAtomPair[0].nmrResidue.nmrChain is not nmrResidue.nmrChain:
+                        continue
+
+                    newGhostResidue = self._addGhostResidue(nmrAtomPair[1].nmrResidue,
+                                                           guiNmrAtomPair[0],
+                                                           nmrAtomPair[0].nmrResidue,
+                                                           nmrAtomPair[1].name,
+                                                           nmrAtomPair[0].name,
+                                                           True,
+                                                           lineList=connectingLineList)
+                    guiNmrAtomPair = (self.guiNmrAtomDict.get(nmrAtomPair[0]),
+                                      self.guiNmrAtomDict.get(nmrAtomPair[1]),
+                                      nmrAtomPair[2]
+                                      )
+
+                    group = self.guiNmrResidues[nmrAtomPair[0].nmrResidue]
+                    displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+                    self._addConnectingLineToGroup(group,
+                                                   guiNmrAtomPair[0],
+                                                   guiNmrAtomPair[1],
+                                                   spectrum.positiveContourColour,
+                                                   2.0, displacement=displacement,
+                                                   peak=peak, lineList=peaklineList, lineId=nmrResidue)
+
+                else:
+                    if nmrAtomPair[0].nmrResidue.nmrChain is nmrResidue.nmrChain:
+                        group = self.guiNmrResidues[nmrAtomPair[0].nmrResidue]
+                        displacement = guiNmrAtomPair[0].getConnectedList(guiNmrAtomPair[1])
+                        self._addConnectingLineToGroup(group,
+                                                       guiNmrAtomPair[0],
+                                                       guiNmrAtomPair[1],
+                                                       spectrum.positiveContourColour,
+                                                       2.0, displacement=displacement,
+                                                       peak=peak, lineList=peaklineList, lineId=nmrResidue)
+
+                    elif nmrAtomPair[1].nmrResidue.nmrChain is nmrResidue.nmrChain:
+                        group = self.guiNmrResidues[nmrAtomPair[1].nmrResidue]
+                        displacement = guiNmrAtomPair[1].getConnectedList(guiNmrAtomPair[0])
+                        self._addConnectingLineToGroup(group,
+                                                       guiNmrAtomPair[1],
+                                                       guiNmrAtomPair[0],
+                                                       spectrum.positiveContourColour,
+                                                       2.0, displacement=displacement,
+                                                       peak=peak, lineList=peaklineList, lineId=nmrResidue)
+                    else:
+                        continue
+
+                guiNmrAtomPair[0].addConnectedList(guiNmrAtomPair[1])
+                guiNmrAtomPair[1].addConnectedList(guiNmrAtomPair[0])
+
+    def _getPeakAssignmentsForResidue(self, nmrResidue, nmrAtomIncludeList=None):
+        """Get the list of peak assignments from the nmrAtoms
+        interResidueAtomPairing is the linking within the same nmrResidue
+        interChainAtomPairing is the linking within the same chain but to different nmrResidues
+        crossChainAtomPairing is the linking to different chains
+        """
+
+        # create a set of sets ordered by spectra
+        interResidueAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
+        interChainAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
+        crossChainAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
+
+        nmrChain = nmrResidue.nmrChain
+
+        for nmrAtom in nmrResidue.nmrAtoms:
+
+            if nmrAtom._flaggedForDelete or nmrAtom.isDeleted:
+                continue
+
+            for peak in nmrAtom.assignedPeaks:
+
+                # ignore peaks that are due for delete (can probably also use the notifier list)
+                if peak._flaggedForDelete or peak.isDeleted:
+                    continue
+
+                spec = peak.peakList.spectrum
+                for assignment in peak.assignments:
+
+                    # find the mainNmrResidue for -1 and +1 connections
+                    newCon = list(assignment)
+                    for conNum in range(len(assignment)):
+
+                        # assignments could be None
+                        if assignment[conNum] and assignment[conNum].nmrResidue.relativeOffset == -1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+
+                            # this is a minus residue so find connected, have to traverse to the previousNmrResidue
+                            # will it always exist?
+                            conName = assignment[conNum].name
+                            preN = assignment[conNum].nmrResidue.mainNmrResidue.previousNmrResidue
+                            if preN:
+                                newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+                                if newConSwap:
+                                    newCon[conNum] = newConSwap[0]
+                            else:
+                                newCon[conNum] = None  # not connected so skip
+
+                        elif assignment[conNum] and assignment[conNum].nmrResidue.relativeOffset == +1:  # and inCon[conNum].nmrResidue.nmrChain.isConnected:
+
+                            # this is a plus residue so find connected, have to traverse to the nextNmrResidue
+                            # will it always exist?
+                            conName = assignment[conNum].name
+                            preN = assignment[conNum].nmrResidue.mainNmrResidue.nextNmrResidue
+                            if preN:
+                                newConSwap = [nmrA for nmrA in preN.nmrAtoms if nmrA.name == conName]
+                                if newConSwap:
+                                    newCon[conNum] = newConSwap[0]
+                            else:
+                                newCon[conNum] = None  # not connected so skip
+
+                    assignment = newCon
+
+                    # only get the assignments a-b if a and b are defined in the spectrum magnetisationTransfers list
+                    for mag in self._module.magnetisationTransfers[spec]:
+                        nmrAtom0 = assignment[mag[0] - 1]
+                        nmrAtom1 = assignment[mag[1] - 1]
+                        nmrAtom0 = nmrAtom0 if nmrAtom0 and not (nmrAtom0.isDeleted or nmrAtom0._flaggedForDelete) else None
+                        nmrAtom1 = nmrAtom1 if nmrAtom1 and not (nmrAtom1.isDeleted or nmrAtom1._flaggedForDelete) else None
+
+                        if not None in (nmrAtom0, nmrAtom1):
+
+                            # ignore nmrAtoms that are not in the include list (if specified)
+                            if nmrAtomIncludeList is not None and not (nmrAtom0 in nmrAtomIncludeList or nmrAtom1 in nmrAtomIncludeList):
+                                continue
+
+                            if (nmrAtom0.nmrResidue is nmrResidue) and (nmrAtom1.nmrResidue is nmrResidue):
+
+                                # interResidueAtomPairing
+                                if (nmrAtom1, nmrAtom0, peak) not in interResidueAtomPairing[spec]:
+                                    interResidueAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+
+                            elif (nmrAtom0.nmrResidue.nmrChain is nmrChain) and (nmrAtom1.nmrResidue.nmrChain is nmrChain):
+
+                                # connections within the same chain
+                                if (nmrAtom1, nmrAtom0, peak) not in interChainAtomPairing[spec]:
+                                    interChainAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+
+                            # elif (nmrAtom0.nmrResidue.nmrChain is nmrChain) and (nmrAtom1.nmrResidue.nmrChain is not nmrChain):
+                            else:
+
+                                # connections to a dif
+                                if (nmrAtom1, nmrAtom0, peak) not in crossChainAtomPairing[spec]:
+                                    crossChainAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
+
+        return interResidueAtomPairing, interChainAtomPairing, crossChainAtomPairing
 
     #==========================================================================================
 
@@ -1729,6 +2043,8 @@ class SequenceGraphModule(CcpnModule):
                 #                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
 
                 # # add the peakAssignments
+                self.nmrResidueList._addAllPeakAssignments()
+
                 # if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
                 #     for nmrResidue in nmrChain.nmrResidues:
                 #         if nmrResidue is nmrResidue.mainNmrResidue:
