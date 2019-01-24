@@ -1023,7 +1023,64 @@ class NmrResidueList(object):
         return interResidueAtomPairing, interChainAtomPairing, crossChainAtomPairing
 
     #==========================================================================================
+    # spectrum update
 
+    def _removeLinesFromScene(self, lineDist):
+        """Remove all the lines in the group from the scene.
+        """
+        for lineList in lineDist.values():
+            for line in lineList:
+                self._scene.removeItem(line)
+        lineDist.clear()
+
+    def removeAssignmentLinesFromScene(self):
+        """Remove all the peakLines from the scene.
+        """
+        self._removeLinesFromScene(self.assignmentLines)
+
+    def removeConnectionLinesFromScene(self):
+        """Remove all the connection from the scene.
+        """
+        self._removeLinesFromScene(self.connectingLines)
+
+    def clearAllGuiNmrAtoms(self):
+        """clear the displacements in the nmrAtoms.
+        """
+        # clear the displacement values but keep the dict connections
+        for guiAtom in self.guiNmrAtomDict.values():
+            guiAtom.clearConnectedList()
+
+    def _rebuildPeakAssignments(self):
+        """Rebuild all the peak assignments in the display after changing the number of spectra.
+        """
+
+        # remove all previous assignment lines and reset the dict
+        self.removeAssignmentLinesFromScene()
+        self.clearAllGuiNmrAtoms()
+        self._addAllPeakAssignments()
+
+        # update the endpoints
+        self.updateEndPoints(self.assignmentLines)
+
+    def updateEndPoints(self, lineDict):
+        """Update the end points from the dict.
+        """
+        for lineList in lineDict.values():
+            for line in lineList:
+                try:
+                    line.updateEndPoints()
+                except Exception as es:
+                    pass
+
+    def updateAssignmentLines(self):
+        """Update the endpoints of the assignment lines.
+        """
+        self.updateEndPoints(self.assignmentLines)
+
+    def updateConnectionLines(self):
+        """Update the endpoints of the connection lines.
+        """
+        self.updateEndPoints(self.connectingLines)
 
 #==========================================================================================
 # Sequence Graph Main Module
@@ -1279,7 +1336,7 @@ class SequenceGraphModule(CcpnModule):
                 nmrChainPid = self.nmrChainPulldown.getText()
                 if nmrChainPid:
                     with self.sceneBlocking():
-                        self._rebuildPeakAssignments(nmrChainPid)
+                        self.nmrResidueList._rebuildPeakAssignments()
 
     def selectSequence(self, nmrChain=None):
         """Manually select a Sequence from the pullDown
@@ -1827,62 +1884,13 @@ class SequenceGraphModule(CcpnModule):
             # update the group positions
             self.nmrResidueList.updateMainChainPositions()
 
-            # for ii, res in enumerate(self.predictedStretch):
-            #     guiItem = self.guiNmrResidues[res]
-            #     guiItem.setPos(QtCore.QPointF(ii * self.atomSpacing * 3.0, 0.0))
-
         if updateConnectedChains:
             # update crossChainResidue positions
             self.nmrResidueList.updateConnectedChainPositions()
 
-            # for res in self.guiGhostNmrResidues.values():
-            #     if res.crossChainResidue:
-            #         link = self.guiNmrResidues[res.crossChainResidue]
-            #         count = res.crossChainCount
-            #
-            #         newPosx = link.x()
-            #         newPosy = link.y()
-            #         res.setPos(QtCore.QPointF(newPosx + (count * 0.5 - 1.0) * self.atomSpacing,
-            #                                   newPosy + (count * 2.5 + 5.0) * self.atomSpacing))
-
         # update the endpoints
         self._updateEndPoints(self.nmrResidueList.connectingLines)
         self._updateEndPoints(self.nmrResidueList.assignmentLines)
-
-    def _rebuildPeakAssignments(self, nmrChainOrPid):
-        """Rebuild all the peak assignments in the display after changing the number of spectra.
-        """
-        if isinstance(nmrChainOrPid, str):
-            if not Pid.isValid(nmrChainOrPid):
-                return
-            nmrChain = self.project.getByPid(nmrChainOrPid)
-        else:
-            nmrChain = nmrChainOrPid
-
-        # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
-        if not nmrChain:
-            return
-
-        # remove all previous assignment lines and reset the dict
-        self._removeLinesFromScene(self.assignmentLines)
-
-        # clear the displacement values but keep the dict connections
-        for guiAtom in self.guiNmrAtomDict.values():
-            guiAtom.clearConnectedList()
-
-        # add the peakAssignments
-        if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
-            for nmrResidue in nmrChain.nmrResidues:
-                if nmrResidue is nmrResidue.mainNmrResidue:
-                    # add the internally connected Lines
-                    internalAssignments, interChainAssignments, crossChainAssignments = self._getPeakAssignmentsForResidue(nmrResidue)
-                    self._addPeakAssignmentLinesToGroup(internalAssignments, self.assignmentLines)
-                    self._addPeakAssignmentLinesToGroup(interChainAssignments, self.assignmentLines)
-                    self._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
-                                                                self.assignmentLines, self.connectingLines)
-
-        # update the endpoints
-        self._updateEndPoints(self.assignmentLines)
 
     def _buildNmrResidues(self, nmrResidueList):
         """Build the new residues in the list, inserting into the predicted stretch at the correct index.
