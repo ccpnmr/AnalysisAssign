@@ -277,9 +277,9 @@ class AssignmentInspectorModule(CcpnModule):
         if peak:
             self.current.peak = peak
 
-            self.application._startCommandBlock('%s.navigateToPositionInStrip(project.getByPid(%r))' %
-                                                (self.className, peak.position))
-            try:
+            from ccpn.core.lib.ContextManagers import undoBlock
+
+            with undoBlock():
                 # optionally clear the marks
                 if self.autoClearMarksWidget.checkBox.isChecked():
                     self.application.ui.mainWindow.clearMarks()
@@ -299,8 +299,6 @@ class AssignmentInspectorModule(CcpnModule):
                             navigateToNmrAtomsInStrip(strip, makeIterableList(peak.assignedNmrAtoms),
                                                       widths=widths, markPositions=markPositions,
                                                       setNmrResidueLabel=False)
-            finally:
-                self.application._endCommandBlock()
 
     def _highlightNmrResidues(self, data):
         """
