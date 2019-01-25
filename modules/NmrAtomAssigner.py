@@ -321,8 +321,6 @@ class NmrAtomAssignerModule(CcpnModule):
         from ccpn.core.lib.ContextManagers import undoBlock
 
         with undoBlock():
-
-            # self.application._startCommandBlock('application.atomSelector._nmrAtomButtonsCallback(%s)' % pressedButton)
             try:
                 if pressedButton.isChecked():
                     self._assignSelected(atomName=pressedButton._atomName, offSet=pressedButton._offSet)
@@ -332,8 +330,6 @@ class NmrAtomAssignerModule(CcpnModule):
             except Exception as es:
                 showWarning(str(self.windowTitle()), str(es))
                 self._togglePressedButton()  # uncheck all if any error
-        # finally:
-        #     self.application._endCommandBlock()
 
     def _deassignSelected(self, atomName, offSet):
         nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
@@ -344,8 +340,8 @@ class NmrAtomAssignerModule(CcpnModule):
     def _assignSelected(self, atomName, offSet):
         nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
         if not nmrResidue:
-            getLogger().warning('connected nmrResidue does not exist.')
-            return
+            getLogger().warning('Error creating new nmrResidue')
+            raise ValueError('Error creating new nmrResidue')
 
         nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
         if nmrAtom:
@@ -1015,17 +1011,26 @@ class NmrAtomAssignerModule(CcpnModule):
         else:
             return nmrChain.getNmrResidue(sequenceCode)
 
+    def _fetchNmrResidue(self, nmrChain, sequenceCode: typing.Union[int, str] = None,
+                       residueType: str = None) -> typing.Optional[NmrResidue]:
+        partialId = '%s.%s.' % (nmrChain.id, str(sequenceCode).translate(Pid.remapSeparators))
+        ll = self.project.getObjectsByPartialId(className='NmrResidue', idStartsWith=partialId)
+        if ll:
+            return ll[0]
+        else:
+            return nmrChain.fetchNmrResidue(sequenceCode)
+
     def _getCorrectResidue(self, nmrResidue, offset: str, atomType: str):
         name = atomType
         r = None
         if offset == '-1' and '-1' not in nmrResidue.sequenceCode:
             r = nmrResidue.previousNmrResidue
             if not r:
-                r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '-1')
+                r = self._fetchNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '-1')
         elif offset == '+1' and '+1' not in nmrResidue.sequenceCode:
             r = nmrResidue.nextNmrResidue
             if not r:
-                r = self._getNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '+1')
+                r = self._fetchNmrResidue(nmrResidue.nmrChain, sequenceCode=nmrResidue.sequenceCode + '+1')
         else:
             r = nmrResidue
 
