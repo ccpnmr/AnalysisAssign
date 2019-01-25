@@ -1843,15 +1843,15 @@ class SequenceGraphModule(CcpnModule):
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-                print('>>>_updatePeaks delete', peak)
+                # print('>>>_updatePeaks delete', peak)
                 self.nmrResidueList.rebuildPeakLines(peak, rebuildPeakLines=True)
 
             elif trigger == Notifier.CREATE:
-                print('>>>_updatePeaks create', peak)
+                # print('>>>_updatePeaks create', peak)
                 self.nmrResidueList.rebuildPeakLines(peak, rebuildPeakLines=True, makeListFromPeak=True)
 
             elif trigger == Notifier.CHANGE:
-                print('>>>_updatePeaks change', peak)
+                # print('>>>_updatePeaks change', peak)
                 self.nmrResidueList.rebuildPeakLines(peak, rebuildPeakLines=True, makeListFromPeak=True)
 
     # def _updateNmrChains(self, data):
@@ -1877,16 +1877,16 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrResidue = data[Notifier.OBJECT]
 
-        print('>>>_updateNmrResidues', nmrResidue)
+        # print('>>>_updateNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-                print('>>>delete nmrResidue', nmrResidue)
+                # print('>>>delete nmrResidue', nmrResidue)
                 self._deleteNmrResidues(nmrResidue)
 
             elif trigger == Notifier.CREATE:
-                print('>>>create nmrResidue', nmrResidue)
+                # print('>>>create nmrResidue', nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
             # elif trigger == Notifier.CHANGE:
@@ -1900,21 +1900,21 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrResidue = data[Notifier.OBJECT]
 
-        print('>>>_changeNmrResidues', nmrResidue)
+        # print('>>>_changeNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
             if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.nmrResidueList.guiNmrResidues:
-                print('>>>change nmrResidue - create', nmrResidue)
+                # print('>>>change nmrResidue - create', nmrResidue)
                 self._createNmrResidues(nmrResidue)
 
             elif nmrResidue in self.nmrResidueList.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
                 # not in chain, but in residues as other chain
-                print('>>>change nmrResidue - delete', nmrResidue)
+                # print('>>>change nmrResidue - delete', nmrResidue)
                 self._deleteGuiNmrResidues(nmrResidue)
 
             else:
-                print('>>>change2 nmrResidue - create **** rename', nmrResidue)
+                # print('>>>change2 nmrResidue - create **** rename', nmrResidue)
 
                 # this is the event htat fires on a name change
                 self._deleteBadNmrResidues(nmrResidue)
@@ -2309,7 +2309,7 @@ class SequenceGraphModule(CcpnModule):
     def showNmrChainFromPulldown(self, data=None):
         """Clear and redraw the nmrChain selected from the pulldown.
         """
-        print('>>>showNmrChainFromPulldown')
+        # print('>>>showNmrChainFromPulldown')
 
         nmrChainPid = self.nmrChainPulldown.getText()
         if nmrChainPid:
