@@ -215,8 +215,11 @@ class PickAndAssignModule(NmrResidueTableModule):
             logger.error('Undefined peak(s); select one or more before proceeding')
             return
 
-        self.application._startCommandBlock('application.pickAndAssignModule.assignSelected()')
-        try:
+        from ccpn.core.lib.ContextManagers import logCommandBlock
+
+        with logCommandBlock(get='self') as log:
+            log('assignSelected')
+
             lastNmrResidue = self.application.current.nmrResidue
 
             shiftDict = {}
@@ -244,9 +247,7 @@ class PickAndAssignModule(NmrResidueTableModule):
             # reset to the last selected nmrResidue - stops other tables messing up
             self.application.current.nmrResidue = lastNmrResidue
 
-        finally:
-            self.application._endCommandBlock()
-
+    #TODO:GEERTEN: compact the two routines
     def restrictedPick(self, nmrResidue=None):
         """
         Routine refactored in revision 9381.
@@ -255,6 +256,8 @@ class PickAndAssignModule(NmrResidueTableModule):
         spectrum displays specified in the settings tab. Pick uses X and Z axes for each spectrumView as
         centre points with tolerances and the y as the long axis to pick the whole region.
         """
+        nmrResidue = self.project.getByPid(nmrResidue) if isinstance(nmrResidue, str) else nmrResidue
+
         if not nmrResidue:
             nmrResidue = self.application.current.nmrResidue
 
@@ -265,9 +268,11 @@ class PickAndAssignModule(NmrResidueTableModule):
         currentAxisCodes = self.nmrResidueTableSettings.axisCodeOptions.getSelectedText()
         currentAxisCodeIndexes = self.nmrResidueTableSettings.axisCodeOptions.getSelectedIndexes()
 
-        self.application._startCommandBlock('application.pickAndAssignModule.restrictedPick(nmrResidue)',
-                                            nmrResidue=nmrResidue)
-        try:
+        from ccpn.core.lib.ContextManagers import logCommandBlock
+
+        with logCommandBlock(get='self') as log:
+            log('restrictedPick', nmrResidue=repr(nmrResidue.pid))
+
             peaks = []
             displays = self._getDisplays()
             validPeakListViews = {}
@@ -319,10 +324,6 @@ class PickAndAssignModule(NmrResidueTableModule):
             # update the NmrResidue table
             self.nmrResidueTable._update(nmrResidue.nmrChain)
 
-        finally:
-            self.application._endCommandBlock()
-
-
     def restrictedPickAndAssign(self, nmrResidue=None):
         """
         Functionality for beta2 to include the Assign part
@@ -333,36 +334,40 @@ class PickAndAssignModule(NmrResidueTableModule):
         
         Calls assignSelected to assign
         """
+        nmrResidue = self.project.getByPid(nmrResidue) if isinstance(nmrResidue, str) else nmrResidue
+
         if not nmrResidue:
             nmrResidue = self.application.current.nmrResidue
         elif not self.application.current.nmrResidue:
             print('No current nmrResidue')
             return
 
-        self.application._startCommandBlock('application.pickAndAssignModule.restrictedPickAndAssign(nmrResidue)',
-                                            nmrResidue=nmrResidue)
-        try:
+        from ccpn.core.lib.ContextManagers import logCommandBlock
+
+        with logCommandBlock(get='self') as log:
+            log('restrictedPickAndAssign', nmrResidue=repr(nmrResidue.pid))
+
             self.restrictedPick(nmrResidue)
 
             # if peaks have been selected then assign them
             if self.application.current.peaks:
                 self.assignSelected()
 
-                # # notifier for other modules
-                # nmrResidue._finaliseAction('change')
-
-        finally:
-            self.application._endCommandBlock()
-
-            # notifier for other modules
-            nmrResidue._finaliseAction('change')
+                # notifier for other modules
+                nmrResidue._finaliseAction('change')
 
     def goToPositionInModules(self, nmrResidue=None, row=None, col=None):
         "Go to the positions defined my NmrAtoms of nmrResidue in the active displays"
 
+        nmrResidue = self.project.getByPid(nmrResidue) if isinstance(nmrResidue, str) else nmrResidue
+
         activeDisplays = self.spectrumSelectionWidget.getActiveDisplays()
-        self.application._startCommandBlock('application.pickAndAssignModule.goToPositionInModules(nmrResidue)', nmrResidue=nmrResidue)
-        try:
+
+        from ccpn.core.lib.ContextManagers import logCommandBlock
+
+        with logCommandBlock(get='self') as log:
+            log('goToPositionInModules', nmrResidue=repr(nmrResidue.pid))
+
             if nmrResidue is not None:
                 mainWindow = self.application.ui.mainWindow
                 mainWindow.clearMarks()
@@ -380,8 +385,6 @@ class PickAndAssignModule(NmrResidueTableModule):
                                                     widths=strip._getCurrentZoomRatio(strip.viewRange()),
                                                     markPositions=(n == 2))
                 self.application.current.nmrResidue = nmrResidue
-        finally:
-            self.application._endCommandBlock()
 
     # def _changeAxisCode(self):
     #     pass

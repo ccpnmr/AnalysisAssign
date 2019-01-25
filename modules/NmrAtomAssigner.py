@@ -343,6 +343,10 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _assignSelected(self, atomName, offSet):
         nmrResidue = self._getCorrectResidue(self.current.nmrResidue, offSet, atomName)
+        if not nmrResidue:
+            getLogger().warning('connected nmrResidue does not exist.')
+            return
+
         nmrAtom = nmrResidue.fetchNmrAtom(name=atomName)
         if nmrAtom:
             if self.selectAxisCode.isChecked():
