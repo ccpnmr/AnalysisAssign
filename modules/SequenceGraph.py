@@ -649,7 +649,7 @@ class NmrResidueList(object):
     def _nmrAtomID(self, nmrAtom):
         """Create an id string to retrieve guiNmrAtoms.
         """
-        return nmrAtom.nmrResidue.id+nmrAtom.name
+        return nmrAtom.nmrResidue.id + nmrAtom.name
 
     def addBackboneAtoms(self, nmrResidue, backboneAtoms, atomNames, guiAtoms):
         """add the backbone atoms.
@@ -1586,8 +1586,6 @@ class SequenceGraphModule(CcpnModule):
             # pass control to the calling function
             yield
 
-        except Exception as es:
-            raise es
         finally:
             self._unblockEvents()
 
@@ -1647,10 +1645,10 @@ class SequenceGraphModule(CcpnModule):
                                                     onceOnly=True)
 
         self._nmrResidueChangeNotifier = self.setNotifier(self.project,
-                                                    [Notifier.CHANGE],
-                                                    NmrResidue.className,
-                                                    self._changeNmrResidues,
-                                                    onceOnly=True)
+                                                          [Notifier.CHANGE],
+                                                          NmrResidue.className,
+                                                          self._changeNmrResidues,
+                                                          onceOnly=True)
 
         self._nmrAtomNotifier = self.setNotifier(self.project,
                                                  [Notifier.CHANGE, Notifier.CREATE, Notifier.DELETE],
@@ -1741,11 +1739,11 @@ class SequenceGraphModule(CcpnModule):
                 if nmrResidue is nmrResidue.mainNmrResidue and nmrResidue.nmrChain is self.nmrChain:
                     # add the internally connected Lines
                     internalAssignments, interChainAssignments, crossChainAssignments = self.nmrResidueList._getPeakAssignmentsForResidue(nmrResidue,
-                                                                                                                           nmrAtomIncludeList=nmrAtomIncludeList)
+                                                                                                                                          nmrAtomIncludeList=nmrAtomIncludeList)
                     self.nmrResidueList._addPeakAssignmentLinesToGroup(internalAssignments, self.nmrResidueList.assignmentLines)
                     self.nmrResidueList._addPeakAssignmentLinesToGroup(interChainAssignments, self.nmrResidueList.assignmentLines)
                     self.nmrResidueList._addPeakAssignmentLinesToAdjacentGroup(nmrResidue, crossChainAssignments,
-                                                                self.nmrResidueList.assignmentLines, self.nmrResidueList.connectingLines)
+                                                                               self.nmrResidueList.assignmentLines, self.nmrResidueList.connectingLines)
 
                 if nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
                     nextNmrResidue = nmrResidue.nextNmrResidue.mainNmrResidue
@@ -1753,11 +1751,11 @@ class SequenceGraphModule(CcpnModule):
                     # only process residues in the current visible chain
                     # add the internally connected Lines
                     internalAssignments, interChainAssignments, crossChainAssignments = self.nmrResidueList._getPeakAssignmentsForResidue(nextNmrResidue,
-                                                                                                                           nmrAtomIncludeList=nmrAtomIncludeList)
+                                                                                                                                          nmrAtomIncludeList=nmrAtomIncludeList)
                     self.nmrResidueList._addPeakAssignmentLinesToGroup(internalAssignments, self.nmrResidueList.assignmentLines)
                     self.nmrResidueList._addPeakAssignmentLinesToGroup(interChainAssignments, self.nmrResidueList.assignmentLines)
                     self.nmrResidueList._addPeakAssignmentLinesToAdjacentGroup(nextNmrResidue, crossChainAssignments,
-                                                                self.nmrResidueList.assignmentLines, self.nmrResidueList.connectingLines)
+                                                                               self.nmrResidueList.assignmentLines, self.nmrResidueList.connectingLines)
 
         self.nmrResidueList.updateGuiResiduePositions(updateMainChain=True, updateConnectedChains=True)
 
@@ -1887,7 +1885,8 @@ class SequenceGraphModule(CcpnModule):
 
             elif trigger == Notifier.CREATE:
                 # print('>>>create nmrResidue', nmrResidue)
-                self._createNmrResidues(nmrResidue)
+                if not self._createNmrResidues(nmrResidue):
+                    self.setNmrChainDisplay(self.nmrChain)
 
             # elif trigger == Notifier.CHANGE:
             #     print('>>>change nmrResidue - no action', nmrResidue)
@@ -1906,7 +1905,8 @@ class SequenceGraphModule(CcpnModule):
         with self.sceneBlocking():
             if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.nmrResidueList.guiNmrResidues:
                 # print('>>>change nmrResidue - create', nmrResidue)
-                self._createNmrResidues(nmrResidue)
+                if not self._createNmrResidues(nmrResidue):
+                    self.setNmrChainDisplay(self.nmrChain)
 
             elif nmrResidue in self.nmrResidueList.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
                 # not in chain, but in residues as other chain
@@ -1918,7 +1918,8 @@ class SequenceGraphModule(CcpnModule):
 
                 # this is the event htat fires on a name change
                 self._deleteBadNmrResidues(nmrResidue)
-                self._createNmrResidues(nmrResidue)
+                if not self._createNmrResidues(nmrResidue):
+                    self.setNmrChainDisplay(self.nmrChain)
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
@@ -1963,7 +1964,7 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrResidues = makeIterableList(nmrResidues)
         nmrResidues = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain is self.nmrChain]
-        self._buildNmrResidues(nmrResidues)
+        return self._buildNmrResidues(nmrResidues)
 
     def _deleteNmrResidues(self, nmrResidues):
         """Delete the nmrResidue from the scene
@@ -1978,7 +1979,7 @@ class SequenceGraphModule(CcpnModule):
                 self.nmrResidueList.deleteNmrResidueIndex(ii)
 
                 if ii:
-                    previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii-1)
+                    previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii - 1)
                     self._rebuildNmrResidues(previousNmrResidue)
 
                 # ii = self.predictedStretch.index(nmrResidue)
@@ -2054,12 +2055,29 @@ class SequenceGraphModule(CcpnModule):
 
             self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
             oldInd = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
-            self._deleteStore[nmrResidue] = oldInd
+            ii = self.nmrChain.mainNmrResidues
+            self._storeIndex(nmrResidue, oldInd)
+
             self.nmrResidueList.deleteNmrResidue(nmrResidue)
             del self.nmrResidueList.guiNmrResidues[nmrResidue]
             for nmrAtom in nmrResidue.nmrAtoms:
                 del self.nmrResidueList.guiNmrAtomDict[nmrAtom]
             pass
+
+    def _storeIndex(self, nmrResidue, index):
+        """Store the index for the undo.
+        """
+        if not nmrResidue in self._deleteStore:
+            self._deleteStore[nmrResidue] = []
+        self._deleteStore[nmrResidue].append(index)
+
+    def _restoreIndex(self, nmrResidue):
+        """Retrieve the index of the deleted item.
+        """
+        if nmrResidue in self._deleteStore:
+            return self._deleteStore[nmrResidue].pop()
+
+        return None
 
     def _deleteBadNmrResidues(self, nmrResidues):
         """Delete the nmrResidue from the scene
@@ -2072,19 +2090,19 @@ class SequenceGraphModule(CcpnModule):
             if ii is not None:
                 self.nmrResidueList.deleteNmrResidueIndex(ii)
 
-            # # ignore if not in the visible chain
-            # if nmrResidue in self.predictedStretch:
-            #
-            #     ii = self.predictedStretch.index(nmrResidue)
-            #     # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
-            #
-            #     # remove from the visible list
-            #     self.predictedStretch.pop(ii)
-            #     self.guiResiduesShown.pop(ii)
+                # # ignore if not in the visible chain
+                # if nmrResidue in self.predictedStretch:
+                #
+                #     ii = self.predictedStretch.index(nmrResidue)
+                #     # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
+                #
+                #     # remove from the visible list
+                #     self.predictedStretch.pop(ii)
+                #     self.guiResiduesShown.pop(ii)
 
                 if ii:
                     # previousNmrResidue = self.predictedStretch[ii - 1]
-                    previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii-1)
+                    previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii - 1)
                     self._rebuildNmrResidues(previousNmrResidue)
 
                 # if nmrResidue.previousNmrResidue:
@@ -2177,8 +2195,41 @@ class SequenceGraphModule(CcpnModule):
             for nmrResidue in nmrResidueList:
                 if nmrResidue is nmrResidue.mainNmrResidue:
 
-                    # ii = self.nmrChain.mainNmrResidues.index(nmrResidue)
-                    ii = self._deleteStore[nmrResidue]
+                    # nasty way of putting the nmrResidue back into the list
+                    ii = None
+                    if nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
+                        nmr = nmrResidue.previousNmrResidue.mainNmrResidue
+                        iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
+                        if iiLeft is not None:
+                            ii = iiLeft + 1
+                            # print('>>>L1', nmrResidue, nmr, ii)
+
+                        elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
+                                nmr = nmrResidue.nextNmrResidue.mainNmrResidue
+                                iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
+                                if iiRight is not None:
+                                    ii = iiRight
+                                    # print('>>>R2', nmrResidue, nmr, ii)
+
+                    elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
+                        nmr = nmrResidue.nextNmrResidue.mainNmrResidue
+                        iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
+                        if iiRight is not None:
+                            ii = iiRight
+                            # print('>>>R1', nmrResidue, nmr, ii)
+
+                        elif nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
+                                nmr = nmrResidue.previousNmrResidue.mainNmrResidue
+                                iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
+                                if iiLeft is not None:
+                                    ii = iiLeft + 1
+                                    # print('>>>L2', nmrResidue, nmr, ii)
+
+                    if ii is None:
+                        ii = self.nmrChain.mainNmrResidues.index(nmrResidue)-1
+                        # print('>>>MID', ii)
+                        return
+
                     self.nmrResidueList.addNmrResidue(nmrResidue, ii)
 
                     # self.setNotifier(nmrResidue, [Notifier.OBSERVE], 'nmrChain',
@@ -2186,7 +2237,7 @@ class SequenceGraphModule(CcpnModule):
 
         else:
             # find where to add in the predicted stretch
-            raise RuntimeError('error - not implemented yet')
+            return
 
         if self.nmrResidueList.size > 2:
             self.predictSequencePosition(self.nmrResidueList.allNmrResidues)
@@ -2210,7 +2261,8 @@ class SequenceGraphModule(CcpnModule):
                 newList.add(nmr.nextNmrResidue.mainNmrResidue)
 
         self.nmrResidueList.rebuildNmrResidues(nmrResidueList)
-        return
+
+        return True
 
         # add the peakAssignments
         if self._SGwidget.checkBoxes['peakAssignments']['checkBox'].isChecked():
@@ -2561,13 +2613,13 @@ class SequenceGraphModule(CcpnModule):
     #             residue[k] = newAtom
     #             atoms[k] = newAtom
 
-                # self.guiNmrAtomDict[nmrAtom] = newAtom
+    # self.guiNmrAtomDict[nmrAtom] = newAtom
 
-        # for boundAtomPair in ATOM_POSITION_DICT[nmrResidue.residueType]['boundAtoms']:
-        #     atom1 = residue[boundAtomPair[0]]
-        #     atom2 = residue[boundAtomPair[1]]
-        #     newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
-        #     self.scene.addItem(newLine)
+    # for boundAtomPair in ATOM_POSITION_DICT[nmrResidue.residueType]['boundAtoms']:
+    #     atom1 = residue[boundAtomPair[0]]
+    #     atom2 = residue[boundAtomPair[1]]
+    #     newLine = AssignmentLine(atom1.x(), atom1.y(), atom2.x(), atom2.y(), colour, 1.0)
+    #     self.scene.addItem(newLine)
 
     # def _addNmrAtomToGuiResidues(self, nmrAtom, atomSpacing=None):
     #     """Update the guiNmrAtoms for a newly created/undeleted nmrAtom.
