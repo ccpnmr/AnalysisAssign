@@ -66,9 +66,7 @@ from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
-from ccpn.core.lib.ContextManagers import logCommandBlock
-
-from ccpn.util.decorators import profile
+from ccpn.core.lib.ContextManagers import logCommandBlock, notificationEchoBlocking
 
 
 logger = getLogger()
@@ -2316,9 +2314,10 @@ class SequenceGraphModule(CcpnModule):
             self.resetScene()
             return
 
-        with logCommandBlock(get='self') as log:
-            log('setNmrChainDisplay', nmrChainOrPid=repr(nmrChain.pid))
+        # with logCommandBlock(get='self') as log:
+        #     log('setNmrChainDisplay', nmrChainOrPid=repr(nmrChain.pid))
 
+        with notificationEchoBlocking():
             self.resetScene()
             # self.removeNmrChainNotifiers()
             # self.addNmrChainNotifiers()
