@@ -416,93 +416,92 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         else:
             progressText = "connecting  %s  <  %s" % (nmrResidue.pid, droppedNmrResidue.pid)
 
-        with progressManager(self.mainWindow, progressText):
-            # nmrResidue._startCommandEchoBlock("connecting %s to %s" % (droppedNmrResidue.pid, nmrResidue.pid))
+        with undoBlock():
+            with progressManager(self.mainWindow, progressText):
 
-            try:
+                try:
+                    self.nmrResidueTable.setUpdateSilence(True)
+                    matchNmrResidue = None
+                    try:  # display popup warning
+                        if data['shiftLeftMouse']:
+                            # leftShift drag; connect to previous
 
-                self.nmrResidueTable.setUpdateSilence(True)
-                matchNmrResidue = None
-                try:  # display popup warning
-                    if data['shiftLeftMouse']:
-                        # leftShift drag; connect to previous
+                            if not nmrResidue.residue and not droppedNmrResidue.residue:
+                                nmrResidue.connectPrevious(droppedNmrResidue)
 
-                        if not nmrResidue.residue and not droppedNmrResidue.residue:
-                            nmrResidue.connectPrevious(droppedNmrResidue)
+                            # SPECIAL CASES
+                            elif nmrResidue.residue and not droppedNmrResidue.residue:
+                                # connected an unassigned nmrChain to the current assigned chain
+                                if droppedNmrResidue.nmrChain.id == '@-':
+                                    # assume that it is the only one
+                                    droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.previousResidue)
+                                else:
+                                    nRes = nmrResidue.residue
+                                    for ii in range(len(droppedNmrResidue.nmrChain.mainNmrResidues)):
+                                        nRes = nRes.previousResidue
+                                    droppedNmrResidue.nmrChain.assignConnectedResidues(nRes)
 
-                        # SPECIAL CASES
-                        elif nmrResidue.residue and not droppedNmrResidue.residue:
-                            # connected an unassigned nmrChain to the current assigned chain
-                            if droppedNmrResidue.nmrChain.id == '@-':
-                                # assume that it is the only one
-                                droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.previousResidue)
-                            else:
-                                nRes = nmrResidue.residue
-                                for ii in range(len(droppedNmrResidue.nmrChain.mainNmrResidues)):
-                                    nRes = nRes.previousResidue
-                                droppedNmrResidue.nmrChain.assignConnectedResidues(nRes)
+                            elif not nmrResidue.residue and droppedNmrResidue.residue:
+                                # connected an assigned chain to the current unassigned nmrChain
 
-                        elif not nmrResidue.residue and droppedNmrResidue.residue:
-                            # connected an assigned chain to the current unassigned nmrChain
+                                if nmrResidue.nmrChain.id == '@-':
+                                    # assume that it is the only one
+                                    nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.nextResidue)
+                                else:
+                                    nmrResidue.nmrChain.assignConnectedResidues(droppedNmrResidue.residue.nexResidue)
 
-                            if nmrResidue.nmrChain.id == '@-':
-                                # assume that it is the only one
-                                nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.nextResidue)
-                            else:
-                                nmrResidue.nmrChain.assignConnectedResidues(droppedNmrResidue.residue.nexResidue)
+                            matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
+                            if matchNmrResidue is None:
+                                # Non -1 residue - stay with current
+                                getLogger().info("NmrResidue %s has no i-1 residue to display" % droppedNmrResidue)
+                                matchNmrResidue = nmrResidue
+                        else:
 
-                        matchNmrResidue = droppedNmrResidue.getOffsetNmrResidue(offset=-1)
-                        if matchNmrResidue is None:
-                            # Non -1 residue - stay with current
-                            getLogger().info("NmrResidue %s has no i-1 residue to display" % droppedNmrResidue)
-                            matchNmrResidue = nmrResidue
-                    else:
+                            if not nmrResidue.residue and not droppedNmrResidue.residue:
+                                nmrResidue.connectNext(droppedNmrResidue)
 
-                        if not nmrResidue.residue and not droppedNmrResidue.residue:
-                            nmrResidue.connectNext(droppedNmrResidue)
+                            # SPECIAL CASES
+                            elif nmrResidue.residue and not droppedNmrResidue.residue:
+                                # connected an unassigned nmrChain to the current assigned chain
+                                if droppedNmrResidue.nmrChain.id == '@-':
+                                    # assume that it is the only one
+                                    droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.nextResidue)
+                                else:
+                                    droppedNmrResidue.nmrChain.assignConnectedResidues(nmrResidue.residue.nextResidue)
 
-                        # SPECIAL CASES
-                        elif nmrResidue.residue and not droppedNmrResidue.residue:
-                            # connected an unassigned nmrChain to the current assigned chain
-                            if droppedNmrResidue.nmrChain.id == '@-':
-                                # assume that it is the only one
-                                droppedNmrResidue.nmrChain.assignSingleResidue(droppedNmrResidue, nmrResidue.residue.nextResidue)
-                            else:
-                                droppedNmrResidue.nmrChain.assignConnectedResidues(nmrResidue.residue.nextResidue)
+                            elif not nmrResidue.residue and droppedNmrResidue.residue:
+                                # connected an assigned chain to the current unassigned nmrChain
 
-                        elif not nmrResidue.residue and droppedNmrResidue.residue:
-                            # connected an assigned chain to the current unassigned nmrChain
+                                if nmrResidue.nmrChain.id == '@-':
+                                    # assume that it is the only one
+                                    nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.previousResidue)
+                                else:
+                                    dropRes = droppedNmrResidue.residue
+                                    for ii in range(len(nmrResidue.nmrChain.mainNmrResidues)):
+                                        dropRes = dropRes.previousResidue
+                                    nmrResidue.nmrChain.assignConnectedResidues(dropRes)
 
-                            if nmrResidue.nmrChain.id == '@-':
-                                # assume that it is the only one
-                                nmrResidue.nmrChain.assignSingleResidue(nmrResidue, droppedNmrResidue.residue.previousResidue)
-                            else:
-                                dropRes = droppedNmrResidue.residue
-                                for ii in range(len(nmrResidue.nmrChain.mainNmrResidues)):
-                                    dropRes = dropRes.previousResidue
-                                nmrResidue.nmrChain.assignConnectedResidues(dropRes)
+                            matchNmrResidue = droppedNmrResidue
+                    except Exception as es:
+                        showWarning('Connect NmrResidue', str(es))
+                    finally:
+                        self.nmrResidueTable.setUpdateSilence(False)
 
-                        matchNmrResidue = droppedNmrResidue
+                    # update the NmrResidueTable
+                    self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
+                    if matchNmrResidue:
+                        self.navigateToNmrResidue(matchNmrResidue)
+
+                    from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                    GLSignals = GLNotifier(parent=self)
+                    GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+
                 except Exception as es:
-                    showWarning('Connect NmrResidue', str(es))
+                    getLogger().warning(str(es))
+                    # raise es
                 finally:
-                    self.nmrResidueTable.setUpdateSilence(False)
-
-                # update the NmrResidueTable
-                self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
-                if matchNmrResidue:
-                    self.navigateToNmrResidue(matchNmrResidue)
-
-                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
-                GLSignals = GLNotifier(parent=self)
-                GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
-
-            except Exception as es:
-                getLogger().warning(str(es))
-                # raise es
-            finally:
-                # nmrResidue._endCommandEchoBlock()
-                pass
+                    # nmrResidue._endCommandEchoBlock()
+                    pass
 
     def _centreStripForNmrResidue(self, nmrResidue, strip):
         """
