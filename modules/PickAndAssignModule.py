@@ -100,55 +100,9 @@ class PickAndAssignModule(NmrResidueTableModule):
         self.restrictedPickAndAssignButton.setEnabled(False)
         self.nmrResidueTable.addWidgetToPos(self.restrictedPickAndAssignButton, row=1, col=4)
 
-        # self._spacer = Frame(None, setLayout=True)
-        # self._spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        # self.nmrResidueTable.addWidgetToPos(self._spacer, row=1, col=6)
-
         # change some of the defaults setting inherited from NmrResidueTableModule
         self.nmrResidueTableSettings.sequentialStripsWidget.checkBox.setChecked(False)
         self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)  # select the <all> option
-
-        # # create row's of spectrum information
-        # self._spectraWidget = Frame(parent=self.settingsWidget,
-        #                             setLayout=True, showBorder=True, hPolicy='minimal',
-        #                             grid=(0, 1), gridSpan=(4, 1), vAlign='top', hAlign='left')
-        #
-        # # modifier for atomCode
-        # spectraRow = 0
-        # self.atomCodeFrame = Frame(self._spectraWidget, setLayout=True, showBorder=False, fShape='noFrame',
-        #                            grid=(spectraRow, 0), gridSpan=(1, 4), vAlign='top', hAlign='left')
-        # self.axisCodeLabel = Label(self.atomCodeFrame, 'Restricted Axes:', grid=(0, 0))
-        # self.axisCodeOptions = CheckBoxes(self.atomCodeFrame, selectedInd=0, texts=['C'],
-        #                                   callback=self._changeAxisCode, grid=(0, 1))
-        # # self.nmrResidueTable.addWidgetToPos(self.atomCodeFrame, row=1, col=5)
-        #
-        # spectraRow += 1
-        # HLine(self._spectraWidget, grid=(spectraRow, 0), gridSpan=(1, 4),
-        #       colour=getColours()[DIVIDER], height=15)
-        #
-        # spectraRow += 1
-        # Label(self._spectraWidget, 'Spectrum', grid=(spectraRow, 0))
-        # Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 1))
-        # Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 2))
-        # Label(self._spectraWidget, 'Tolerance', grid=(spectraRow, 3))
-        # self.spectraStartRow = spectraRow + 1
-        #
-        # self._spectraWidgets = {}  # spectrum.pid, frame dict to show/hide
-        # for row, spectrum in enumerate(self.application.project.spectra):
-        #
-        #     spectraRow += 1
-        #     # f = _SpectrumRow(parent=self._spectraWidget, setLayout=True, spectrum=spectrum,
-        #     #                  grid=(self.spectraStartRow + row, 0), gridSpan=(1, 1 + len(spectrum.axisCodes)), vAlign='top')
-        #     f = _SpectrumRow(parent=self._spectraWidget, row=spectraRow, col=0, setLayout=True, spectrum=spectrum)
-        #
-        #     self._spectraWidgets[spectrum.pid] = f
-        #
-        # # add a spacer in the bottom-right corner to stop everything moving
-        # rows = self.settingsWidget.layout().rowCount()
-        # cols = self.settingsWidget.layout().columnCount()
-        # Spacer(self.settingsWidget, 5, 5,
-        #        QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-        #        grid=(rows, cols), gridSpan=(1, 1))
 
         self.nmrResidueTable._setWidgetHeight(45)
 
@@ -465,28 +419,28 @@ class PickAndAssignModule(NmrResidueTableModule):
     #     return code[0:numChars]
 
 
-class _SpectrumRow(Frame):
-    "Class to make a spectrum row"
-
-    def __init__(self, parent, spectrum, row=0, col=0, **kwds):
-        super(_SpectrumRow, self).__init__(parent, **kwds)
-
-        # col = 0
-        # self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1, 1), hAlign='left',
-        #                                        checked=True, labelText=spectrum.pid,
-        #                                        fixedWidths=[100, 50])
-
-        self.checkbox = Label(parent, spectrum.pid, grid=(row, col), gridSpan=(1, 1), hAlign='left')
-
-        self.spinBoxes = []
-        for ii, axisCode in enumerate(spectrum.axisCodes):
-            decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
-            col += 1
-            ds = DoubleSpinBoxCompoundWidget(
-                    parent, grid=(row, col), gridSpan=(1, 1), hAlign='left',
-                    fixedWidths=(30, 50),
-                    labelText=axisCode,
-                    value=spectrum.assignmentTolerances[ii],
-                    decimals=decimals, step=step, range=(0, None))
-            ds.setObjectName(str(spectrum.pid + axisCode))
-            self.spinBoxes.append(ds)
+# class _SpectrumRow(Frame):
+#     "Class to make a spectrum row"
+#
+#     def __init__(self, parent, spectrum, row=0, col=0, **kwds):
+#         super().__init__(parent, **kwds)
+#
+#         # col = 0
+#         # self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1, 1), hAlign='left',
+#         #                                        checked=True, labelText=spectrum.pid,
+#         #                                        fixedWidths=[100, 50])
+#
+#         self.checkbox = Label(parent, spectrum.pid, grid=(row, col), gridSpan=(1, 1), hAlign='left')
+#
+#         self.spinBoxes = []
+#         for ii, axisCode in enumerate(spectrum.axisCodes):
+#             decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
+#             col += 1
+#             ds = DoubleSpinBoxCompoundWidget(
+#                     parent, grid=(row, col), gridSpan=(1, 1), hAlign='left',
+#                     fixedWidths=(30, 50),
+#                     labelText=axisCode,
+#                     value=spectrum.assignmentTolerances[ii],
+#                     decimals=decimals, step=step, range=(0, None))
+#             ds.setObjectName(str(spectrum.pid + axisCode))
+#             self.spinBoxes.append(ds)
