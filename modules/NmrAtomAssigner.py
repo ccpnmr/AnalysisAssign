@@ -135,7 +135,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         row = 0
         self.selectionLabel = Label(self._ASwidget, 'Select NmrAtom by', grid=(row, 0))
-        self.selectionRadioButtons = RadioButtons(self._ASwidget, texts=['Atom Type', 'Axis Code'], selectedInd=1,
+        self.selectionRadioButtons = RadioButtons(self._ASwidget, texts=['AtomType', 'Axis'], selectedInd=1,
                                                   callback=self._selectionCallback, grid=(row, 1))
         self.selectAtomType, self.selectAxisCode = self.selectionRadioButtons.radioButtons
 
@@ -170,7 +170,7 @@ class NmrAtomAssignerModule(CcpnModule):
         self._scrollAreaWidget = ScrollArea(self.mainWidget, setLayout=True, grid=(0, 0), gridSpan=(1, 1))
         self._scrollAreaWidget.setWidgetResizable(True)
 
-        self._residueFrame = Frame(self.mainWidget, setLayout=True, acceptDrops=True, showBorder=False)
+        self._residueFrame = Frame(self.mainWidget, setLayout=True, acceptDrops=True, showBorder=False, spacing=(5, 5))
         resRow = 0
 
         _f = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
@@ -194,17 +194,18 @@ class NmrAtomAssignerModule(CcpnModule):
                grid=(0, 2), gridSpan=(1, 1))
         resRow += 1
 
-        self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
+        self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0),
+                                 gridSpan=(1, 3))
         labRow = 0
 
         # modifier for atomCode
-        self.axisCodeLabel = Label(self._labelFrame, 'Axis Codes:', grid=(labRow, 0))
+        self.axisCodeLabel = Label(self._labelFrame, 'Assign by axis', grid=(labRow, 0))
         self.axisCodeOptions = RadioButtons(self._labelFrame, selectedInd=0, texts=['C'],
                                             callback=self._changeAxisCode, grid=(labRow, 1))
         labRow += 1
 
         # modifier for atomType
-        self.atomTypeLabel = Label(self._labelFrame, 'Atom Types', grid=(labRow, 0))
+        self.atomTypeLabel = Label(self._labelFrame, 'Assign by atomType', grid=(labRow, 0))
         self.atomTypeOptions = RadioButtons(self._labelFrame, selectedInd=1, texts=['H', 'C', 'N', 'Other'],
                                             callback=self._changeAtomType, grid=(labRow, 1))
         labRow += 1
@@ -213,7 +214,7 @@ class NmrAtomAssignerModule(CcpnModule):
                grid=(labRow, 2), gridSpan=(1, 1))
         resRow += 1
 
-        self._assignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0))
+        self._assignWidget = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), spacing=(5, 5))
         self._scrollAreaWidget.setWidget(self._residueFrame)
         resRow += 1
 
