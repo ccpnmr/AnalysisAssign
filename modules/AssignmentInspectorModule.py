@@ -34,7 +34,7 @@ from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Label import Label
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 # from ccpn.ui.gui.widgets.Table import ObjectTable, Column
-from ccpn.ui.gui.widgets.QuickTable import QuickTable
+from ccpn.ui.gui.widgets.GuiTable import GuiTable
 from ccpn.ui.gui.widgets.Column import ColumnClass, Column
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget
@@ -352,7 +352,7 @@ class AssignmentInspectorModule(CcpnModule):
         # getLogger().debug('AssignmentInspector>>> highlight nmrAtoms', objList)
 
 
-class AssignmentInspectorTable(QuickTable):
+class AssignmentInspectorTable(GuiTable):
     """
     Class to present a NmrResidue Table and a NmrChain pulldown list, wrapped in a Widget
     """

@@ -50,7 +50,7 @@ from ccpn.ui.gui.widgets.HLine import HLine
 from ccpn.ui.gui.widgets.ListWidget import ListWidget
 from ccpn.ui.gui.widgets.PulldownList import PulldownList
 from ccpn.ui.gui.widgets.Table import ObjectTable, Column
-from ccpn.ui.gui.widgets.QuickTable import QuickTable
+from ccpn.ui.gui.widgets.GuiTable import GuiTable
 from ccpn.ui.gui.widgets.Column import ColumnClass
 from ccpn.ui.gui.widgets.MessageDialog import showYesNoWarning
 from ccpn.ui.gui.guiSettings import COLOUR_SCHEMES, getColours, DIVIDER
@@ -510,29 +510,29 @@ class AxisAssignmentObject(Frame):
 
         # add two tables - left is current assignments, right is alternatives
         row += 1
-        self.tables = [QuickTable(parent=self,
-                                  mainWindow=mainWindow,
-                                  dataFrameObject=None,
-                                  setLayout=True,
-                                  autoResize=True, multiSelect=False,
-                                  actionCallback=partial(self._assignDeassignNmrAtom, 0),
-                                  selectionCallback=partial(self._updatePulldownLists, 0),
-                                  grid=(row, 0), gridSpan=(1, 1),
-                                  stretchLastSection=True,
-                                  enableSearch=False,
-                                  acceptDrops=True),
+        self.tables = [GuiTable(parent=self,
+                                mainWindow=mainWindow,
+                                dataFrameObject=None,
+                                setLayout=True,
+                                autoResize=True, multiSelect=False,
+                                actionCallback=partial(self._assignDeassignNmrAtom, 0),
+                                selectionCallback=partial(self._updatePulldownLists, 0),
+                                grid=(row, 0), gridSpan=(1, 1),
+                                stretchLastSection=True,
+                                enableSearch=False,
+                                acceptDrops=True),
 
-                       QuickTable(parent=self,
-                                  mainWindow=mainWindow,
-                                  dataFrameObject=None,
-                                  setLayout=True,
-                                  autoResize=True, multiSelect=False,
-                                  actionCallback=partial(self._assignDeassignNmrAtom, 1),
-                                  selectionCallback=partial(self._updatePulldownLists, 1),
-                                  grid=(row, 2), gridSpan=(7, 1),
-                                  stretchLastSection=True,
-                                  enableSearch=False,
-                                  acceptDrops=True)
+                       GuiTable(parent=self,
+                                mainWindow=mainWindow,
+                                dataFrameObject=None,
+                                setLayout=True,
+                                autoResize=True, multiSelect=False,
+                                actionCallback=partial(self._assignDeassignNmrAtom, 1),
+                                selectionCallback=partial(self._updatePulldownLists, 1),
+                                grid=(row, 2), gridSpan=(7, 1),
+                                stretchLastSection=True,
+                                enableSearch=False,
+                                acceptDrops=True)
                        ]
 
         # set up notifiers to changes to peaks, nmrAtoms and assignments
