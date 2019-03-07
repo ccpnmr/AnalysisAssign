@@ -1921,8 +1921,8 @@ class SequenceGraphModule(CcpnModule):
                     if not self._createNmrResidues(nmrResidue):
                         self.setNmrChainDisplay(self.nmrChain)
         except Exception as es:
-            # strange error not traced yet, interesting, but not fatal if trapped
-            print('>>>ERRORRRRR', str(es))
+            # strange error not traced yet, interesting, but not fatal if trapped - think I've found it
+            pass
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
