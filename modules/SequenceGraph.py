@@ -66,7 +66,7 @@ from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
-from ccpn.core.lib.ContextManagers import logCommandBlock, notificationEchoBlocking
+from ccpn.core.lib.ContextManagers import logCommandBlock, notificationEchoBlocking, catchExceptions
 
 
 logger = getLogger()
@@ -802,8 +802,9 @@ class NmrResidueList(object):
         for ii, item in enumerate(self.allNmrResidues):
             nmrResidue, guiAtoms = item
 
-            guiItem = self.guiNmrResidues[nmrResidue]
-            guiItem.setPos(QtCore.QPointF(ii * self.atomSpacing * 3.0, 0.0))
+            if nmrResidue in self.guiNmrResidues:
+                guiItem = self.guiNmrResidues[nmrResidue]
+                guiItem.setPos(QtCore.QPointF(ii * self.atomSpacing * 3.0, 0.0))
 
     def updateConnectedChainPositions(self):
         """Update the positions of the groups in the scene.
@@ -811,7 +812,7 @@ class NmrResidueList(object):
 
         # update crossChainResidue positions
         for res in self.guiGhostNmrResidues.values():
-            if res.crossChainResidue:
+            if res.crossChainResidue and res.crossChainResidue in self.guiNmrResidues:
                 link = self.guiNmrResidues[res.crossChainResidue]
                 count = res.crossChainCount
 
@@ -1247,7 +1248,7 @@ class NmrResidueList(object):
             if fetchedNmrAtom is nmrAtom:
                 guiAtoms[k] = self._createGuiNmrAtom(k, v, nmrAtom)
 
-        ii = self.getNmrResidueIndex(nmrResidue)
+        ii = self.getIndexNmrResidue(nmrResidue)
         if ii is not None:
             res, oldGuiAtoms = self._getNmrResiduePair(ii)
             self._setNmrResiduePair(ii, res, oldGuiAtoms.update(guiAtoms))
@@ -1900,24 +1901,28 @@ class SequenceGraphModule(CcpnModule):
         # print('>>>_changeNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
-        with self.sceneBlocking():
-            if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.nmrResidueList.guiNmrResidues:
-                # print('>>>change nmrResidue - create', nmrResidue)
-                if not self._createNmrResidues(nmrResidue):
-                    self.setNmrChainDisplay(self.nmrChain)
+        try:
+            with self.sceneBlocking():
+                if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.nmrResidueList.guiNmrResidues:
+                    # print('>>>change nmrResidue - create', nmrResidue)
+                    if not self._createNmrResidues(nmrResidue):
+                        self.setNmrChainDisplay(self.nmrChain)
 
-            elif nmrResidue in self.nmrResidueList.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
-                # not in chain, but in residues as other chain
-                # print('>>>change nmrResidue - delete', nmrResidue)
-                self._deleteGuiNmrResidues(nmrResidue)
+                elif nmrResidue in self.nmrResidueList.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
+                    # not in chain, but in residues as other chain
+                    # print('>>>change nmrResidue - delete', nmrResidue)
+                    self._deleteGuiNmrResidues(nmrResidue)
 
-            else:
-                # print('>>>change2 nmrResidue - create **** rename', nmrResidue)
+                else:
+                    # print('>>>change2 nmrResidue - create **** rename', nmrResidue)
 
-                # this is the event htat fires on a name change
-                self._deleteBadNmrResidues(nmrResidue)
-                if not self._createNmrResidues(nmrResidue):
-                    self.setNmrChainDisplay(self.nmrChain)
+                    # this is the event htat fires on a name change
+                    self._deleteBadNmrResidues(nmrResidue)
+                    if not self._createNmrResidues(nmrResidue):
+                        self.setNmrChainDisplay(self.nmrChain)
+        except Exception as es:
+            # strange error not traced yet, interesting, but not fatal if trapped
+            print('>>>ERRORRRRR', str(es))
 
     def _updateNmrAtoms(self, data):
         """Update the nmrAtoms in the display.
