@@ -194,9 +194,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             return
 
         with undoBlock():
-        # self.application._startCommandBlock(
-        #         'BackboneAssignmentModule.navigateToNmrResidue(project.getByPid(%r))' % nmrResidue.pid)
-        # try:
+            # self.application._startCommandBlock(
+            #         'BackboneAssignmentModule.navigateToNmrResidue(project.getByPid(%r))' % nmrResidue.pid)
+            # try:
 
             # optionally clear the marks
             if self.nmrResidueTableSettings.autoClearMarksWidget.checkBox.isChecked():
@@ -493,6 +493,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                         self.navigateToNmrResidue(matchNmrResidue)
 
                     from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+
                     GLSignals = GLNotifier(parent=self)
                     GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
 
@@ -530,6 +531,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip._CcpnGLWidget._rescaleAllAxis()
 
                 from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+
                 GLSignals = GLNotifier(parent=self)
                 GLSignals.emitPaintEvent()
 
@@ -739,10 +741,10 @@ def markNmrAtoms(mainWindow, nmrAtoms: typing.List[NmrAtom]):
             #             positions.append(max(atomPos) - min(atomPos) / 2)
             #     else:
             #         positions.append('')
-                # navigateToPositionInStrip(strip, positions, widths=widths) # don't need to change display yet
+            # navigateToPositionInStrip(strip, positions, widths=widths) # don't need to change display yet
 
-            strip.spectrumDisplay.mainWindow.markPositions(list(shiftDict.keys()),
-                                                           list(shiftDict.values()))
+            mainWindow.markPositions(list(shiftDict.keys()),
+                                     list(shiftDict.values()))
 
 
 #=====  Just some code to 'save' =====
