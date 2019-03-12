@@ -66,7 +66,8 @@ from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
-from ccpn.core.lib.ContextManagers import logCommandBlock, notificationEchoBlocking, catchExceptions
+from ccpn.core.lib.ContextManagers import notificationEchoBlocking, catchExceptions, undoBlock, logCommandBlock
+from ccpn.util.decorators import logCommand
 
 
 logger = getLogger()
@@ -2489,6 +2490,9 @@ class SequenceGraphModule(CcpnModule):
     def deassignPeak(self, selectedPeak=None, selectedNmrAtom=None):
         """Deassign the peak by removing the assigned nmrAtoms from the list
         """
+        selectedPeak = self.project.getByPid(selectedPeak) if isinstance(selectedPeak, str) else selectedPeak
+        selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
+
         if selectedPeak:
             with logCommandBlock(get='self') as log:
                 log('deassignPeak', selectedPeak=repr(selectedPeak.pid), selectedNmrAtom=repr(selectedNmrAtom.pid))
@@ -2510,6 +2514,8 @@ class SequenceGraphModule(CcpnModule):
     def deassignNmrAtom(self, selectedNmrAtom=None):
         """Remove the selected peaks from the assignedPeaks list
         """
+        selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
+
         if selectedNmrAtom:
             with logCommandBlock(get='self') as log:
                 log('deassignPeak', selectedNmrAtom=repr(selectedNmrAtom.pid))
