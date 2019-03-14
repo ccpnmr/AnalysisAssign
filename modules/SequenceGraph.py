@@ -2487,6 +2487,7 @@ class SequenceGraphModule(CcpnModule):
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
 
+    @logCommand(get='self')
     def deassignPeak(self, selectedPeak=None, selectedNmrAtom=None):
         """Deassign the peak by removing the assigned nmrAtoms from the list
         """
@@ -2494,9 +2495,9 @@ class SequenceGraphModule(CcpnModule):
         selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
 
         if selectedPeak:
-            with logCommandBlock(get='self') as log:
-                log('deassignPeak', selectedPeak=repr(selectedPeak.pid), selectedNmrAtom=repr(selectedNmrAtom.pid))
-
+            # with logCommandBlock(get='self') as log:
+            #     log('deassignPeak', selectedPeak=repr(selectedPeak.pid), selectedNmrAtom=repr(selectedNmrAtom.pid))
+            with undoBlock():
                 try:
                     newList = []
                     # remove the nmrAtom from the list and replace with None
@@ -2511,15 +2512,16 @@ class SequenceGraphModule(CcpnModule):
                     if self.application._isInDebugMode:
                         raise es
 
+    @logCommand(get='self')
     def deassignNmrAtom(self, selectedNmrAtom=None):
         """Remove the selected peaks from the assignedPeaks list
         """
         selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
 
         if selectedNmrAtom:
-            with logCommandBlock(get='self') as log:
-                log('deassignPeak', selectedNmrAtom=repr(selectedNmrAtom.pid))
-
+            # with logCommandBlock(get='self') as log:
+            #     log('deassignPeak', selectedNmrAtom=repr(selectedNmrAtom.pid))
+            with undoBlock():
                 try:
                     atoms = list(selectedNmrAtom.assignedPeaks)
                     # selectedPeak.assignedNmrAtoms = ()
@@ -3117,6 +3119,7 @@ class SequenceGraphModule(CcpnModule):
             displays = [self.application.getByGid(gid) for gid in gids if gid != ALL]
         return displays
 
+    @logCommand(get='self')
     def navigateToNmrResidue(self, selectedNmrResidue=None):
         """Navigate in selected displays to nmrResidue; skip if none defined
         """
@@ -3133,9 +3136,10 @@ class SequenceGraphModule(CcpnModule):
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
 
-        with logCommandBlock(get='self') as log:
-            log('navigateToNmrResidue', selectedNmrResidue=repr(nmrResidue.pid))
+        # with logCommandBlock(get='self') as log:
+        #     log('navigateToNmrResidue', selectedNmrResidue=repr(nmrResidue.pid))
 
+        with undoBlock():
             # optionally clear the marks
             if self._SGwidget.checkBoxes['autoClearMarks']['checkBox'].isChecked():
                 self.mainWindow.clearMarks()
