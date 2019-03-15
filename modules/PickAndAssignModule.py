@@ -49,7 +49,6 @@ from ccpn.core.NmrResidue import NmrResidue
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.guiSettings import getColours, DIVIDER
 from ccpn.ui.gui.widgets.HLine import HLine
-from ccpn.util.decorators import logCommand
 from ccpn.core.lib.ContextManagers import undoBlock
 
 logger = getLogger()
@@ -159,7 +158,6 @@ class PickAndAssignModule(NmrResidueTableModule):
         self._unRegisterNotifiers()
         super()._closeModule()
 
-    @logCommand(prefix='PickAndAssignModule.')
     def assignSelected(self):
         "Assign current.peaks on the bases of nmrAtoms of current.nmrResidue"
 
@@ -200,7 +198,6 @@ class PickAndAssignModule(NmrResidueTableModule):
             self.application.current.nmrResidue = lastNmrResidue
 
     #TODO:GEERTEN: compact the two routines
-    @logCommand(prefix='PickAndAssignModule.')
     def restrictedPick(self, nmrResidue=None):
         """
         Routine refactored in revision 9381.
@@ -275,7 +272,6 @@ class PickAndAssignModule(NmrResidueTableModule):
             # update the NmrResidue table
             self.nmrResidueTable._update(nmrResidue.nmrChain)
 
-    @logCommand(prefix='PickAndAssignModule.')
     def restrictedPickAndAssign(self, nmrResidue=None):
         """
         Functionality for beta2 to include the Assign part
@@ -305,7 +301,6 @@ class PickAndAssignModule(NmrResidueTableModule):
                 # notifier for other modules
                 nmrResidue._finaliseAction('change')
 
-    @logCommand(prefix='PickAndAssignModule.')
     def goToPositionInModules(self, nmrResidue=None, row=None, col=None):
         "Go to the positions defined my NmrAtoms of nmrResidue in the active displays"
 

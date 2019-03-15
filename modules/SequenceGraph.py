@@ -66,9 +66,7 @@ from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
-from ccpn.core.lib.ContextManagers import notificationEchoBlocking, catchExceptions, undoBlock, logCommandBlock
-from ccpn.util.decorators import logCommand
-
+from ccpn.core.lib.ContextManagers import notificationEchoBlocking, catchExceptions, undoBlock
 
 logger = getLogger()
 ALL = '<all>'
@@ -2320,9 +2318,6 @@ class SequenceGraphModule(CcpnModule):
             self.resetScene()
             return
 
-        # with logCommandBlock(get='self') as log:
-        #     log('setNmrChainDisplay', nmrChainOrPid=repr(nmrChain.pid))
-
         with notificationEchoBlocking():
             self.resetScene()
             # self.removeNmrChainNotifiers()
@@ -2487,16 +2482,17 @@ class SequenceGraphModule(CcpnModule):
             if self.current.nmrResidue:
                 self.showNmrChainFromPulldown()
 
-    @logCommand(get='self')
     def deassignPeak(self, selectedPeak=None, selectedNmrAtom=None):
         """Deassign the peak by removing the assigned nmrAtoms from the list
         """
         selectedPeak = self.project.getByPid(selectedPeak) if isinstance(selectedPeak, str) else selectedPeak
+        if not isinstance(selectedPeak, Peak):
+            raise TypeError('selectedPeak must be of type Peak')
         selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
+        if not isinstance(selectedNmrAtom, NmrAtom):
+            raise TypeError('selectedNmrAtom must be of type NmrAtom')
 
         if selectedPeak:
-            # with logCommandBlock(get='self') as log:
-            #     log('deassignPeak', selectedPeak=repr(selectedPeak.pid), selectedNmrAtom=repr(selectedNmrAtom.pid))
             with undoBlock():
                 try:
                     newList = []
@@ -2512,37 +2508,36 @@ class SequenceGraphModule(CcpnModule):
                     if self.application._isInDebugMode:
                         raise es
 
-    @logCommand(get='self')
-    def deassignNmrAtom(self, selectedNmrAtom=None):
-        """Remove the selected peaks from the assignedPeaks list
-        """
-        selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
-
-        if selectedNmrAtom:
-            # with logCommandBlock(get='self') as log:
-            #     log('deassignPeak', selectedNmrAtom=repr(selectedNmrAtom.pid))
-            with undoBlock():
-                try:
-                    atoms = list(selectedNmrAtom.assignedPeaks)
-                    # selectedPeak.assignedNmrAtoms = ()
-
-                    # for peak in selectedNmrAtom.assignedPeaks:
-                    #
-                    #   allAtoms = list(peak.dimensionNmrAtoms)
-                    #   for dim in range(len(peak.dimensionNmrAtoms)):
-                    #     dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
-                    #     if selectedNmrAtom in dimNmrAtoms:
-                    #       dimNmrAtoms.remove(selectedNmrAtom)
-                    #
-                    #       # allAtoms = list(peak.dimensionNmrAtoms)
-                    #       allAtoms[dim] = dimNmrAtoms
-                    #
-                    #   peak.dimensionNmrAtoms = allAtoms
-
-                except Exception as es:
-                    showWarning(str(self.windowTitle()), str(es))
-                    if self.application._isInDebugMode:
-                        raise es
+    # def deassignNmrAtom(self, selectedNmrAtom=None):
+    #     """Remove the selected peaks from the assignedPeaks list
+    #     """
+    #     selectedNmrAtom = self.project.getByPid(selectedNmrAtom) if isinstance(selectedNmrAtom, str) else selectedNmrAtom
+    #     if not isinstance(selectedNmrAtom, NmrAtom):
+    #         raise TypeError('selectedNmrAtom must be of type NmrAtom')
+    #
+    #     if selectedNmrAtom:
+    #         with undoBlock():
+    #             try:
+    #                 atoms = list(selectedNmrAtom.assignedPeaks)
+    #                 # selectedPeak.assignedNmrAtoms = ()
+    #
+    #                 # for peak in selectedNmrAtom.assignedPeaks:
+    #                 #
+    #                 #   allAtoms = list(peak.dimensionNmrAtoms)
+    #                 #   for dim in range(len(peak.dimensionNmrAtoms)):
+    #                 #     dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+    #                 #     if selectedNmrAtom in dimNmrAtoms:
+    #                 #       dimNmrAtoms.remove(selectedNmrAtom)
+    #                 #
+    #                 #       # allAtoms = list(peak.dimensionNmrAtoms)
+    #                 #       allAtoms[dim] = dimNmrAtoms
+    #                 #
+    #                 #   peak.dimensionNmrAtoms = allAtoms
+    #
+    #             except Exception as es:
+    #                 showWarning(str(self.windowTitle()), str(es))
+    #                 if self.application._isInDebugMode:
+    #                     raise es
 
     def initialiseScene(self):
         """Replace the scene with a new one to reset the size of the scrollbars.
@@ -3119,7 +3114,6 @@ class SequenceGraphModule(CcpnModule):
             displays = [self.application.getByGid(gid) for gid in gids if gid != ALL]
         return displays
 
-    @logCommand(get='self')
     def navigateToNmrResidue(self, selectedNmrResidue=None):
         """Navigate in selected displays to nmrResidue; skip if none defined
         """
@@ -3135,9 +3129,6 @@ class SequenceGraphModule(CcpnModule):
             logger.warning('Undefined display module(s); select in settings first')
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
-
-        # with logCommandBlock(get='self') as log:
-        #     log('navigateToNmrResidue', selectedNmrResidue=repr(nmrResidue.pid))
 
         with undoBlock():
             # optionally clear the marks
