@@ -240,23 +240,16 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                             notifier = GuiNotifier(label,  #getStripLabel(),
                                                    [GuiNotifier.DROPEVENT], [DropBase.TEXT],
                                                    self._processDroppedNmrResidueLabel,
-                                                   # nmrResidue=self.project.getByPid(strip.header.getLabelText(position='c')),
                                                    toLabel=strip.header.getLabel(position='c'),
-                                                   plusChain=False)  #strip.getStripLabel().text()))
+                                                   plusChain=False)
                             self._stripNotifiers.append(notifier)
                             label = strip.header.getLabel(position='r')
                             notifier = GuiNotifier(label,  #getStripLabel(),
                                                    [GuiNotifier.DROPEVENT], [DropBase.TEXT],
                                                    self._processDroppedNmrResidueLabel,
-                                                   # nmrResidue=self.project.getByPid(strip.header.getLabelText(position='c')),
                                                    toLabel=strip.header.getLabel(position='c'),
-                                                   plusChain=True)  #strip.getStripLabel().text()))
+                                                   plusChain=True)
                             self._stripNotifiers.append(notifier)
-
-                            # obj = strip.project.getByPid(nmrAtoms[0].nmrResidue.pid)
-                            # strip.header.setLabelText(position='l', text='<<<')
-                            # strip.header.setLabelObject(position='c', obj=obj)
-                            # strip.header.setLabelText(position='r', text='>>>')
 
                         strip.spectrumDisplay.setColumnStretches(True)
 
