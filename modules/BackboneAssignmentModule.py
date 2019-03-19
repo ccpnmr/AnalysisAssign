@@ -656,6 +656,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip.header.setLabelConnectDir(position='c', connectDir=STRIPCONNECT_LEFT if scoreLabelling[ii].startswith('i-1') else STRIPCONNECT_RIGHT)
                 strip.header.setLabelText(position='r', text=scoreAssignment[ii])
 
+                # disable dropping onto these labels
                 strip.header.setLabelObject(position='l', obj=None)
                 strip.header.setLabelObject(position='c', obj=None)
                 strip.header.setLabelObject(position='r', obj=None)
