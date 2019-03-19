@@ -166,6 +166,13 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
         return displays
 
+    def _getMatchDisplays(self):
+        "return list of displays to display matches"
+        displays = []
+        mGids = self.matchWidget.getTexts()  # gid of the match displays
+        displays = [self.application.getByGid(gid) for gid in mGids]
+        return displays
+
     def navigateToNmrResidueCallBack(self, data):
         """
         Navigate in selected displays to nmrResidue; skip if none defined
@@ -211,6 +218,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             nr = nmrResidue.mainNmrResidue
             # navigate the displays
             for display in displays:
+
+                display.showAllStripHeaders()
+
                 if len(display.strips) > 0:
 
                     # if contains 2D's (e.g. a hsqc) then keep zoom
@@ -630,8 +640,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         scoreAssignment = scoreAssignment[:numberOfMatches]
         scoreLabelling = scoreLabelling[:numberOfMatches]
 
-        for modulePid in self.matchWidget.getTexts():
-            module = self.application.project.getByPid(modulePid)
+        for module in self._getMatchDisplays():
 
             # skip of the module if not defined - possibly in the case that spectrumDisplays have been closed
             if not module:
@@ -669,6 +678,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         Re-implementation of the closeModule method of the CcpnModule class required
         """
         # TODO: use proper subclassing
+
+        for display in self._getDisplays() + self._getMatchDisplays():
+            display.hideAllStripHeaders()
+
         for notifier in self._stripNotifiers:
             notifier.unRegister()
         self._stripNotifiers = []
