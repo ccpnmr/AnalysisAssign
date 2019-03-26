@@ -680,10 +680,13 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         # TODO: use proper subclassing
 
         for display in self._getDisplays() + self._getMatchDisplays():
-            display.hideAllStripHeaders()
+            if display:
+                display.hideAllStripHeaders()
 
         for notifier in self._stripNotifiers:
-            notifier.unRegister()
+            if notifier:
+                notifier.unRegister()
+
         self._stripNotifiers = []
         super()._closeModule()
 
