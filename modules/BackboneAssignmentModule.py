@@ -58,6 +58,7 @@ ALL = '<all>'
 MINMATCHES = 1
 MAXMATCHES = 7
 DEFAULTMATCHES = 2
+STRIPBACKBONE = 'backboneAssignment'
 
 
 class BackboneAssignmentModule(NmrResidueTableModule):
@@ -219,7 +220,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             # navigate the displays
             for display in displays:
 
-                display.showAllStripHeaders()
+                display.showAllStripHeaders()       # tag all headers with backboneAssignment module as handler
 
                 if len(display.strips) > 0:
 
@@ -260,6 +261,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                    toLabel=strip.header.getLabel(position='c'),
                                                    plusChain=True)
                             self._stripNotifiers.append(notifier)
+
+                            strip.header.handle = STRIPBACKBONE
+                            strip.header.headerVisible = True
 
                         strip.spectrumDisplay.setColumnStretches(True)
 
@@ -670,6 +674,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip.header.setLabelObject(position='c', obj=None)
                 strip.header.setLabelObject(position='r', obj=None)
 
+                strip.header.handle = STRIPBACKBONE
+                strip.header.headerVisible = True
+
             # self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
             self._centreCcpnStripsForNmrResidue(assignMatrix[assignmentScores[0]], module.strips)
 
@@ -681,7 +688,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
         for display in self._getDisplays() + self._getMatchDisplays():
             if display:
-                display.hideAllStripHeaders()
+                display.hideAllStripHeaders(handle=STRIPBACKBONE)
 
         for notifier in self._stripNotifiers:
             if notifier:

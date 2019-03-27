@@ -1306,7 +1306,8 @@ class NmrResidueList(object):
         nmrResidues = makeIterableList(nmrResidues)
 
         nmrAtomIncludeList = tuple(nmrAtom for nmrResidue in nmrResidues for nmrAtom in nmrResidue.nmrAtoms)
-        guiNmrAtomSet = set([self.guiNmrAtomDict[nmrAtom] for nmrAtom in nmrAtomIncludeList])
+        guiNmrAtomSet = set([self.guiNmrAtomDict[nmrAtom] for nmrAtom in nmrAtomIncludeList
+                             if nmrAtom in self.guiNmrAtomDict])
 
         for guiAtom in guiNmrAtomSet:
             for peakLineList in self.assignmentLines.values():
@@ -2031,7 +2032,8 @@ class SequenceGraphModule(CcpnModule):
         nmrResidues = makeIterableList(nmrResidues)
 
         for nmrResidue in nmrResidues:
-            guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtomDict[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms])
+            guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtomDict[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms
+                                 if nmrAtom in self.nmrResidueList.guiNmrAtomDict])
 
             for guiAtom in guiNmrAtomSet:
                 for guiLineList in self.nmrResidueList.assignmentLines.values():
