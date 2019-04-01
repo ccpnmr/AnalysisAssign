@@ -3182,17 +3182,29 @@ class SequenceGraphModule(CcpnModule):
         elif isinstance(pressed, GuiNmrResidue):
 
             # create the nmrResidue menu
-            contextMenu.addAction(self.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self.disconnectPreviousNmrResidue))
-            contextMenu.addAction(self.disconnectIcon, 'disconnect nmrResidue', partial(self.disconnectNmrResidue))
-            contextMenu.addAction(self.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self.disconnectNextNmrResidue))
+            self._disconnectPreviousActionMenu = contextMenu.addAction(self.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self.disconnectPreviousNmrResidue))
+            self._disconnectActionMenu = contextMenu.addAction(self.disconnectIcon, 'disconnect nmrResidue', partial(self.disconnectNmrResidue))
+            self._disconnectNextActionMenu = contextMenu.addAction(self.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self.disconnectNextNmrResidue))
             contextMenu.addSeparator()
-            contextMenu.addAction('disconnect all nmrResidues', partial(self.disconnectAllNmrResidues))
+            self._disconnectAllActionMenu = contextMenu.addAction('disconnect all nmrResidues', partial(self.disconnectAllNmrResidues))
             if object.nmrResidue.residue:
                 contextMenu.addSeparator()
-                contextMenu.addAction('deassign nmrChain', partial(self.deassignNmrChain))
+                self._deassignNmrChainActionMenu = contextMenu.addAction('deassign nmrChain', partial(self.deassignNmrChain))
+
+                assign = pressed.nmrResidue.residue is not None
+                self._deassignNmrChainActionMenu.setEnabled(assign)
 
             contextMenu.addSeparator()
-            contextMenu.addAction('Show nmrResidue', partial(self.showNmrResidue, object))
+            self._showActionMenu = contextMenu.addAction('Show nmrResidue', partial(self.showNmrResidue, object))
+
+            prev = pressed.nmrResidue.previousNmrResidue is not None
+            nxt = pressed.nmrResidue.nextNmrResidue is not None
+
+            self._disconnectPreviousActionMenu.setEnabled(prev)
+            self._disconnectActionMenu.setEnabled(prev or nxt)
+            self._disconnectNextActionMenu.setEnabled(nxt)
+            self._disconnectAllActionMenu.setEnabled(prev or nxt)
+
             contextMenu.move(cursor.pos().x(), cursor.pos().y() + 10)
             contextMenu.exec()
             contextMenu = None
