@@ -183,13 +183,22 @@ class PickAndAssignModule(NmrResidueTableModule):
                 for nmrAtom in self.application.current.nmrResidue.nmrAtoms:
                     if nmrAtom.isotopeCode in shiftDict.keys():
                         shiftDict[nmrAtom.isotopeCode].append((nmrAtom, shiftList.getChemicalShift(nmrAtom.id).value))
+
                 for ii, isotopeCode in enumerate(spectrum.isotopeCodes):
+
+                    pValue = peak.position[ii]
                     if isotopeCode in shiftDict.keys():
+
+                        shiftList = set()
                         for shift in shiftDict[isotopeCode]:
                             sValue = shift[1]
-                            pValue = peak.position[ii]
+                            # pValue = peak.position[ii]
                             if abs(sValue - pValue) <= spectrum.assignmentTolerances[ii]:
-                                peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
+                                # peak.assignDimension(spectrum.axisCodes[ii], [shift[0]])
+                                shiftList.add(shift[0])
+
+                        if shiftList:
+                            peak.assignDimension(spectrum.axisCodes[ii], list(shiftList))
 
             # self.application.current.peaks = []
             # update the NmrResidue table
