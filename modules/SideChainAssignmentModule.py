@@ -165,3 +165,6 @@ class SideChainAssignmentModule(PickAndAssignModule):
             makeStripPlotFromSingles(display, list(nmrAtoms))
             axisCodePositionDict = matchAxesAndNmrAtoms(display.strips[0], list(nmrAtoms))
             self.mainWindow.markPositions(self.project, list(axisCodePositionDict.keys()), list(axisCodePositionDict.values()))
+
+            display.setColumnStretches(stretchValue=True)
+

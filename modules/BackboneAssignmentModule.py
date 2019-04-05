@@ -345,7 +345,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             getLogger().info('No matches found for NmrResidue: %s' % nmrResidue.pid)
             return
         self._createMatchStrips(assignMatrix)
-        return
 
     def _processDroppedNmrResidueLabel(self, data, toLabel=None, plusChain=None):
         if toLabel and toLabel.obj:
@@ -687,6 +686,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
             # self._centreStripForNmrResidue(assignMatrix[assignmentScores[0]], module.strips[0])
             self._centreCcpnStripsForNmrResidue(assignMatrix[assignmentScores[0]], module.strips)
+            module.setColumnStretches(stretchValue=True)
 
     def _closeModule(self):
         """
