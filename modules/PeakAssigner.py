@@ -60,7 +60,7 @@ from ccpnmodel.ccpncore.lib.Constants import defaultNmrChainCode
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 from ccpn.ui.gui.widgets.Widget import Widget
-from ccpn.core.lib.ContextManagers import undoBlockManager
+from ccpn.core.lib.ContextManagers import undoBlock
 
 logger = getLogger()
 
@@ -423,7 +423,7 @@ class PeakAssigner(CcpnModule):
         nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
                                              ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
 
-        with undoBlockManager():
+        with undoBlock():
             try:
                 for peak in self.current.peaks:
                     if nmrAtom not in peak.dimensionNmrAtoms[dim]:
@@ -747,7 +747,7 @@ class AxisAssignmentObject(Frame):
         nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
                                              ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
 
-        with undoBlockManager():
+        with undoBlock():
             try:
 
                 for peak in self.current.peaks:
@@ -813,7 +813,7 @@ class AxisAssignmentObject(Frame):
             if nmrResidue:
                 nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
 
-                with undoBlockManager():
+                with undoBlock():
                     try:
 
                         for peak in self.current.peaks:
@@ -881,7 +881,7 @@ class AxisAssignmentObject(Frame):
             currentObject = self.tables[0].getSelectedObjects()
 
             if currentObject:
-                with undoBlockManager():
+                with undoBlock():
                     try:
                         for peak in self.current.peaks:
 
