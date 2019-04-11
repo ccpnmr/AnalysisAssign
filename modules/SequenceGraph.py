@@ -28,36 +28,30 @@ __date__ = "$Date: 2016-05-23 10:02:47 +0100 (Thu, 26 May 2016) $"
 import json
 import typing
 import numpy as np
-from itertools import islice
 from PyQt5 import QtGui, QtWidgets, QtCore
 from collections import OrderedDict
 from contextlib import contextmanager
-
 from ccpn.core.lib.Pid import Pid
 from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.Peak import Peak
 from ccpn.core.Spectrum import Spectrum
-from ccpn.core.NmrChain import NmrChain
 from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
-from ccpn.core.lib.AssignmentLib import nmrAtomPairsByDimensionTransfer
 from ccpn.core.lib.Notifiers import Notifier
+from ccpn.core.lib.CallBack import CallBack
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay, _getCurrentZoomRatio
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
 from ccpn.ui.gui.guiSettings import getColours
 from ccpn.ui.gui.guiSettings import GUINMRATOM_NOTSELECTED, GUINMRATOM_SELECTED, \
     GUINMRRESIDUE, SEQUENCEGRAPHMODULE_LINE, SEQUENCEGRAPHMODULE_TEXT
-
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Icon import Icon
 from ccpn.ui.gui.widgets.ToolBar import ToolBar
-from ccpn.ui.gui.widgets.Spacer import Spacer
 from ccpn.ui.gui.widgets.CompoundWidgets import CheckBoxCompoundWidget, ListCompoundWidget
 from ccpn.ui.gui.widgets.PulldownListsForObjects import NmrChainPulldown
 from ccpn.core.NmrChain import NmrChain
 from ccpn.util.Common import makeIterableList
-
 from ccpn.util.Constants import ccpnmrJsonData
 from ccpn.util.Logging import getLogger
 from ccpn.ui.gui.widgets.MessageDialog import showWarning, progressManager
@@ -67,6 +61,7 @@ from ccpn.ui.gui.modules.SequenceModule import SequenceModule
 from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
 from ccpn.core.lib.ContextManagers import notificationEchoBlocking, catchExceptions, undoBlock
+
 
 logger = getLogger()
 ALL = '<all>'
@@ -161,7 +156,7 @@ class AssignmentLine(QtWidgets.QGraphicsLineItem):
 
         self.setLine(x1, y1, x2, y2)
 
-    def paint(self, painter: QtGui.QPainter, option: 'QStyleOptionGraphicsItem', widget: typing.Optional[QtWidgets.QWidget] = ...):
+    def paint(self, painter, option, widget):
         """Automatically update the end-points of the assignment lines to point to the correct guiNmrAtoms
         """
         self.updateEndPoints()
@@ -1661,6 +1656,11 @@ class SequenceGraphModule(CcpnModule):
                                                       Spectrum.className,
                                                       self._updateSpectra)
 
+        self._currentNmrResidueNotifier = self.setNotifier(self.current,
+                                                           [Notifier.CURRENT],
+                                                           targetName=NmrResidue._pluralLinkName,
+                                                           callback=self._selectCurrentNmrResidues)
+
     def _repopulateModule(self):
         """CCPN Internal: Repopulate the required widgets in the module
         This is will be attached to GuiNotifiers
@@ -1868,6 +1868,20 @@ class SequenceGraphModule(CcpnModule):
     #     #
     #     #     elif trigger == Notifier.CHANGE:
     #     #         print('>>>change nmrChain - no action', nmrChain)
+
+    def _selectCurrentNmrResidues(self, data):
+        """
+        Notifier Callback for selecting current nmrResidue
+        """
+        objList = data[CallBack.OBJECT]
+
+        if not self.nmrResiduesCheckBox.isChecked():
+            nmrResidue = objList.nmrResidue
+
+            # redraw the nmrResidues if current is in the displayed chain and not already visible
+            if nmrResidue.nmrChain == self.nmrChain and nmrResidue not in self.nmrResidueList.guiNmrResidues:
+                self.showNmrChainFromPulldown(nmrResidue)
+
 
     def _updateNmrResidues(self, data):
         """Update the nmrResidues in the display.
@@ -2209,11 +2223,11 @@ class SequenceGraphModule(CcpnModule):
                             # print('>>>L1', nmrResidue, nmr, ii)
 
                         elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
-                                nmr = nmrResidue.nextNmrResidue.mainNmrResidue
-                                iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
-                                if iiRight is not None:
-                                    ii = iiRight
-                                    # print('>>>R2', nmrResidue, nmr, ii)
+                            nmr = nmrResidue.nextNmrResidue.mainNmrResidue
+                            iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
+                            if iiRight is not None:
+                                ii = iiRight
+                                # print('>>>R2', nmrResidue, nmr, ii)
 
                     elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
                         nmr = nmrResidue.nextNmrResidue.mainNmrResidue
@@ -2223,14 +2237,14 @@ class SequenceGraphModule(CcpnModule):
                             # print('>>>R1', nmrResidue, nmr, ii)
 
                         elif nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
-                                nmr = nmrResidue.previousNmrResidue.mainNmrResidue
-                                iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
-                                if iiLeft is not None:
-                                    ii = iiLeft + 1
-                                    # print('>>>L2', nmrResidue, nmr, ii)
+                            nmr = nmrResidue.previousNmrResidue.mainNmrResidue
+                            iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
+                            if iiLeft is not None:
+                                ii = iiLeft + 1
+                                # print('>>>L2', nmrResidue, nmr, ii)
 
                     if ii is None:
-                        ii = self.nmrChain.mainNmrResidues.index(nmrResidue)-1
+                        ii = self.nmrChain.mainNmrResidues.index(nmrResidue) - 1
                         # print('>>>MID', ii)
                         return
 
@@ -3182,9 +3196,11 @@ class SequenceGraphModule(CcpnModule):
         elif isinstance(pressed, GuiNmrResidue):
 
             # create the nmrResidue menu
-            self._disconnectPreviousActionMenu = contextMenu.addAction(self.disconnectPreviousIcon, 'disconnect Previous nmrResidue', partial(self.disconnectPreviousNmrResidue))
+            self._disconnectPreviousActionMenu = contextMenu.addAction(self.disconnectPreviousIcon, 'disconnect Previous nmrResidue',
+                                                                       partial(self.disconnectPreviousNmrResidue))
             self._disconnectActionMenu = contextMenu.addAction(self.disconnectIcon, 'disconnect nmrResidue', partial(self.disconnectNmrResidue))
-            self._disconnectNextActionMenu = contextMenu.addAction(self.disconnectNextIcon, 'disconnect Next nmrResidue', partial(self.disconnectNextNmrResidue))
+            self._disconnectNextActionMenu = contextMenu.addAction(self.disconnectNextIcon, 'disconnect Next nmrResidue',
+                                                                   partial(self.disconnectNextNmrResidue))
             contextMenu.addSeparator()
             self._disconnectAllActionMenu = contextMenu.addAction('disconnect all nmrResidues', partial(self.disconnectAllNmrResidues))
             if object.nmrResidue.residue:
