@@ -772,13 +772,15 @@ class NmrResidueList(object):
 
         # iterate through the adjacent pairs
         for prev, this in zip(self.allNmrResidues[:-1], self.allNmrResidues[1:]):
+
+            # add the connection the minus residue and point to the right - may need to change for +1 residues
             prevRes, prevGuiAtoms = prev
             thisRes, thisGuiAtoms = this
 
             if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes) and connectsNeeded:
                 # connect from this 'N' to the previous 'CO'
-                self._addConnectingLineToGroup(self.guiNmrResidues[thisRes],
-                                               thisGuiAtoms['N'], prevGuiAtoms['CO'],
+                self._addConnectingLineToGroup(self.guiNmrResidues[prevRes],
+                                               prevGuiAtoms['CO'], thisGuiAtoms['N'],
                                                self._lineColour, 1.0, lineList=self.connectingLines,
                                                lineId=thisRes)
 
@@ -996,6 +998,7 @@ class NmrResidueList(object):
         interResidueAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
         interChainAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
         crossChainAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
+        emptyAtomPairing = OrderedDict((spec, set()) for spec in self._module.magnetisationTransfers.keys())
 
         nmrChain = nmrResidue.nmrChain
 
@@ -1079,6 +1082,7 @@ class NmrResidueList(object):
                                     crossChainAtomPairing[spec].add((nmrAtom0, nmrAtom1, peak))
 
         return interResidueAtomPairing, interChainAtomPairing, crossChainAtomPairing
+        # return emptyAtomPairing, emptyAtomPairing, crossChainAtomPairing
 
     #==========================================================================================
     # spectrum update
@@ -1088,7 +1092,8 @@ class NmrResidueList(object):
         """
         for lineList in lineDist.values():
             for line in lineList:
-                self._scene.removeItem(line)
+                if line in self._scene.items():
+                    self._scene.removeItem(line)
         lineDist.clear()
 
     def removeAssignmentLinesFromScene(self):
@@ -1213,7 +1218,8 @@ class NmrResidueList(object):
                 # remove all graphic lines
                 for peakLine in peakLines:
                     peakLineList.remove(peakLine)
-                    self._scene.removeItem(peakLine)
+                    if peakLine in self._scene.items():
+                        self._scene.removeItem(peakLine)
 
             # clear connectivity list of guiNmrAtoms, but don't delete
             guiAtom.clearConnectedList()
@@ -1345,7 +1351,8 @@ class NmrResidueList(object):
                 # remove all graphic lines
                 for peakLine in peakLines:
                     peakLineList.remove(peakLine)
-                    self._scene.removeItem(peakLine)
+                    if peakLine in self._scene.items():
+                        self._scene.removeItem(peakLine)
 
             # clear connectivity list of guiNmrAtoms
             guiAtom.clearConnectedList()
@@ -1772,7 +1779,8 @@ class SequenceGraphModule(CcpnModule):
                 # remove all graphic lines
                 for peakLine in peakLines:
                     peakLineList.remove(peakLine)
-                    self.scene.removeItem(peakLine)
+                    if peakLine in self.scene.items():
+                        self.scene.removeItem(peakLine)
 
             # clear connectivity list of guiNmrAtoms
             guiAtom.clearConnectedList()
@@ -2082,7 +2090,8 @@ class SequenceGraphModule(CcpnModule):
                         # remove all graphic lines
                         for guiLine in guiLines:
                             guiLineList.remove(guiLine)
-                            self.scene.removeItem(guiLine)
+                            if guiLine in self.scene.items():
+                                self.scene.removeItem(guiLine)
 
                     for guiLineList in self.nmrResidueList.connectingLines.values():
                         guiLines = [guiLine for guiLine in guiLineList
@@ -2091,7 +2100,8 @@ class SequenceGraphModule(CcpnModule):
                         # remove all graphic lines
                         for guiLine in guiLines:
                             guiLineList.remove(guiLine)
-                            self.scene.removeItem(guiLine)
+                            if guiLine in self.scene.items():
+                                self.scene.removeItem(guiLine)
 
                     # clear connectivity list of guiNmrAtoms
                     guiAtom.clearConnectedList()
@@ -2115,7 +2125,8 @@ class SequenceGraphModule(CcpnModule):
                     # remove all graphic lines
                     for guiLine in guiLines:
                         guiLineList.remove(guiLine)
-                        self.scene.removeItem(guiLine)
+                        if guiLine in self.scene.items():
+                            self.scene.removeItem(guiLine)
 
                 for guiLineList in self.nmrResidueList.connectingLines.values():
                     guiLines = [guiLine for guiLine in guiLineList
@@ -2124,12 +2135,14 @@ class SequenceGraphModule(CcpnModule):
                     # remove all graphic lines
                     for guiLine in guiLines:
                         guiLineList.remove(guiLine)
-                        self.scene.removeItem(guiLine)
+                        if guiLine in self.scene.items():
+                            self.scene.removeItem(guiLine)
 
                 # clear connectivity list of guiNmrAtoms
                 guiAtom.clearConnectedList()
 
             self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
+
             oldInd = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
             ii = self.nmrChain.mainNmrResidues
             self._storeIndex(nmrResidue, oldInd)
@@ -2138,7 +2151,6 @@ class SequenceGraphModule(CcpnModule):
             del self.nmrResidueList.guiNmrResidues[nmrResidue]
             for nmrAtom in nmrResidue.nmrAtoms:
                 del self.nmrResidueList.guiNmrAtomDict[nmrAtom]
-            pass
 
     def _storeIndex(self, nmrResidue, index):
         """Store the index for the undo.
@@ -2195,7 +2207,8 @@ class SequenceGraphModule(CcpnModule):
                         # remove all graphic lines
                         for guiLine in guiLines:
                             guiLineList.remove(guiLine)
-                            self.scene.removeItem(guiLine)
+                            if guiLine in self.scene.items():
+                                self.scene.removeItem(guiLine)
 
                     for guiLineList in self.nmrResidueList.connectingLines.values():
                         guiLines = [guiLine for guiLine in guiLineList
@@ -2204,7 +2217,8 @@ class SequenceGraphModule(CcpnModule):
                         # remove all graphic lines
                         for guiLine in guiLines:
                             guiLineList.remove(guiLine)
-                            self.scene.removeItem(guiLine)
+                            if guiLine in self.scene.items():
+                                self.scene.removeItem(guiLine)
 
                     # clear connectivity list of guiNmrAtoms
                     guiAtom.clearConnectedList()
@@ -2231,13 +2245,13 @@ class SequenceGraphModule(CcpnModule):
     # 
     #     self.nmrResidueList.rebuildPeakLines(peaks, rebuildPeakLines=True)
 
-    def _removeLinesFromScene(self, lineDist):
-        """Remove all the peakLines from the scene.
-        """
-        for lineList in lineDist.values():
-            for line in lineList:
-                self.scene.removeItem(line)
-        lineDist.clear()
+    # def _removeLinesFromScene(self, lineDist):
+    #     """Remove all the peakLines from the scene.
+    #     """
+    #     for lineList in lineDist.values():
+    #         for line in lineList:
+    #             self.scene.removeItem(line)
+    #     lineDist.clear()
 
     # def _searchPeakLines(self, nmrAtoms, includeDeleted=False):
     #     """Return a list of the peakLines containing one of the nmrAtoms in the list.
@@ -2330,11 +2344,36 @@ class SequenceGraphModule(CcpnModule):
         #                                        res['CO'], self.guiResiduesShown[ii + 1]['N'],
         #                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
 
-        newList = set()
-        for nmr in nmrResidueList:
-            newList.add(nmr)
-            if nmr.nextNmrResidue and nmr.nextNmrResidue.mainNmrResidue:
-                newList.add(nmr.nextNmrResidue.mainNmrResidue)
+        # # add connecting lines
+        # newList = OrderedSet()
+        # connectsNeeded = self._module.nmrResiduesCheckBox.isChecked()
+        #
+        # for nmr in nmrResidueList:
+        #     newList.add(nmr)
+        #     if nmr.nextNmrResidue and nmr.nextNmrResidue.mainNmrResidue:
+        #         newList.add(nmr.nextNmrResidue.mainNmrResidue)
+        #
+        #         nextNmr = nmr.nextNmrResidue.mainNmrResidue
+        #
+        #         indThis = self.nmrResidueList.getIndexNmrResidue(nmr)
+        #         indNext = self.nmrResidueList.getIndexNmrResidue(nextNmr)
+        #
+        #         if indThis is not None and indNext is not None:
+        #             # add connecting line
+        #
+        #             prev = self.nmrResidueList._getNmrResiduePair(indThis)
+        #             this = self.nmrResidueList._getNmrResiduePair(indNext)
+        #
+        #             # add the connection the minus residue and point to the right - may need to change for +1 residues
+        #             prevRes, prevGuiAtoms = prev
+        #             thisRes, thisGuiAtoms = this
+        #
+        #             if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes) and connectsNeeded:
+        #                 # connect from this 'N' to the previous 'CO'
+        #                 self._addConnectingLineToGroup(self.guiNmrResidues[prevRes],
+        #                                                prevGuiAtoms['CO'], thisGuiAtoms['N'],
+        #                                                self._lineColour, 1.0, lineList=self.connectingLines,
+        #                                                lineId=thisRes)
 
         self.nmrResidueList.rebuildNmrResidues(nmrResidueList)
 
@@ -2424,10 +2463,10 @@ class SequenceGraphModule(CcpnModule):
             if self.nmrResidueList.size > 2:
                 self.predictSequencePosition(self.nmrResidueList.allNmrResidues)
 
-            # add the connecting lines
+            # # add the connecting lines
             self.nmrResidueList.addConnectionsBetweenGroups()
 
-            # add the peakAssignments
+            # add the peakAssignment lines - why are they behind the connecting lines?
             self.nmrResidueList._addAllPeakAssignments()
 
             self.nmrResidueList.updateGuiResiduePositions(updateMainChain=True, updateConnectedChains=True)
