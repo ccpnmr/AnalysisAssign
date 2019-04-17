@@ -180,8 +180,8 @@ class AssignmentInspectorModule(CcpnModule):
         self._registerNotifiers()
 
     def _fillDisplayWidget(self):
-        list = ['> select-to-add <'] + [ALL] + [display.pid for display in self.mainWindow.spectrumDisplays]
-        self.displaysWidget.pulldownList.setData(texts=list)
+        ll = ['> select-to-add <'] + [ALL] + [display.pid for display in self.mainWindow.spectrumDisplays]
+        self.displaysWidget.pulldownList.setData(texts=ll)
 
     def _getDisplays(self):
         """

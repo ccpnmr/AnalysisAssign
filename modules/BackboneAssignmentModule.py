@@ -152,8 +152,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
     def _fillDisplayWidget(self):
-        list = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
-        self.matchWidget.pulldownList.setData(texts=list)
+        ll = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
+        self.matchWidget.pulldownList.setData(texts=ll)
 
     def _getDisplays(self):
         "return list of displays to navigate"
