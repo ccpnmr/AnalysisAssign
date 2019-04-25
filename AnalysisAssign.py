@@ -40,7 +40,7 @@ class Assign(Framework):
 
     def setupMenus(self):
         super().setupMenus()
-        menuSpec = ('Assign', [("Setup NmrResidues", self.showSetupNmrResiduesPopup, [('shortcut', 'sn')]),
+        menuSpec = ('Assign', [("Set up NmrResidues", self.showSetupNmrResiduesPopup, [('shortcut', 'sn')]),
                                ("Pick and Assign", self.showPickAndAssignModule, [('shortcut', 'pa')]),
                                (),
                                ("Backbone Assignment", self.showBackboneAssignmentModule, [('shortcut', 'bb')]),
