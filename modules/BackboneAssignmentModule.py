@@ -544,10 +544,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth, update=False)
                 strip._CcpnGLWidget._rescaleAllAxis()
 
-                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
 
-                GLSignals = GLNotifier(parent=self)
-                GLSignals.emitPaintEvent()
 
             except Exception as es:
                 getLogger().debugGL('OpenGL widget not instantiated')
