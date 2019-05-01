@@ -220,11 +220,11 @@ class PeakAssigner(CcpnModule):
         self._nmrAtomNotifier = Notifier(self.project,
                                          [Notifier.CHANGE, Notifier.RENAME],
                                          targetName=NmrAtom.__name__,
-                                         callback=self._update)
+                                         callback=self._updateNmrAtom)
         self._nmrResidueNotifier = Notifier(self.project,
                                          [Notifier.CHANGE],
                                          targetName=Peak.__name__,
-                                         callback=self._update)
+                                         callback=self._updateNmrResidue)
 
     def _unRegisterNotifiers(self):
         if self._peakNotifier:
@@ -234,7 +234,10 @@ class PeakAssigner(CcpnModule):
         if self._nmrResidueNotifier:
             self._nmrResidueNotifier.unRegister()
 
-    def _update(self, *args):
+    def _updateNmrAtom(self, *args):
+        self._updateInterface()
+
+    def _updateNmrResidue(self, *args):
         self._updateInterface()
 
     def __del__(self):
@@ -341,7 +344,8 @@ class PeakAssigner(CcpnModule):
             self.axisTables[dim].buttonList.setButtonEnabled('Delete', False)
             self.axisTables[dim].buttonList.setButtonEnabled('Deassign', False)
             self.axisTables[dim].buttonList.setButtonEnabled('Assign', False)
-            self.axisTables[dim]._setDefaultPulldowns()
+
+            # self.axisTables[dim]._setDefaultPulldowns()
 
     def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> float:
         """
@@ -840,7 +844,7 @@ class AxisAssignmentObject(Frame):
                 # self._updateInterface()
                 self._parent._updateInterface()
                 self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-                self._updateAssignmentWidget(0, nmrAtom)
+                # self._updateAssignmentWidget(0, nmrAtom)
 
                 # self.lastTableSelected = 0
                 # self.buttonList.setButtonEnabled('Delete', True)
@@ -862,6 +866,8 @@ class AxisAssignmentObject(Frame):
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
+
+                self.update()
 
         except Exception as es:
             showWarning('Assign Peak to NmrAtom', str(es))
@@ -973,32 +979,18 @@ class AxisAssignmentObject(Frame):
             residueType = nmrAtom.nmrResidue.residueType
 
             if not self._parent.allChainCheckBoxLabel.isChecked():
-                self._setChains()
-                # chains = ['']
-                # chains.extend([chain.id for chain in self.project.nmrChains])
-                # self.chainPulldown.setData(chains)
-                self.chainPulldown.setIndex(self.chainPulldown.texts.index(nmrChain.id))
+                self._setChains(nmrChain)
+                # self.chainPulldown.setIndex(self.chainPulldown.texts.index(nmrChain.id) if nmrChain.id in self.chainPulldown.texts else 0)
 
                 self._setSequenceCodes(nmrChain)
-                # sequenceCodes = ['']
-                # sequenceCodes.extend([nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues])
-                # self.seqCodePulldown.setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
-                self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
+                self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode) if sequenceCode in self.seqCodePulldown.texts else 0)
+                # print('>>>sequenceUpdate', self.seqCodePulldown.currentIndex())
 
                 self._setResidueTypes(nmrChain)
-                # residueTypes = ['']
-                # residueTypes.extend([nmrResidue.residueType for nmrResidue in self.project.nmrResidues])
-                # residueTypes.extend([nmrResidue[1] for nmrResidue in allowedResidueTypes])  # self.project.nmrResidues]
-                # residueTypes = list(set(OrderedDict.fromkeys(residueTypes)))
-                # self.resTypePulldown.setData(sorted(residueTypes, key=CcpnSorting.stringSortKey))
-                self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
+                self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType) if residueType in self.resTypePulldown.texts else 0)
 
                 self._setAtomNames(nmrAtom)
-                # atomPrefix = self.current.peak.peakList.spectrum.isotopeCodes[self.index][-1]
-                # atomNames = ['']
-                # atomNames.extend([atomName for atomName in ATOM_NAMES if atomName[0] == atomPrefix] + [nmrAtom.name])
-                # self.atomTypePulldown.setData(atomNames)
-                self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name))
+                self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name) if nmrAtom.name in self.atomTypePulldown.texts else 0)
             else:
 
                 # only allow selection of peaks from the table
@@ -1023,16 +1015,11 @@ class AxisAssignmentObject(Frame):
                 else:
                     self._setDefaultPulldowns()
 
-                try:
-                    self.chainPulldown.setIndex(self.chainPulldown.texts.index(nmrChain.id))
-                    self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode))
-                    self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType))
-                    self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name))
-                except:
-                    self.chainPulldown.setIndex(0)
-                    self.seqCodePulldown.setIndex(0)
-                    self.resTypePulldown.setIndex(0)
-                    self.atomTypePulldown.setIndex(0)
+                self.chainPulldown.setIndex(self.chainPulldown.texts.index(nmrChain.id) if nmrChain.id in self.chainPulldown.texts else 0)
+                self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode) if sequenceCode in self.seqCodePulldown.texts else 0)
+                self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType) if residueType in self.resTypePulldown.texts else 0)
+                self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name) if nmrAtom.name in self.atomTypePulldown.texts else 0)
+                # print('>>>sequenceSubset', self.seqCodePulldown.currentIndex())
 
             self.lastNmrAtomSelected = (self.chainPulldown.currentText(),
                                         self.seqCodePulldown.currentText(),
@@ -1043,25 +1030,34 @@ class AxisAssignmentObject(Frame):
             self.lastNmrAtomSelected = None
 
     def _setDefaultPulldowns(self):
+        """Clear the contents of the pullDowns
+        """
         self.chainPulldown.clear()
         self.seqCodePulldown.clear()
         self.resTypePulldown.clear()
         self.atomTypePulldown.clear()
+        # print('>>>sequenceSetdefault', self.seqCodePulldown.currentIndex())
 
         self._setChains()
         self._setResidueTypes()
         self._setAtomNames()
 
-    def _setChains(self):
+    def _setChains(self, nmrChain=None):
         """Populate the chain pulldown from the project
         """
+        thisChain = self.chainPulldown.currentText()
         chains = ['']
         chains.extend([chain.id for chain in self.project.nmrChains])
+        if nmrChain:
+            thisChain = nmrChain.id
+
         self.chainPulldown.setData(chains)
+        self.chainPulldown.setIndex(self.chainPulldown.texts.index(thisChain) if thisChain in self.chainPulldown.texts else 0)
 
     def _setSequenceCodes(self, nmrChain=None):
         """Populate the sequenceCode pulldown from the nmrChain or project
         """
+        thisSeq = self.seqCodePulldown.currentText()
         sequenceCodes = ['']
         if nmrChain:
             sequenceCodes.extend([nmrResidue.sequenceCode for nmrResidue in nmrChain.nmrResidues])
@@ -1069,10 +1065,12 @@ class AxisAssignmentObject(Frame):
             sequenceCodes.extend([nmrResidue.sequenceCode for nmrResidue in self.project.nmrResidues])
 
         self.seqCodePulldown.setData(sorted(sequenceCodes, key=CcpnSorting.stringSortKey))
+        self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(thisSeq) if thisSeq in self.seqCodePulldown.texts else 0)
 
     def _setResidueTypes(self, nmrChain=None):
         """Populate the residueTypes pulldown from the nmrChain or project
         """
+        thisRes = self.resTypePulldown.currentText()
         residueTypes = ['']
         if nmrChain:
             residueTypes.extend([nmrResidue.residueType for nmrResidue in nmrChain.nmrResidues])
@@ -1081,11 +1079,14 @@ class AxisAssignmentObject(Frame):
 
         residueTypes.extend([nmrResidue[1] for nmrResidue in allowedResidueTypes])  # self.project.nmrResidues]
         residueTypes = list(set(OrderedDict.fromkeys(residueTypes)))
+
         self.resTypePulldown.setData(sorted(residueTypes, key=CcpnSorting.stringSortKey))
+        self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(thisRes) if thisRes in self.resTypePulldown.texts else 0)
 
     def _setAtomNames(self, nmrAtom=None):
         """Populate the atomNames pulldown from the project
         """
+        thisAtom = self.atomTypePulldown.currentText()
         atomNames = ['']
         if self.current.peak:
             isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[self.index]
@@ -1094,7 +1095,12 @@ class AxisAssignmentObject(Frame):
                 atomNames.extend([atomName for atomName in ATOM_NAMES[isotopeCode]])
         if nmrAtom:
             atomNames.extend([nmrAtom.name])
+            thisAtom = nmrAtom.name                                 # set only if nmrAtom defined
+        if self.lastNmrAtomSelected:
+            atomNames.extend([self.lastNmrAtomSelected[3]])
+
         self.atomTypePulldown.setData(list(set(atomNames)))
+        self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(thisAtom) if thisAtom in self.atomTypePulldown.texts else 0)
 
     def _deleteNmrAtom(self, dim: int):
         """
@@ -1102,21 +1108,22 @@ class AxisAssignmentObject(Frame):
         """
         if self.lastTableSelected is not None:
 
-            # deassign if assigned
-            self._deassignNmrAtom(dim)
+            # # deassign if assigned
+            # self._deassignNmrAtom(dim)
 
             # remove from the table
-            self.tables[self.lastTableSelected].deleteObjFromTable()
-            nextAtoms = self.tables[self.lastTableSelected].getSelectedObjects()
+            deleted = self.tables[self.lastTableSelected].deleteObjFromTable()
+            if deleted:
+                nextAtoms = self.tables[self.lastTableSelected].getSelectedObjects()
 
-            # reset buttons
-            if not nextAtoms:
-                self.buttonList.setButtonEnabled('Delete', False)
-                self.buttonList.setButtonEnabled('Deassign', False)
-                self.buttonList.setButtonEnabled('Assign', False)
-                self._updateAssignmentWidget(self.lastTableSelected, None)
-            else:
-                self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])
+                # reset buttons
+                if not nextAtoms:
+                    self.buttonList.setButtonEnabled('Delete', False)
+                    self.buttonList.setButtonEnabled('Deassign', False)
+                    self.buttonList.setButtonEnabled('Assign', False)
+                    self._updateAssignmentWidget(self.lastTableSelected, None)
+                else:
+                    self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])
 
     #TODO:ED add pulldownselections
     def _pulldownEdited(self, pulldown: object):
