@@ -243,7 +243,8 @@ class PeakAssigner(CcpnModule):
     def __del__(self):
         self._unRegisterNotifiers()
 
-    def _updateInterface(self, peaks: typing.List[Peak] = None):
+    def _updateInterface(self, peaks: typing.List[Peak] = None,
+                         enableDeleteButton=False, enableDeassignButton=False, enableAssignButton=False):
         """Updates the whole module, including recalculation
            of which nmrAtoms fit to the peaks.
         """
@@ -289,9 +290,11 @@ class PeakAssigner(CcpnModule):
                 self.peakLabel.setText('Current Peaks: %s' % _truncateText(peaksIds, maxWords=6))
                 self.peakLabel.setToolTip(peaksIds)
 
-            self._updateNewTable()
+            self._updateNewTable(enableDeleteButton=enableDeleteButton,
+                                 enableDeassignButton=enableDeassignButton,
+                                 enableAssignButton=enableAssignButton)
 
-    def _updateNewTable(self):
+    def _updateNewTable(self, enableDeleteButton=False, enableDeassignButton=False, enableAssignButton=False):
         """
         update Assigned and alternatives tables showing which nmrAtoms
         are assigned to which peak dimensions. If multiple
@@ -341,9 +344,10 @@ class PeakAssigner(CcpnModule):
             self.axisTables[dim].axisLabel.setText(text)
             self.axisDivergeLabels[dim][2].setText(axisCode+': peaks diverge')
 
-            self.axisTables[dim].buttonList.setButtonEnabled('Delete', False)
-            self.axisTables[dim].buttonList.setButtonEnabled('Deassign', False)
-            self.axisTables[dim].buttonList.setButtonEnabled('Assign', False)
+            print('>>>setButtons - _update', enableDeleteButton)
+            self.axisTables[dim].buttonList.setButtonEnabled('Delete', enableDeleteButton)
+            self.axisTables[dim].buttonList.setButtonEnabled('Deassign', enableDeassignButton)
+            self.axisTables[dim].buttonList.setButtonEnabled('Assign', enableAssignButton)
 
             # self.axisTables[dim]._setDefaultPulldowns()
 
@@ -422,26 +426,26 @@ class PeakAssigner(CcpnModule):
         for listWidget in self.listWidgets:
             listWidget.clear()
 
-    def _createNewNmrAtom(self, dim):
-        isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
-        nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
-                                             ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
-
-        with undoBlock():
-            try:
-                for peak in self.current.peaks:
-                    if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-                        # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
-
-                        newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
-                        axisCode = peak.peakList.spectrum.axisCodes[dim]
-                        peak.assignDimension(axisCode, newAssignments)
-                # self.listWidgets[dim].addItem(nmrAtom.pid)
-                # self._updateTables()
-                self._updateNewTable()
-
-            except Exception as es:
-                showWarning(str(self.windowTitle()), str(es))
+    # def _createNewNmrAtom(self, dim):
+    #     isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
+    #     nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
+    #                                          ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
+    #
+    #     with undoBlock():
+    #         try:
+    #             for peak in self.current.peaks:
+    #                 if nmrAtom not in peak.dimensionNmrAtoms[dim]:
+    #                     # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
+    #
+    #                     newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
+    #                     axisCode = peak.peakList.spectrum.axisCodes[dim]
+    #                     peak.assignDimension(axisCode, newAssignments)
+    #             # self.listWidgets[dim].addItem(nmrAtom.pid)
+    #             # self._updateTables()
+    #             self._updateNewTable(enableDeleteButton=True, enableDeassignButton=True)
+    #
+    #         except Exception as es:
+    #             showWarning(str(self.windowTitle()), str(es))
 
     def _updatePulldownLists(self, dim: int, row: int = None, col: int = None, obj: object = None):
         objectTable = self.objectTables[dim]
@@ -631,6 +635,8 @@ class AxisAssignmentObject(Frame):
                                      grid=(row, 0), gridSpan=(1, 1),
                                      vPolicy='minimum', hPolicy='expanding',
                                      vAlign='b')
+
+        print('>>>setButtons - init')
         self.buttonList.setButtonEnabled('Delete', False)
         self.buttonList.setButtonEnabled('Deassign', False)
         self.buttonList.setButtonEnabled('Assign', False)
@@ -761,15 +767,20 @@ class AxisAssignmentObject(Frame):
                         newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
                         axisCode = peak.peakList.spectrum.axisCodes[dim]
                         peak.assignDimension(axisCode, newAssignments)
-                self._parent._updateInterface()
+
+                self._parent._updateInterface(enableDeleteButton=True,
+                                              enableDeassignButton=True,
+                                              enableAssignButton=False)
 
                 # highlight on the table and populate the pulldowns
                 self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
                 self.tables[1].clearSelection()
                 self._updateAssignmentWidget(0, nmrAtom)
-                self.buttonList.setButtonEnabled('Delete', True)
-                self.buttonList.setButtonEnabled('Deassign', True)
-                self.buttonList.setButtonEnabled('Assign', False)
+
+                print('>>>setButtons - create')
+                # self.buttonList.setButtonEnabled('Delete', True)
+                # self.buttonList.setButtonEnabled('Deassign', True)
+                # self.buttonList.setButtonEnabled('Assign', False)
 
             except Exception as es:
                 showWarning(str(self.windowTitle()), str(es))
@@ -863,6 +874,8 @@ class AxisAssignmentObject(Frame):
                     self._updateAssignmentWidget(0, None)
 
                     self.lastTableSelected = 0
+
+                    print('>>>setButtons - assign')
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
@@ -929,6 +942,8 @@ class AxisAssignmentObject(Frame):
                     self._updateAssignmentWidget(1, None)
 
                     self.lastTableSelected = 1
+
+                    print('>>>setButtons - deassign')
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
@@ -1118,6 +1133,8 @@ class AxisAssignmentObject(Frame):
 
                 # reset buttons
                 if not nextAtoms:
+
+                    print('>>>setButtons - delete')
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
