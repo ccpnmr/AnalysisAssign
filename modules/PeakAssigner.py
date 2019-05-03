@@ -218,7 +218,7 @@ class PeakAssigner(CcpnModule):
                                       targetName=Peak._pluralLinkName,
                                       callback=self._updateInterface)
         self._nmrAtomNotifier = Notifier(self.project,
-                                         [Notifier.CHANGE, Notifier.RENAME],
+                                         [Notifier.CHANGE, Notifier.RENAME, Notifier.CREATE],
                                          targetName=NmrAtom.__name__,
                                          callback=self._updateNmrAtom)
         self._nmrResidueNotifier = Notifier(self.project,
@@ -234,17 +234,18 @@ class PeakAssigner(CcpnModule):
         if self._nmrResidueNotifier:
             self._nmrResidueNotifier.unRegister()
 
-    def _updateNmrAtom(self, *args):
-        self._updateInterface()
+    def _updateNmrAtom(self, data):
+        self._updateInterface(action=data[Notifier.TRIGGER])
 
-    def _updateNmrResidue(self, *args):
-        self._updateInterface()
+    def _updateNmrResidue(self, data):
+        self._updateInterface(action=data[Notifier.TRIGGER])
 
     def __del__(self):
         self._unRegisterNotifiers()
 
     def _updateInterface(self, peaks: typing.List[Peak] = None,
-                         enableDeleteButton=False, enableDeassignButton=False, enableAssignButton=False):
+                         enableDeleteButton=False, enableDeassignButton=False, enableAssignButton=False,
+                         action=None):
         """Updates the whole module, including recalculation
            of which nmrAtoms fit to the peaks.
         """
@@ -292,9 +293,13 @@ class PeakAssigner(CcpnModule):
 
             self._updateNewTable(enableDeleteButton=enableDeleteButton,
                                  enableDeassignButton=enableDeassignButton,
-                                 enableAssignButton=enableAssignButton)
+                                 enableAssignButton=enableAssignButton,
+                                 action=action)
 
-    def _updateNewTable(self, enableDeleteButton=False, enableDeassignButton=False, enableAssignButton=False):
+    def _updateNewTable(self, enableDeleteButton=False,
+                        enableDeassignButton=False,
+                        enableAssignButton=False,
+                        action=None):
         """
         update Assigned and alternatives tables showing which nmrAtoms
         are assigned to which peak dimensions. If multiple
@@ -343,13 +348,6 @@ class PeakAssigner(CcpnModule):
             text = '%s: %.3f' % (axisCode, avgPos)
             self.axisTables[dim].axisLabel.setText(text)
             self.axisDivergeLabels[dim][2].setText(axisCode+': peaks diverge')
-
-            print('>>>setButtons - _update', enableDeleteButton)
-            self.axisTables[dim].buttonList.setButtonEnabled('Delete', enableDeleteButton)
-            self.axisTables[dim].buttonList.setButtonEnabled('Deassign', enableDeassignButton)
-            self.axisTables[dim].buttonList.setButtonEnabled('Assign', enableAssignButton)
-
-            # self.axisTables[dim]._setDefaultPulldowns()
 
     def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> float:
         """
@@ -636,7 +634,6 @@ class AxisAssignmentObject(Frame):
                                      vPolicy='minimum', hPolicy='expanding',
                                      vAlign='b')
 
-        print('>>>setButtons - init')
         self.buttonList.setButtonEnabled('Delete', False)
         self.buttonList.setButtonEnabled('Deassign', False)
         self.buttonList.setButtonEnabled('Assign', False)
@@ -665,7 +662,6 @@ class AxisAssignmentObject(Frame):
 
         # set the fixed height of the frame
         self.setFixedHeight(175)
-        # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Fixed)
 
         self._setDefaultPulldowns()
 
@@ -777,10 +773,10 @@ class AxisAssignmentObject(Frame):
                 self.tables[1].clearSelection()
                 self._updateAssignmentWidget(0, nmrAtom)
 
-                print('>>>setButtons - create')
-                # self.buttonList.setButtonEnabled('Delete', True)
-                # self.buttonList.setButtonEnabled('Deassign', True)
-                # self.buttonList.setButtonEnabled('Assign', False)
+                self.buttonList.setButtonEnabled('Delete', True)
+                self.buttonList.setButtonEnabled('Deassign', True)
+                self.buttonList.setButtonEnabled('Assign', False)
+                self.lastTableSelected = 0
 
             except Exception as es:
                 showWarning(str(self.windowTitle()), str(es))
@@ -874,8 +870,6 @@ class AxisAssignmentObject(Frame):
                     self._updateAssignmentWidget(0, None)
 
                     self.lastTableSelected = 0
-
-                    print('>>>setButtons - assign')
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
@@ -942,8 +936,6 @@ class AxisAssignmentObject(Frame):
                     self._updateAssignmentWidget(1, None)
 
                     self.lastTableSelected = 1
-
-                    print('>>>setButtons - deassign')
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
@@ -999,7 +991,6 @@ class AxisAssignmentObject(Frame):
 
                 self._setSequenceCodes(nmrChain)
                 self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode) if sequenceCode in self.seqCodePulldown.texts else 0)
-                # print('>>>sequenceUpdate', self.seqCodePulldown.currentIndex())
 
                 self._setResidueTypes(nmrChain)
                 self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType) if residueType in self.resTypePulldown.texts else 0)
@@ -1034,7 +1025,6 @@ class AxisAssignmentObject(Frame):
                 self.seqCodePulldown.setIndex(self.seqCodePulldown.texts.index(sequenceCode) if sequenceCode in self.seqCodePulldown.texts else 0)
                 self.resTypePulldown.setIndex(self.resTypePulldown.texts.index(residueType) if residueType in self.resTypePulldown.texts else 0)
                 self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(nmrAtom.name) if nmrAtom.name in self.atomTypePulldown.texts else 0)
-                # print('>>>sequenceSubset', self.seqCodePulldown.currentIndex())
 
             self.lastNmrAtomSelected = (self.chainPulldown.currentText(),
                                         self.seqCodePulldown.currentText(),
@@ -1051,7 +1041,6 @@ class AxisAssignmentObject(Frame):
         self.seqCodePulldown.clear()
         self.resTypePulldown.clear()
         self.atomTypePulldown.clear()
-        # print('>>>sequenceSetdefault', self.seqCodePulldown.currentIndex())
 
         self._setChains()
         self._setResidueTypes()
@@ -1134,7 +1123,6 @@ class AxisAssignmentObject(Frame):
                 # reset buttons
                 if not nextAtoms:
 
-                    print('>>>setButtons - delete')
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
