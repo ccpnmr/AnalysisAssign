@@ -1072,7 +1072,6 @@ class AxisAssignmentObject(Frame):
                 else:
                     self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])
 
-    #TODO:ED add pulldownselections
     def _pulldownEdited(self, pulldown: object):
         """
         Enable the assignment button if the text has changed in the pulldown
