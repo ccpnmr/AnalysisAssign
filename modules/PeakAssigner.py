@@ -62,6 +62,7 @@ from ccpn.ui.gui.widgets.ScrollArea import ScrollArea
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.core.lib.ContextManagers import undoBlock
 
+
 logger = getLogger()
 
 allowedResidueTypes = [('', '', ''),
@@ -161,8 +162,8 @@ class PeakAssigner(CcpnModule):
 
         # Main content widgets, create an expanding scroll area
         self._axisFrameScrollArea = ScrollArea(parent=self.mainWidget,
-                               grid=(1, 0),
-                               hPolicy='expanding', vPolicy='expanding')
+                                               grid=(1, 0),
+                                               hPolicy='expanding', vPolicy='expanding')
         self.axisFrameWidget = Widget(parent=None, acceptDrops=True)
 
         # put a container widget into the scroll area
@@ -172,7 +173,7 @@ class PeakAssigner(CcpnModule):
 
         # put a label and axisFrame into the axisFrameWidget, this will be wrapped in scroll bars
         self.peakLabel = Label(parent=self.axisFrameWidget, setLayout=True, spacing=(0, 0),
-                               text='Current Peak: '+MSG, bold=True,
+                               text='Current Peak: ' + MSG, bold=True,
                                grid=(0, 0), margins=(2, 2, 2, 2), hAlign='left', vAlign='t',
                                hPolicy='fixed', vPolicy='fixed')
         self.peakLabel.setAlignment(QtCore.Qt.AlignVCenter)
@@ -191,28 +192,17 @@ class PeakAssigner(CcpnModule):
                grid=(6, 0), gridSpan=(1, 1))
 
         # respond to peaks
-        # TODO:ED check which of these are still needed
         self._registerNotifiers()
-
-        # self.current.registerNotify(self._updateInterface, 'peaks')
-        # # self.current.registerNotify(self._updateInterface, 'nmrAtoms')
-        # self.project.registerNotifier('NmrAtom', 'change', self._update)   # just refresh the table
-        # # self.project.registerNotifier('NmrResidue', 'change', self._update)   # just refresh the table
 
         self._settingsScrollArea.setMaximumHeight(35)
         self._settingsScrollArea.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
         self.closeModule = self._closeModule
 
-        # self.peakLabel.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
-        # self.axisFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
-
-        # self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-        # self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self._updateInterface()
 
     def _registerNotifiers(self):
         # without a tableSelection specified in the table callback, this nmrAtom callback is needed
-        # tio update the table
+        # to update the table
         self._peakNotifier = Notifier(self.current,
                                       [Notifier.CURRENT],
                                       targetName=Peak._pluralLinkName,
@@ -222,9 +212,9 @@ class PeakAssigner(CcpnModule):
                                          targetName=NmrAtom.__name__,
                                          callback=self._updateNmrAtom)
         self._nmrResidueNotifier = Notifier(self.project,
-                                         [Notifier.CHANGE],
-                                         targetName=Peak.__name__,
-                                         callback=self._updateNmrResidue)
+                                            [Notifier.CHANGE],
+                                            targetName=Peak.__name__,
+                                            callback=self._updateNmrResidue)
 
     def _unRegisterNotifiers(self):
         if self._peakNotifier:
@@ -252,7 +242,7 @@ class PeakAssigner(CcpnModule):
         # self._emptyAllTablesAndLists()
         if not self.current.peaks or not self._peaksAreCompatible():
             self.axisFrame.hide()
-            self.peakLabel.setText('Current Peak: '+MSG)
+            self.peakLabel.setText('Current Peak: ' + MSG)
         else:
 
             Ndimensions = len(self.current.peak.position)
@@ -268,7 +258,7 @@ class PeakAssigner(CcpnModule):
                     # make a small label that appears when there is nothing to display
                     self.tempFrame = Frame(self.axisFrame, setLayout=True, grid=(addNew, 0))
                     self.tempDivider = HLine(self.tempFrame, grid=(0, 0), gridSpan=(1, 3), colour=getColours()[DIVIDER], height=15)
-                    self.tempLabel = Label(self.tempFrame, text='', grid=(1,0))
+                    self.tempLabel = Label(self.tempFrame, text='', grid=(1, 0))
                     self.axisDivergeLabels.append([self.tempFrame, self.tempDivider, self.tempLabel])
 
                 for showNew in range(self.NDims, Ndimensions):
@@ -284,6 +274,7 @@ class PeakAssigner(CcpnModule):
             # and enable the frame
             self.axisFrame.show()
             from ccpn.util.Common import makeIterableList, _truncateText
+
             peaksIds = ' , '.join([str(pp.id) for pp in self.current.peaks])
             if len(self.current.peaks) < 2:
                 self.peakLabel.setText('Current Peak: %s' % self.current.peak.id)
@@ -347,9 +338,9 @@ class PeakAssigner(CcpnModule):
             axisCode = self.current.peak.peakList.spectrum.axisCodes[dim]
             text = '%s: %.3f' % (axisCode, avgPos)
             self.axisTables[dim].axisLabel.setText(text)
-            self.axisDivergeLabels[dim][2].setText(axisCode+': peaks diverge')
+            self.axisDivergeLabels[dim][2].setText(axisCode + ': peaks diverge')
 
-    def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> float:
+    def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> str:
         """
         Calculation of delta shift to add to the table.
         """
@@ -374,7 +365,7 @@ class PeakAssigner(CcpnModule):
         else:
             return ''
 
-    def _getShift(self, nmrAtom: NmrAtom) -> float:
+    def _getShift(self, nmrAtom: NmrAtom) -> str:
         """
         Calculation of chemical shift value to add to the table.
         """
@@ -416,34 +407,13 @@ class PeakAssigner(CcpnModule):
         """
         Quick erase of all present information in ListWidgets and ObjectTables.
         """
-        self.peakLabel.setText('Current Peak: '+MSG)
+        self.peakLabel.setText('Current Peak: ' + MSG)
         for label in self.labels:
             label.setText('')
         for objectTable in self.objectTables:
             objectTable.setObjects([])
         for listWidget in self.listWidgets:
             listWidget.clear()
-
-    # def _createNewNmrAtom(self, dim):
-    #     isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
-    #     nmrAtom = self.project.fetchNmrChain(shortName=defaultNmrChainCode
-    #                                          ).newNmrResidue().newNmrAtom(isotopeCode=isotopeCode)
-    #
-    #     with undoBlock():
-    #         try:
-    #             for peak in self.current.peaks:
-    #                 if nmrAtom not in peak.dimensionNmrAtoms[dim]:
-    #                     # newAssignments = peak.dimensionNmrAtoms[dim] + [nmrAtom]
-    #
-    #                     newAssignments = list(peak.dimensionNmrAtoms[dim]) + [nmrAtom]  # ejb - changed to list
-    #                     axisCode = peak.peakList.spectrum.axisCodes[dim]
-    #                     peak.assignDimension(axisCode, newAssignments)
-    #             # self.listWidgets[dim].addItem(nmrAtom.pid)
-    #             # self._updateTables()
-    #             self._updateNewTable(enableDeleteButton=True, enableDeassignButton=True)
-    #
-    #         except Exception as es:
-    #             showWarning(str(self.windowTitle()), str(es))
 
     def _updatePulldownLists(self, dim: int, row: int = None, col: int = None, obj: object = None):
         objectTable = self.objectTables[dim]
@@ -563,7 +533,7 @@ class AxisAssignmentObject(Frame):
                                          tableSelection=None,
                                          pullDownWidget=None,
                                          callBackClass=NmrAtom,
-                                         moduleParent=self.tables)      # just to give a unique id
+                                         moduleParent=self.tables)  # just to give a unique id
 
         # add a spacer to pad out the middle
         Spacer(self, 5, 5, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Expanding,
@@ -576,12 +546,8 @@ class AxisAssignmentObject(Frame):
                                    vAlign='top',
                                    grid=(row, 0), gridSpan=(1, 1))
 
-        # chainLabel = Label(self.pulldownFrame, 'Chain', hAlign='c', grid=(0,0))
-        # seqCodeLabel = Label(self.pulldownFrame, 'Sequence', hAlign='c', grid=(0,2))
-        # resCodeLabel = Label(self.pulldownFrame, 'Residue', hAlign='c', grid=(0,4))
-        # atomTypeLabel = Label(self.pulldownFrame, 'Atom', hAlign='c', grid=(0,6))
         Spacer(self.pulldownFrame, 10, 10, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed,
-                grid=(0, 0), gridSpan=(1, 1))
+               grid=(0, 0), gridSpan=(1, 1))
         self.chainPulldown = self._createChainPulldown(parent=self.pulldownFrame,
                                                        grid=(1, 0), gridSpan=(1, 1),
                                                        tipText='Chain code')
@@ -608,8 +574,6 @@ class AxisAssignmentObject(Frame):
 
         # set minimum width to accommodate the pulldowns
         self.layout().setColumnMinimumWidth(0, 280)
-
-        # self.pulldownFrame.hide()
 
         self.pulldownFrame.setStyleSheet("""QComboBox {
                                     padding: px;
@@ -732,21 +696,9 @@ class AxisAssignmentObject(Frame):
                                     tipText=tipText)
         pulldownList.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         # pulldownList.setEditable(True)
-        pulldownList.lineEdit().editingFinished.connect(partial(self._addItemToPulldown, pulldownList))
         pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
         pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
         return pulldownList
-
-    def _addItemToPulldown(self, pulldown: object):
-        """
-        Add items to pulldown list if changed
-        """
-        if pulldown.lineEdit().isModified():
-            text = pulldown.currentText()
-            if text and text not in pulldown.texts:
-                # TODO:ED this is old, should be able to delete
-                # pulldown.addItem(text)
-                pass
 
     def _createNewNmrAtom(self, dim):
         isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[dim]
@@ -773,10 +725,10 @@ class AxisAssignmentObject(Frame):
                 self.tables[1].clearSelection()
                 self._updateAssignmentWidget(0, nmrAtom)
 
+                self.lastTableSelected = 0
                 self.buttonList.setButtonEnabled('Delete', True)
                 self.buttonList.setButtonEnabled('Deassign', True)
                 self.buttonList.setButtonEnabled('Assign', False)
-                self.lastTableSelected = 0
 
             except Exception as es:
                 showWarning(str(self.windowTitle()), str(es))
@@ -848,17 +800,9 @@ class AxisAssignmentObject(Frame):
                     # notifier to update other tables
                     # nmrResidue._finaliseAction('change')
 
-                # self._updateInterface()
                 self._parent._updateInterface()
                 self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-                # self._updateAssignmentWidget(0, nmrAtom)
 
-                # self.lastTableSelected = 0
-                # self.buttonList.setButtonEnabled('Delete', True)
-                # self.buttonList.setButtonEnabled('Deassign', True)
-                # self.buttonList.setButtonEnabled('Assign', False)
-
-                # nextAtom = self.tables[1].getSelectedObjects()
                 if nmrAtom:
                     self._updateAssignmentWidget(0, nmrAtom)
 
@@ -894,10 +838,9 @@ class AxisAssignmentObject(Frame):
             currentObject = self.tables[0].getSelectedObjects()
 
             if currentObject:
-                with undoBlock():
-                    try:
+                try:
+                    with undoBlock():
                         for peak in self.current.peaks:
-
                             # newList = []
                             # for atomList in peak.assignedNmrAtoms:
                             #     atoms = [atom for atom in list(atomList) if atom != currentObject[0]]
@@ -915,13 +858,12 @@ class AxisAssignmentObject(Frame):
                             allAtoms[dim] = dimNmrAtoms
                             peak.dimensionNmrAtoms = allAtoms
 
-                    except Exception as es:
-                        showWarning(str(self.windowTitle()), str(es))
+                except Exception as es:
+                    showWarning(str(self.windowTitle()), str(es))
 
                     # notifier to update other tables
                     # nmrResidue._finaliseAction('change')
 
-                # self._updateInterface()
                 self._parent._updateInterface()
                 self.tables[1].selectObjects([currentObject[0]], setUpdatesEnabled=False)
                 nextAtom = self.tables[1].getSelectedObjects()
@@ -1099,7 +1041,7 @@ class AxisAssignmentObject(Frame):
                 atomNames.extend([atomName for atomName in ATOM_NAMES[isotopeCode]])
         if nmrAtom:
             atomNames.extend([nmrAtom.name])
-            thisAtom = nmrAtom.name                                 # set only if nmrAtom defined
+            thisAtom = nmrAtom.name  # set only if nmrAtom defined
         if self.lastNmrAtomSelected:
             atomNames.extend([self.lastNmrAtomSelected[3]])
 
