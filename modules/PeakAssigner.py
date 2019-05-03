@@ -673,9 +673,7 @@ class AxisAssignmentObject(Frame):
                                     tipText=tipText)
         pulldownList.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         # pulldownList.setEditable(True)
-        pulldownList.lineEdit().editingFinished.connect(partial(self._chainEdited, pulldownList))
-        pulldownList.lineEdit().textEdited.connect(partial(self._chainEdited, pulldownList))
-        pulldownList.lineEdit().selectionChanged.connect(partial(self._chainEdited, pulldownList))
+        pulldownList.lineEdit().textChanged.connect(partial(self._chainEdited, pulldownList))
         return pulldownList
 
     def _chainEdited(self, pulldownList):
@@ -689,6 +687,8 @@ class AxisAssignmentObject(Frame):
             self._setResidueTypes(thisChain)
             self._setAtomNames()
 
+        self._pulldownEdited(None)
+
     def _createPulldown(self, parent=None, grid=(0, 0), gridSpan=(1, 1), tipText='') -> PulldownList:
         """Creates a PulldownList with callback, editable.
         """
@@ -697,7 +697,6 @@ class AxisAssignmentObject(Frame):
         pulldownList.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         # pulldownList.setEditable(True)
         pulldownList.lineEdit().textChanged.connect(partial(self._pulldownEdited, pulldownList))
-        pulldownList.lineEdit().selectionChanged.connect(partial(self._pulldownEdited, pulldownList))
         return pulldownList
 
     def _createNewNmrAtom(self, dim):
@@ -1080,8 +1079,10 @@ class AxisAssignmentObject(Frame):
                                   self.seqCodePulldown.currentText(),
                                   self.resTypePulldown.currentText(),
                                   self.atomTypePulldown.currentText())
-        self.buttonList.setButtonEnabled('Assign', False in self._atomCompare(self.lastNmrAtomSelected,
-                                                                              currentNmrAtomSelected))
+        enable = False in self._atomCompare(self.lastNmrAtomSelected, currentNmrAtomSelected)
+        self.buttonList.setButtonEnabled('Assign', enable)
+
+        print('>>>', pulldown, enable, self.lastNmrAtomSelected, currentNmrAtomSelected)
 
     def _atomCompare(self, atom1: tuple, atom2: tuple):
         """
@@ -1090,4 +1091,4 @@ class AxisAssignmentObject(Frame):
         if atom1 and atom2:
             return [True if a == b else False for a, b in zip(atom1, atom2)]
         else:
-            return []
+            return [False]
