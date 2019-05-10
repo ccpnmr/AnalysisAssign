@@ -114,11 +114,10 @@ class PickAndAssignModule(NmrResidueTableModule):
         # self._setAxisCodes()
         self.nmrResidueTableSettings.axisCodeOptions.selectAll()
 
-        # just clear the first 'C' - assume that this is generally the second checkBox
+        # just clear the 'C' axes - this is the usual configuration
         for ii, box in enumerate(self.nmrResidueTableSettings.axisCodeOptions.checkBoxes):
             if box.text().upper().startswith('C'):
                 self.nmrResidueTableSettings.axisCodeOptions.clearIndex(ii)
-                break
 
     def _registerNotifiers(self):
         """
@@ -338,107 +337,3 @@ class PickAndAssignModule(NmrResidueTableModule):
                                                     markPositions=(n == 2))
                 self.application.current.nmrResidue = nmrResidue
 
-    # def _changeAxisCode(self):
-    #     pass
-
-    # def _setAxisCodes(self):
-    #
-    #     from ccpn.util.Common import _axisCodeMapIndices, axisCodeMapping
-    #
-    #     spectra = self.application.project.spectra
-    #
-    #     if spectra:
-    #
-    #         maxLen = 0
-    #         refAxisCodes = None
-    #         for spectrum in spectra:
-    #             if len(spectrum.axisCodes) > maxLen:
-    #                 maxLen = len(spectrum.axisCodes)
-    #                 refAxisCodes = list(spectrum.axisCodes)
-    #
-    #         if not maxLen:
-    #             return
-    #
-    #         axisCodes = [[] for ii in range(maxLen)]
-    #         axisLabels = [set() for ii in range(maxLen)]
-    #
-    #         mappings = {}
-    #         for spectrum in spectra:
-    #             matchAxisCodes = spectrum.axisCodes
-    #
-    #             mapping = axisCodeMapping(refAxisCodes, matchAxisCodes)
-    #             for k, v in mapping.items():
-    #                 if v not in mappings:
-    #                     mappings[v] = set([k])
-    #                 else:
-    #                     mappings[v].add(k)
-    #
-    #             mapping = axisCodeMapping(matchAxisCodes, refAxisCodes)
-    #             for k, v in mapping.items():
-    #                 if v not in mappings:
-    #                     mappings[v] = set([k])
-    #                 else:
-    #                     mappings[v].add(k)
-    #
-    #         # example of mappings dict
-    #         # ('Hn', 'C', 'Nh')
-    #         # {'Hn': {'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
-    #         # {'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'C'}}
-    #         # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
-    #         # {'CA': {'C'}, 'Hn': {'H', 'Hn'}, 'Nh': {'Nh'}, 'C': {'CA', 'C'}}
-    #
-    #         self.spectrumIndex = {}
-    #         # go through the spectra again
-    #         for spectrum in spectra:
-    #             self.spectrumIndex[spectrum] = [0 for ii in range(len(spectrum.axisCodes))]
-    #
-    #             # get the spectrum dimension axisCode, nd see if is already there
-    #             for spectrumDim, spectrumAxis in enumerate(spectrum.axisCodes):
-    #
-    #                 if spectrumAxis in refAxisCodes:
-    #                     self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(spectrumAxis)
-    #                     axisLabels[self.spectrumIndex[spectrum][spectrumDim]].add(spectrumAxis)
-    #
-    #                 else:
-    #                     # if the axisCode is not in the reference list then find the mapping from the dict
-    #                     for k, v in mappings.items():
-    #                         if spectrumAxis in v:
-    #                             # refAxisCodes[dim] = k
-    #                             self.spectrumIndex[spectrum][spectrumDim] = refAxisCodes.index(k)
-    #                             axisLabels[refAxisCodes.index(k)].add(spectrumAxis)
-    #
-    #         axisLabels = [', '.join(ax) for ax in axisLabels]
-    #         self.axisCodeOptions.setCheckBoxes(texts=axisLabels, tipTexts=axisLabels)
-
-    # def _getValidAxisCode(self, numChars=1):
-    #     """Get the valid axis code from the buttons, numChars is included as this may be needed for DNA/RNA
-    #     """
-    #     code = self.axisCodeOptions.getSelectedText()
-    #     return code[0:numChars]
-
-
-# class _SpectrumRow(Frame):
-#     "Class to make a spectrum row"
-#
-#     def __init__(self, parent, spectrum, row=0, col=0, **kwds):
-#         super().__init__(parent, **kwds)
-#
-#         # col = 0
-#         # self.checkbox = CheckBoxCompoundWidget(self, grid=(0, col), gridSpan=(1, 1), hAlign='left',
-#         #                                        checked=True, labelText=spectrum.pid,
-#         #                                        fixedWidths=[100, 50])
-#
-#         self.checkbox = Label(parent, spectrum.pid, grid=(row, col), gridSpan=(1, 1), hAlign='left')
-#
-#         self.spinBoxes = []
-#         for ii, axisCode in enumerate(spectrum.axisCodes):
-#             decimals, step = (2, 0.01) if axisCode[0:1] == 'H' else (1, 0.1)
-#             col += 1
-#             ds = DoubleSpinBoxCompoundWidget(
-#                     parent, grid=(row, col), gridSpan=(1, 1), hAlign='left',
-#                     fixedWidths=(30, 50),
-#                     labelText=axisCode,
-#                     value=spectrum.assignmentTolerances[ii],
-#                     decimals=decimals, step=step, range=(0, None))
-#             ds.setObjectName(str(spectrum.pid + axisCode))
-#             self.spinBoxes.append(ds)
