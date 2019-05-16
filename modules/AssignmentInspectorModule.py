@@ -167,9 +167,6 @@ class AssignmentInspectorModule(CcpnModule):
                                                      grid=(0, 0),
                                                      hiddenColumns=['Pid', 'Shift list peaks', 'All peaks'])
 
-        self._selectCurrentNmrAtomsNotifier = Notifier(self.current, [Notifier.CURRENT], targetName=NmrAtom._pluralLinkName,
-                                                       callback=self._highlightNmrAtoms)
-
         # settingsWidget
         if chemicalShiftList is not None:
             self.chemicalShiftTable.selectChemicalShiftList(chemicalShiftList)
@@ -208,13 +205,13 @@ class AssignmentInspectorModule(CcpnModule):
         """
         self.setNotifier(self.current, [Notifier.CURRENT], targetName=NmrResidue._pluralLinkName,
                          callback=self._highlightNmrResidues)
+        self.setNotifier(self.current, [Notifier.CURRENT], targetName=NmrAtom._pluralLinkName,
+                         callback=self._highlightNmrAtoms)
 
     def _closeModule(self):
         """
         CCPN-INTERNAL: used to close the module
         """
-        if self._selectCurrentNmrAtomsNotifier:
-            self._selectCurrentNmrAtomsNotifier.unRegister()
         self.assignedPeaksTable._close()
         self.chemicalShiftTable._close()
         super()._closeModule()
@@ -248,18 +245,50 @@ class AssignmentInspectorModule(CcpnModule):
         """
         Notifier Callback for selecting a row in the table
         """
+        class _nmrData():
+            def __init__(self):
+                self.nmrResidues = None
+
+            def __getitem__(self, item):
+                return self
+
         objList = data[CallBack.OBJECT]
 
         if objList:
+            getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
+
+
             residues = [cs.nmrAtom.nmrResidue for cs in objList]
 
             if residues:
+                # call highlightNmrResidues
+
+                self.setBlankingAllNotifiers(True)
+
                 self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
                 self.current.nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
+                self._highlightChemicalShifts(self.current.nmrResidues)
 
                 self.assignedPeaksTable._updateModuleCallback({'value': residues})
 
-        getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
+                self.setBlankingAllNotifiers(False)
+
+                # self.assignedPeaksTable._updateModuleCallback({'value': residues})
+
+        # getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
+
+    def _highlightChemicalShifts(self, nmrResidues):
+        """
+        Highlight chemical shifts in the table
+        """
+        if self.chemicalShiftTable._dataFrameObject:
+            getLogger().debug('_highlightChemicalShifts ', nmrResidues)
+
+            chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
+
+            residues = set(nmrResidues)
+            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+            self.chemicalShiftTable._highLightObjs(highlightList)
 
     def _navigateToPeak(self, data):
         """
@@ -307,12 +336,14 @@ class AssignmentInspectorModule(CcpnModule):
         objList = data[CallBack.OBJECT]
 
         if self.chemicalShiftTable._dataFrameObject:
+            getLogger().debug('_highlightNmrResidues ', objList)
+
             chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
             # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
             residues = set(objList.nmrResidues)  #        set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
             highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
-            # print ('>>>', highlightList)
+            # print('>>>', residues, highlightList)
 
             self.chemicalShiftTable._highLightObjs(highlightList)
 
@@ -326,6 +357,8 @@ class AssignmentInspectorModule(CcpnModule):
         objList = data[CallBack.OBJECT]
 
         if self.chemicalShiftTable._dataFrameObject:
+            getLogger().debug('_highlightNmrAtoms ', objList)
+
             chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
             # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
@@ -473,8 +506,12 @@ class AssignmentInspectorTable(GuiTable):
                 # # clear and fill the peak table
                 # self.assignedPeaksTable.setObjects([])
                 if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
+                    logger.debug('UPDATING selection')
+
                     self._updatePeakTable(self.application.current.nmrAtom.id)
                 else:
+                    logger.debug('UPDATING All')
+
                     self._updatePeakTable(ALL)
 
                 # new to populate table
@@ -511,6 +548,8 @@ class AssignmentInspectorTable(GuiTable):
             self._peakList = self.emptyObject()
 
             self._peakList.peaks = list(set([pk for nmrAtom in self.application.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
+
+            print('>>>', self._peakList.peaks)
 
             self.project.blankNotification()
             objs = self.getSelectedObjects()
