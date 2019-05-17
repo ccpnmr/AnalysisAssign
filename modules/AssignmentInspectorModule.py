@@ -29,6 +29,8 @@ __date__ = "$Date: 2016-07-09 14:17:30 +0100 (Sat, 09 Jul 2016) $"
 #=========================================================================================
 
 from PyQt5 import QtCore, QtWidgets
+from contextlib import contextmanager
+from ccpn.util.OrderedSet import OrderedSet
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Frame import Frame
 from ccpn.ui.gui.widgets.Label import Label
@@ -55,6 +57,8 @@ from ccpn.util.Common import makeIterableList
 
 logger = getLogger()
 ALL = '<all>'
+NMRRESIDUES = 'nmrResidues'
+NMRATOMS = 'nmrAtoms'
 
 
 class AssignmentInspectorModule(CcpnModule):
@@ -71,7 +75,7 @@ class AssignmentInspectorModule(CcpnModule):
 
     includeSettingsWidget = True
     maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
-    settingsPosition = 'left'
+    settingsPosition = 'top'
 
     def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
         super().__init__(mainWindow=mainWindow, name=name)  # gwv
@@ -145,6 +149,16 @@ class AssignmentInspectorModule(CcpnModule):
                 labelText='Auto clear marks:',
                 checked=True
                 )
+        self.showNmrAtomListWidget = CheckBoxCompoundWidget(
+                self._AIwidget,
+                grid=(4, 0), vAlign='top', stretch=(0, 0), hAlign='left',
+                #minimumWidths=(colwidth, 0),
+                fixedWidths=(colwidth, 30),
+                orientation='left',
+                labelText='Show nmrAtom list:',
+                checked=False,
+                callback=self._setNmrAtomListVisible,
+                )
 
         # main window
 
@@ -173,6 +187,7 @@ class AssignmentInspectorModule(CcpnModule):
 
         # install the event filter to handle maximising from floated dock
         self.installMaximiseEventHandler(self._maximise, self._closeModule)
+        self._setNmrAtomListVisible(False)
 
         self._registerNotifiers()
 
@@ -222,6 +237,19 @@ class AssignmentInspectorModule(CcpnModule):
         """
         self._closeModule()
 
+    def _setNmrAtomListVisible(self, visible=None):
+        """change the visibility of the nmrAtom list in the peak tables widget
+        """
+        if visible is None:
+            visible = self.showNmrAtomListWidget.get()
+        else:
+            if not isinstance(visible, bool):
+                raise TypeError('nmrList visibility must be True/False')
+
+            self.showNmrAtomListWidget.set(visible)
+
+        self.assignedPeaksTable.nmrAtomListFrame.setVisible(visible)
+
     def _setCurrentPeak(self, data):
         """
         PeakTable select callback
@@ -233,18 +261,40 @@ class AssignmentInspectorModule(CcpnModule):
         if peak:
             self.application.current.peaks = peak
 
-    def _actionCallback(self, data):
+    def _selectionCallback(self, data):
         """
         Notifier DoubleClick action on item in table
         """
-        obj = data[CallBack.OBJECT]
+        objList = data[CallBack.OBJECT]
 
-        getLogger().debug('AssignmentInspector_ChemicalShift>>> action', obj)
+        # double click action to select all on the table
 
-    def _selectionCallback(self, data):
+        if objList:
+            getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
+
+            nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
+
+            if nmrResidues:
+                # call highlightNmrResidues
+
+                self.setBlankingAllNotifiers(True)
+
+                # SHOULD be only 1, but multi-selection may give more
+                self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
+                self.current.nmrResidues = nmrResidues
+
+                self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                                                               NMRATOMS   : self.current.nmrAtoms},
+                                                              updateFromNmrResidues=False)
+
+                self.setBlankingAllNotifiers(False)
+
+    def _actionCallback(self, data):
         """
         Notifier Callback for selecting a row in the table
         """
+
+
         class _nmrData():
             def __init__(self):
                 self.nmrResidues = None
@@ -252,24 +302,34 @@ class AssignmentInspectorModule(CcpnModule):
             def __getitem__(self, item):
                 return self
 
-        objList = data[CallBack.OBJECT]
+
+        objList = (data[CallBack.OBJECT],)
 
         if objList:
-            getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
+            getLogger().debug('AssignmentInspector_ChemicalShift>>> action', objList)
 
+            nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
 
-            residues = [cs.nmrAtom.nmrResidue for cs in objList]
-
-            if residues:
+            if nmrResidues:
                 # call highlightNmrResidues
 
                 self.setBlankingAllNotifiers(True)
 
-                self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
-                self.current.nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
-                self._highlightChemicalShifts(self.current.nmrResidues)
+                nmrAtoms = OrderedSet()
+                for nmrRes in nmrResidues:
+                    for nmrAtom in nmrRes.nmrAtoms:
+                        nmrAtoms.add(nmrAtom)
 
-                self.assignedPeaksTable._updateModuleCallback({'value': residues})
+                self.setBlankingAllNotifiers(True)
+                self.current.nmrAtoms = tuple(nmrAtoms)
+                self.current.nmrResidues = nmrResidues
+                self.setBlankingAllNotifiers(False)
+
+                self._highlightChemicalShifts(nmrResidues)
+
+                self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                                                               NMRATOMS   : tuple(nmrAtoms)},
+                                                              updateFromNmrResidues=True)
 
                 self.setBlankingAllNotifiers(False)
 
@@ -341,14 +401,15 @@ class AssignmentInspectorModule(CcpnModule):
             chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
             # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
-            residues = set(objList.nmrResidues)  #        set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
-            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+            nmrResidues = set(objList.nmrResidues)  #        set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
+            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in nmrResidues]
             # print('>>>', residues, highlightList)
 
             self.chemicalShiftTable._highLightObjs(highlightList)
 
             # will respond to selection of nmrAtom in sequenceGraph
-            self.assignedPeaksTable._updateModuleCallback({'value': list(residues)})
+            self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues},
+                                                          updateFromNmrResidues=True)
 
     def _highlightNmrAtoms(self, data):
         """
@@ -362,14 +423,16 @@ class AssignmentInspectorModule(CcpnModule):
             chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
             # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
-            residues = set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
-            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+            nmrResidues = set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
+            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in nmrResidues]
             # print ('>>>', highlightList)
 
             self.chemicalShiftTable._highLightObjs(highlightList)
 
             # will respond to selection of nmrAtom in sequenceGraph
-            self.assignedPeaksTable._updateModuleCallback({'value': list(residues)})
+            self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                                                           NMRATOMS   : self.current.nmrAtoms},
+                                                          updateFromNmrResidues=False)
 
         return
 
@@ -416,62 +479,59 @@ class AssignmentInspectorTable(GuiTable):
         self.ids = []  # list of currently displayed NmrAtom ids + <all>
 
         # main window
-        # Frame-1: NmrAtoms
-        width = 130
-        self.frame1 = Frame(None, setLayout=True)  # ejb
-        self.frame1.setFixedWidth(width)
-        self.nmrAtomLabel = Label(self.frame1, 'NmrAtom(s):', bold=True,
+
+        # Frame-1: NmrAtoms list, hidden when table first opens
+        self._nmrAtomListFrameWidth = 130
+        self.nmrAtomListFrame = Frame(parent, grid=(0, 0), gridSpan=(1, 1), setLayout=True)  # ejb
+
+        self.nmrAtomListFrame.setFixedWidth(self._nmrAtomListFrameWidth)
+        self.nmrAtomLabel = Label(self.nmrAtomListFrame, 'NmrAtom(s):', bold=True,
                                   grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2, 5, 2, 5])
 
-        self.attachedNmrAtomsList = ListWidget(self.frame1,
-                                               callback=self._updatePeakTableCallback, contextMenu=False,
+        self.attachedNmrAtomsList = ListWidget(self.nmrAtomListFrame,
+                                               contextMenu=False,
                                                grid=(1, 0), gridSpan=(1, 1)
                                                )
-        self.attachedNmrAtomsList.setFixedWidth(width - 2)
+        self.attachedNmrAtomsList.itemSelectionChanged.connect(self._updatePeakTableCallback)
+        self.attachedNmrAtomsList.setDragEnabled(False)
 
-        self.frame1.hide()
+        self.attachedNmrAtomsList.setFixedWidth(self._nmrAtomListFrameWidth - 2)
+        self.attachedNmrAtomsList.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.MinimumExpanding)
+        self.nmrAtomListFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
         # Frame-2: peaks
-        self.frame2 = Frame(parent, grid=(0, 0), gridSpan=(1, 1), setLayout=True)  # ejb
+        self.frame2 = Frame(parent, grid=(0, 1), gridSpan=(1, 1), setLayout=True)  # ejb
         self.peaksLabel = Label(self.frame2, 'Peaks assigned to NmrAtom(s):', bold=True,
-                                grid=(0, 0), gridSpan=(1, 1), margins=[2, 5, 2, 5])
+                                grid=(0, 0), gridSpan=(1, 4), margins=[2, 5, 2, 5])
 
-        self.frame2.setFixedHeight(24)
+        self.peaksLabel.setFixedHeight(24)
         self.peaksLabel.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding)
-        self.frame2.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Minimum)
+        self.frame2.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+
         # initialise the currently attached dataFrame
         self._hiddenColumns = ['Pid']
         self.dataFrameObject = None
 
-        # self.assignedPeaksTable = ObjectTable(self.frame2, self.getColumns(),
-        #                                       selectionCallback=self._setCurrentPeak,
-        #                                       actionCallback=self._navigateToPeak,
-        #                                       objects=[], autoResize=True,
-        #                                       grid=(1, 0), gridSpan=(1, 5), **policies
-        #                                       )
-
-        super().__init__(parent=parent,
+        # initialise the table and put in the second column (first hidden at start)
+        super().__init__(parent=self.frame2,
                          mainWindow=self.mainWindow,
                          dataFrameObject=None,
                          setLayout=True,
                          autoResize=True, multiSelect=True,
                          selectionCallback=selectionCallback,
                          actionCallback=actionCallback,
-                         grid=(3, 0), gridSpan=(1, 6),
+                         grid=(1, 0), gridSpan=(1, 4),
                          enableDelete=False, enableSearch=False
                          )
         self.moduleParent = moduleParent
 
-        # self._assignmentFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
-        #self.attachedNmrAtomsList.setFixedHeight(200)
-        #self.assignedPeaksTable.setFixedHeight(200)
-
-        # self._registerNotifiers()
+        # self._registerNotifiers() - removed for testing
 
         self._peakList = None
         # update if current.nmrResidue is defined
         if self.application.current.nmrResidue is not None and self.application.current.chemicalShiftList is not None:
-            self._updateModuleCallback({'value': [self.application.current.nmrResidue]})
+            self._updateModuleCallback({NMRRESIDUES: [self.application.current.nmrResidue]},
+                                       updateFromNmrResidues=True)
 
         # set the required table notifiers
         self.setTableNotifiers(tableClass=None,
@@ -485,111 +545,161 @@ class AssignmentInspectorTable(GuiTable):
                                pullDownWidget=None,  #self.ncWidget
                                callBackClass=NmrResidue,
                                selectCurrentCallBack=None,
-                               moduleParent=moduleParent)  #self._updateModuleCallback)   #self._selectOnTableCurrentNmrResiduesNotifierCallback)
+                               moduleParent=moduleParent)
 
-    def _updateModuleCallback(self, data: dict):
+    def _updateModuleCallback(self, data: dict, updateFromNmrResidues=True):
         """
         Callback function: Module responsive to nmrResidues; updates the list widget with nmrAtoms and updates peakTable if
         current.nmrAtom belongs to nmrResidue
         """
-        if data and 'value' in data:
-            nmrResidues = data['value']
-            self.attachedNmrAtomsList.clear()
+        if data:
 
-            if nmrResidues is not None and len(nmrResidues) > 0 \
-                    and nmrResidues[-1] and len(nmrResidues[-1].nmrAtoms) > 0:
+            # update list from nmrResidues, show all nmrAtoms connected
+            nmrResidues = data[NMRRESIDUES] if NMRRESIDUES in data else []
 
-                # get the pids and append <all>
-                self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [ALL]
-                self.attachedNmrAtomsList.addItems(self.ids)
+            if updateFromNmrResidues:
+                # generate nmrAtom list from nmrResidues
+                nmrAtoms = OrderedSet()
+                for nmrRes in nmrResidues:
+                    for nmrAtom in nmrRes.nmrAtoms:
+                        nmrAtoms.add(nmrAtom)
 
-                # # clear and fill the peak table
-                # self.assignedPeaksTable.setObjects([])
-                if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
-                    logger.debug('UPDATING selection')
-
-                    self._updatePeakTable(self.application.current.nmrAtom.id)
-                else:
-                    logger.debug('UPDATING All')
-
-                    self._updatePeakTable(ALL)
-
-                # new to populate table
             else:
-                logger.debug('No valid nmrAtom/nmrResidue defined')
+                # get from the data dict
+                nmrAtoms = data[NMRATOMS] if NMRATOMS in data else []
 
-    def _updatePeakTableCallback(self, item):
+            # there is currently a hidden list widget containing the nmrAtom ids
+            self.attachedNmrAtomsList.clear()
+            self.ids = [atm.id for atm in nmrAtoms]
+            self.attachedNmrAtomsList.addItems(self.ids)
+
+            # populate peak table with the correct peaks
+            self._updatePeakTable(nmrAtoms, messageAll=updateFromNmrResidues)
+
+            # self.attachedNmrAtomsList.clear()
+            #
+            # if nmrResidues is not None and len(nmrResidues) > 0 \
+            #         and nmrResidues[-1] and len(nmrResidues[-1].nmrAtoms) > 0:
+            #
+            #     # get the pids and append <all>
+            #     self.ids = [atm.id for atm in nmrResidues[-1].nmrAtoms] + [ALL]
+            #     self.attachedNmrAtomsList.addItems(self.ids)
+            #
+            #     # # clear and fill the peak table
+            #     # self.assignedPeaksTable.setObjects([])
+            #     if self.application.current.nmrAtom is not None and self.application.current.nmrAtom.id in self.ids:
+            #         logger.debug('UPDATING selection')
+            #
+            #         self._updatePeakTable(self.application.current.nmrAtom.id)
+            #     else:
+            #         logger.debug('UPDATING All')
+            #
+            #         self._updatePeakTable(ALL)
+            #
+            #     # new to populate table
+            # else:
+            #     logger.debug('No valid nmrAtom/nmrResidue defined')
+
+    def _updatePeakTableCallback(self, data=None):
         """
         Update the peakTable using item.text (which contains a NmrAtom pid or <all>)
         """
-        if item is not None:
-            text = item.text()
-            self._updatePeakTable(text)
-        else:
-            logger.error('No valid item selected')
+        # something has been selected, so get all selected items
+        numTexts = self.attachedNmrAtomsList.count()
+        selectedTexts = self.attachedNmrAtomsList.getSelectedTexts()
+        nmrAtoms = [self.project.getByPid('NA:' + id) for id in selectedTexts]
+
+        # populate the table with valid nmrAtoms
+        self._updatePeakTable([atm for atm in nmrAtoms if atm is not None],
+                              messageAll=True if numTexts == len(nmrAtoms) else False)
 
 
     class emptyObject():
+        # small object to facilitate passing data to simulated event
         def __init__(self):
             pass
 
 
-    def _updatePeakTable(self, id):
-        """
-        Update peak table depending on value of id;
-        clears peakTable if pid is None
-        """
-        if id is None:
-            # self.assignedPeaksTable.setObjects([])
-            self.assignedPeaksTable.clearTable()
-            return
+    @contextmanager
+    def _projectBlanking(self):
 
-        if id == ALL:
-            self._peakList = self.emptyObject()
+        self.project.blankNotification()
+        objs = self.getSelectedObjects()
 
-            self._peakList.peaks = list(set([pk for nmrAtom in self.application.current.nmrResidue.nmrAtoms for pk in nmrAtom.assignedPeaks]))
+        try:
+            # transfer control to the calling function
+            yield
 
-            print('>>>', self._peakList.peaks)
+        except Exception as es:
+            getLogger().warning('Error in AssignmentInspectorModule', str(es))
 
-            self.project.blankNotification()
-            objs = self.getSelectedObjects()
-            self._dataFrameObject = self.getDataFrameFromList(table=self,
-                                                              buildList=self._peakList.peaks,
-                                                              colDefs=self.getColumns(),
-                                                              hiddenColumns=self._hiddenColumns)
-
+        finally:
             # populate from the Pandas dataFrame inside the dataFrameObject
             self.setTableFromDataFrameObject(dataFrameObject=self._dataFrameObject)
             self._highLightObjs(objs)
             self.project.unblankNotification()
 
-            # self.assignedPeaksTable.setObjects(peaks)
-            # highlight current.nmrAtom in the list widget
-            self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
+    def _updatePeakTable(self, nmrAtoms, messageAll=True):
+        """
+        Update peak table depending on value of id;
+        clears peakTable if pid is None
+        """
+        if not nmrAtoms:
+            # get all items from the table
+            nmrAtoms = [self.project.getByPid('NA:' + id) for id in self.attachedNmrAtomsList.getTexts()]
+
+            # populate the table with valid nmrAtoms
+            self._updatePeakTable([atm for atm in nmrAtoms if atm is not None], messageAll=True)
+
+        self._peakList = self.emptyObject()
+        self._peakList.peaks = list(set([pk for nmrAtom in nmrAtoms for pk in nmrAtom.assignedPeaks]))
+
+        with self._projectBlanking():
+            self._dataFrameObject = self.getDataFrameFromList(table=self,
+                                                              buildList=self._peakList.peaks,
+                                                              colDefs=self.getColumns(),
+                                                              hiddenColumns=self._hiddenColumns)
+
+        ids = [atm.id for atm in nmrAtoms]
+
+        if messageAll:
             self.peaksLabel.setText('Peaks assigned to NmrAtom(s): %s' % ALL)
         else:
-            pid = 'NA:' + id
-            nmrAtom = self.application.project.getByPid(pid)
-            #print('>>', pid, nmrAtom)
-            if nmrAtom is not None:
-                self.project.blankNotification()
-                objs = self.getSelectedObjects()
-                self._dataFrameObject = self.getDataFrameFromList(table=self,
-                                                                  buildList=nmrAtom.assignedPeaks,
-                                                                  colDefs=self.getColumns(),
-                                                                  hiddenColumns=self._hiddenColumns)
+            atomList = ', '.join([str(id) for id in ids])
+            self.peaksLabel.setText('Peaks assigned to NmrAtom(s): %s' % atomList)  # nmrAtom.id)
 
-                # populate from the Pandas dataFrame inside the dataFrameObject
-                self.setTableFromDataFrameObject(dataFrameObject=self._dataFrameObject)
-                self._highLightObjs(objs)
-                self.project.unblankNotification()
-
-                # self.assignedPeaksTable.setObjects(nmrAtom.assignedPeaks)
-                # highlight current.nmrAtom in the list widget
-
-                self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
-                atomList = ', '.join([str(id) for id in self.ids if id != ALL])
-                self.peaksLabel.setText('Peaks assigned to NmrAtom(s): %s' % atomList)  # nmrAtom.id)
+        # if messageAll:
+        #
+        #     self._peakList = self.emptyObject()
+        #     self._peakList.peaks = list(set([pk for nmrAtom in nmrAtoms for pk in nmrAtom.assignedPeaks]))
+        #
+        #     with self._projectBlanking():
+        #         self._dataFrameObject = self.getDataFrameFromList(table=self,
+        #                                                           buildList=self._peakList.peaks,
+        #                                                           colDefs=self.getColumns(),
+        #                                                           hiddenColumns=self._hiddenColumns)
+        #
+        #     # self.assignedPeaksTable.setObjects(peaks)
+        #     # highlight current.nmrAtom in the list widget
+        #     self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
+        #     self.peaksLabel.setText('Peaks assigned to NmrAtom(s): %s' % ALL)
+        # else:
+        #     pid = 'NA:' + id
+        #     nmrAtom = self.application.project.getByPid(pid)
+        #
+        #     if nmrAtom is not None:
+        #         with self._projectBlanking():
+        #             self._dataFrameObject = self.getDataFrameFromList(table=self,
+        #                                                               buildList=nmrAtom.assignedPeaks,
+        #                                                               colDefs=self.getColumns(),
+        #                                                               hiddenColumns=self._hiddenColumns)
+        #
+        #         # self.assignedPeaksTable.setObjects(nmrAtom.assignedPeaks)
+        #         # highlight current.nmrAtom in the list widget
+        #
+        #         self.attachedNmrAtomsList.setCurrentRow(self.ids.index(id))
+        #         atomList = ', '.join([str(id) for id in self.ids if id != ALL])
+        #         self.peaksLabel.setText('Peaks assigned to NmrAtom: %s' % id)  # nmrAtom.id)
 
     def getColumns(self):
         "get columns for initialisation of table"
