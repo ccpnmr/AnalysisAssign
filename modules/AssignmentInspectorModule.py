@@ -61,6 +61,12 @@ NMRRESIDUES = 'nmrResidues'
 NMRATOMS = 'nmrAtoms'
 
 
+class _emptyObject():
+    # small object to facilitate passing data to simulated event
+    def __init__(self):
+        pass
+
+
 class AssignmentInspectorModule(CcpnModule):
     """
     This Module allows inspection of the NmrAtoms of a selected NmrResidue
@@ -261,13 +267,28 @@ class AssignmentInspectorModule(CcpnModule):
         if peak:
             self.application.current.peaks = peak
 
+    @contextmanager
+    def _notifierBlanking(self):
+        """block nmrAtom and nmrResidue notifiers for this module only
+        """
+        self.setBlankingAllNotifiers(True)
+        try:
+            # transfer control to the calling function
+            yield
+
+        except Exception as es:
+            getLogger().warning('Error in AssignmentInspectorModule', str(es))
+
+        finally:
+            # reset notifiers
+            self.setBlankingAllNotifiers(False)
+
     def _selectionCallback(self, data):
         """
-        Notifier DoubleClick action on item in table
+        Notifier single-click action on item in table
+        Highlight nmrAtoms from chemicalShifts
         """
         objList = data[CallBack.OBJECT]
-
-        # double click action to select all on the table
 
         if objList:
             getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
@@ -275,33 +296,22 @@ class AssignmentInspectorModule(CcpnModule):
             nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
 
             if nmrResidues:
-                # call highlightNmrResidues
+                with self._notifierBlanking():
+                    # SHOULD be only 1, but multi-selection may give more
+                    self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
+                    self.current.nmrResidues = nmrResidues
 
-                self.setBlankingAllNotifiers(True)
+                    # don't need to update the selection on the chemicalShiftTable
 
-                # SHOULD be only 1, but multi-selection may give more
-                self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
-                self.current.nmrResidues = nmrResidues
-
-                self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
-                                                               NMRATOMS   : self.current.nmrAtoms},
-                                                              updateFromNmrResidues=False)
-
-                self.setBlankingAllNotifiers(False)
+                    self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                                                                   NMRATOMS   : self.current.nmrAtoms},
+                                                                  updateFromNmrResidues=False)
 
     def _actionCallback(self, data):
         """
-        Notifier Callback for selecting a row in the table
+        Notifier Callback for double-clicking a row in the table
+        Highlight all nmrAtoms belonging to the same nmrResidue as nmrAtom in checmicalShifts
         """
-
-
-        class _nmrData():
-            def __init__(self):
-                self.nmrResidues = None
-
-            def __getitem__(self, item):
-                return self
-
 
         objList = (data[CallBack.OBJECT],)
 
@@ -311,31 +321,21 @@ class AssignmentInspectorModule(CcpnModule):
             nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
 
             if nmrResidues:
-                # call highlightNmrResidues
+                with self._notifierBlanking():
 
-                self.setBlankingAllNotifiers(True)
+                    nmrAtoms = OrderedSet()
+                    for nmrRes in nmrResidues:
+                        for nmrAtom in nmrRes.nmrAtoms:
+                            nmrAtoms.add(nmrAtom)
 
-                nmrAtoms = OrderedSet()
-                for nmrRes in nmrResidues:
-                    for nmrAtom in nmrRes.nmrAtoms:
-                        nmrAtoms.add(nmrAtom)
+                    self.current.nmrAtoms = tuple(nmrAtoms)
+                    self.current.nmrResidues = nmrResidues
 
-                self.setBlankingAllNotifiers(True)
-                self.current.nmrAtoms = tuple(nmrAtoms)
-                self.current.nmrResidues = nmrResidues
-                self.setBlankingAllNotifiers(False)
+                    self._highlightChemicalShifts(nmrResidues)
 
-                self._highlightChemicalShifts(nmrResidues)
-
-                self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
-                                                               NMRATOMS   : tuple(nmrAtoms)},
-                                                              updateFromNmrResidues=True)
-
-                self.setBlankingAllNotifiers(False)
-
-                # self.assignedPeaksTable._updateModuleCallback({'value': residues})
-
-        # getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
+                    self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                                                                   NMRATOMS   : tuple(nmrAtoms)},
+                                                                  updateFromNmrResidues=True)
 
     def _highlightChemicalShifts(self, nmrResidues):
         """
@@ -403,7 +403,6 @@ class AssignmentInspectorModule(CcpnModule):
 
             nmrResidues = set(objList.nmrResidues)  #        set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
             highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in nmrResidues]
-            # print('>>>', residues, highlightList)
 
             self.chemicalShiftTable._highLightObjs(highlightList)
 
@@ -613,13 +612,6 @@ class AssignmentInspectorTable(GuiTable):
         self._updatePeakTable([atm for atm in nmrAtoms if atm is not None],
                               messageAll=True if numTexts == len(nmrAtoms) else False)
 
-
-    class emptyObject():
-        # small object to facilitate passing data to simulated event
-        def __init__(self):
-            pass
-
-
     @contextmanager
     def _projectBlanking(self):
 
@@ -651,7 +643,7 @@ class AssignmentInspectorTable(GuiTable):
             # populate the table with valid nmrAtoms
             self._updatePeakTable([atm for atm in nmrAtoms if atm is not None], messageAll=True)
 
-        self._peakList = self.emptyObject()
+        self._peakList = _emptyObject()
         self._peakList.peaks = list(set([pk for nmrAtom in nmrAtoms for pk in nmrAtom.assignedPeaks]))
 
         with self._projectBlanking():
@@ -670,7 +662,7 @@ class AssignmentInspectorTable(GuiTable):
 
         # if messageAll:
         #
-        #     self._peakList = self.emptyObject()
+        #     self._peakList = _emptyObject()
         #     self._peakList.peaks = list(set([pk for nmrAtom in nmrAtoms for pk in nmrAtom.assignedPeaks]))
         #
         #     with self._projectBlanking():

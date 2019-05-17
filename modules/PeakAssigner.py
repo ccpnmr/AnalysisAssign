@@ -105,7 +105,7 @@ class PeakAssigner(CcpnModule):
     className = 'PeakAssigner'
 
 
-    class emptyObject():
+    class _emptyObject():
         def __init__(self):
             pass
 
@@ -309,7 +309,7 @@ class PeakAssigner(CcpnModule):
         Ndimensions = len(nmrAtomsForTables)
         self.currentList = []
 
-        self._tables = [self.emptyObject()] * Ndimensions
+        self._tables = [self._emptyObject()] * Ndimensions
 
         for dim, nmrAtoms in zip(range(Ndimensions),
                                  nmrAtomsForTables):
