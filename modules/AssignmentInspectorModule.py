@@ -50,7 +50,8 @@ from ccpn.ui.gui.modules.ChemicalShiftTable import ChemicalShiftTable
 from ccpn.ui.gui.widgets.Splitter import Splitter
 from ccpn.ui.gui.widgets.MessageDialog import showWarning
 from ccpn.core.lib.CallBack import CallBack
-from ccpn.ui.gui.lib.Strip import navigateToPositionInStrip, navigateToNmrAtomsInStrip, _getCurrentZoomRatio
+from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip, \
+    _getCurrentZoomRatio, navigateToNmrResidueInDisplay
 from ccpn.core.PeakList import PeakList
 from ccpn.util.Common import makeIterableList
 
@@ -106,6 +107,11 @@ class AssignmentInspectorModule(CcpnModule):
         # self._chemicalShiftFrame = Frame(self.mainWidget, setLayout=True, grid=(0,0))
         # self._assignmentFrame = Frame(self.mainWidget, setLayout=True, grid=(1,0))
         self.mainWidget.getLayout().addWidget(self.splitter)
+
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setChildrenCollapsible(False)
+        self._assignmentFrame.setMinimumHeight(100)
 
         self._AIwidget = Widget(self.settingsWidget, setLayout=True,
                                 grid=(0, 0), vAlign='top', hAlign='left')
@@ -182,7 +188,7 @@ class AssignmentInspectorModule(CcpnModule):
                                                      mainWindow=self.mainWindow,
                                                      moduleParent=self.assignedPeaksTable,  # just to give a unique id
                                                      setLayout=True,
-                                                     actionCallback=self._actionCallback,
+                                                     actionCallback=self.navigateToNmrResidueCallBack,
                                                      selectionCallback=self._selectionCallback,
                                                      grid=(0, 0),
                                                      hiddenColumns=['Pid', 'Shift list peaks', 'All peaks'])
@@ -260,12 +266,10 @@ class AssignmentInspectorModule(CcpnModule):
         """
         PeakTable select callback
         """
-        from ccpn.core.lib.CallBack import CallBack
-
-        peak = data[CallBack.OBJECT]
-        # multiselection not allowed, sot only return the first object in list
-        if peak:
-            self.application.current.peaks = peak
+        peaks = data[CallBack.OBJECT]
+        # multiselection allowed, set current to all selected peaks
+        if peaks:
+            self.application.current.peaks = peaks
 
     @contextmanager
     def _notifierBlanking(self):
@@ -283,37 +287,80 @@ class AssignmentInspectorModule(CcpnModule):
             # reset notifiers
             self.setBlankingAllNotifiers(False)
 
-    def _selectionCallback(self, data):
+    def navigateToNmrResidueCallBack(self, data):
+        """Navigate in selected displays to nmrResidue; skip if none defined
+        """
+        chemicalShift = data[CallBack.OBJECT]
+        if not chemicalShift:
+            return
+
+        nmrResidue = chemicalShift.nmrAtom.nmrResidue
+
+        getLogger().debug('nmrResidue=%s' % (nmrResidue.id))
+
+        displays = self._getDisplays()
+        if len(displays) == 0:
+            logger.warning('Undefined display module(s); select in settings first')
+            showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
+            return
+
+        from ccpn.core.lib.ContextManagers import undoBlock
+
+        with undoBlock():
+            # optionally clear the marks
+            if self.autoClearMarksWidget.checkBox.isChecked():
+                self.mainWindow.clearMarks()
+
+            # navigate the displays
+            for display in displays:
+                if len(display.strips) > 0:
+                    newWidths = []  #_getCurrentZoomRatio(display.strips[0].viewBox.viewRange())
+                    navigateToNmrResidueInDisplay(nmrResidue, display, stripIndex=0,
+                                                  widths=newWidths,  #['full'] * len(display.strips[0].axisCodes),
+                                                  showSequentialResidues=(len(display.axisCodes) > 2) and
+                                                                         self.sequentialStripsWidget.checkBox.isChecked(),
+                                                  markPositions=self.markPositionsWidget.checkBox.isChecked()
+                                                  )
+
+    def _actionCallback(self, data):
+    # def _selectionCallback(self, data):
         """
         Notifier single-click action on item in table
         Highlight nmrAtoms from chemicalShifts
         """
-        objList = data[CallBack.OBJECT]
+
+        objList = (data[CallBack.OBJECT],)
 
         if objList:
-            getLogger().debug('AssignmentInspector_ChemicalShift>>> selection', objList)
-
+            getLogger().debug('AssignmentInspector_ChemicalShift>>> action', objList)
             nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
 
             if nmrResidues:
-                with self._notifierBlanking():
-                    # SHOULD be only 1, but multi-selection may give more
-                    self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
-                    self.current.nmrResidues = nmrResidues
 
-                    # don't need to update the selection on the chemicalShiftTable
+                # navigate to nmrResidues in displays
 
-                    self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
-                                                                   NMRATOMS   : self.current.nmrAtoms},
-                                                                  updateFromNmrResidues=False)
+                pass
 
-    def _actionCallback(self, data):
+
+                # with self._notifierBlanking():
+                #     # SHOULD be only 1, but multi-selection may give more
+                #     self.current.nmrAtoms = [cs.nmrAtom for cs in objList]
+                #     self.current.nmrResidues = nmrResidues
+                #
+                #     # don't need to update the selection on the chemicalShiftTable
+                #
+                #     self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                #                                                    NMRATOMS   : self.current.nmrAtoms},
+                #                                                   updateFromNmrResidues=False)
+
+    def _selectionCallback(self, data):
+    # def _actionCallback(self, data):
         """
         Notifier Callback for double-clicking a row in the table
         Highlight all nmrAtoms belonging to the same nmrResidue as nmrAtom in checmicalShifts
         """
 
-        objList = (data[CallBack.OBJECT],)
+        objList = data[CallBack.OBJECT]
 
         if objList:
             getLogger().debug('AssignmentInspector_ChemicalShift>>> action', objList)
@@ -384,7 +431,6 @@ class AssignmentInspectorModule(CcpnModule):
                             if peak.peakList.spectrum.dimensionCount <= 2:
                                 widths = _getCurrentZoomRatio(strip.viewRange())
 
-                            # navigateToPositionInStrip(strip=strip, positions=peak.position, widths=widths)
                             navigateToNmrAtomsInStrip(strip, makeIterableList(peak.assignedNmrAtoms),
                                                       widths=widths, markPositions=markPositions,
                                                       setNmrResidueLabel=False)
@@ -640,8 +686,8 @@ class AssignmentInspectorTable(GuiTable):
             # get all items from the table
             nmrAtoms = [self.project.getByPid('NA:' + id) for id in self.attachedNmrAtomsList.getTexts()]
 
-            # populate the table with valid nmrAtoms
-            self._updatePeakTable([atm for atm in nmrAtoms if atm is not None], messageAll=True)
+            # # populate the table with valid nmrAtoms
+            # self._updatePeakTable([atm for atm in nmrAtoms if atm is not None], messageAll=True)
 
         self._peakList = _emptyObject()
         self._peakList.peaks = list(set([pk for nmrAtom in nmrAtoms for pk in nmrAtom.assignedPeaks]))
