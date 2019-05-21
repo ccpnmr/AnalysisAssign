@@ -588,8 +588,8 @@ class AssignmentInspectorTable(GuiTable):
                                updateFunc=self._refreshTable,
                                tableSelection='_peakList',
                                pullDownWidget=None,  #self.ncWidget
-                               callBackClass=NmrResidue,
-                               selectCurrentCallBack=None,
+                               callBackClass=Peak,
+                               selectCurrentCallBack=self._selectOnTableCurrentPeaksNotifierCallback,
                                moduleParent=moduleParent)
 
     def _updateModuleCallback(self, data: dict, updateFromNmrResidues=True):
@@ -644,6 +644,26 @@ class AssignmentInspectorTable(GuiTable):
             #     # new to populate table
             # else:
             #     logger.debug('No valid nmrAtom/nmrResidue defined')
+
+    def _selectOnTableCurrentPeaksNotifierCallback(self, data):
+        """
+        Callback from a notifier to highlight the peaks on the peak table
+        :param data:
+        """
+
+        currentPeaks = data['value']
+        self._selectOnTableCurrentPeaks(currentPeaks)
+
+    def _selectOnTableCurrentPeaks(self, currentPeaks):
+        """
+        Highlight the list of peaks on the table
+        :param currentPeaks:
+        """
+
+        if len(currentPeaks) > 0:
+            self._highLightObjs(currentPeaks)
+        else:
+            self.clearSelection()
 
     def _updatePeakTableCallback(self, data=None):
         """

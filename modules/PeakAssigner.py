@@ -1082,8 +1082,6 @@ class AxisAssignmentObject(Frame):
         enable = False in self._atomCompare(self.lastNmrAtomSelected, currentNmrAtomSelected)
         self.buttonList.setButtonEnabled('Assign', enable)
 
-        print('>>>', pulldown, enable, self.lastNmrAtomSelected, currentNmrAtomSelected)
-
     def _atomCompare(self, atom1: tuple, atom2: tuple):
         """
         check whether the selection has changed from being clicked
