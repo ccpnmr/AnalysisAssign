@@ -394,7 +394,8 @@ class AssignmentInspectorModule(CcpnModule):
             chemicalShifts = self.chemicalShiftTable._dataFrameObject._objects
 
             residues = set(nmrResidues)
-            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+            # highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in residues]
+            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom and not cs.nmrAtom.isDeleted and cs.nmrAtom.nmrResidue in residues]
             self.chemicalShiftTable._highLightObjs(highlightList)
 
     def _navigateToPeak(self, data):
@@ -448,7 +449,7 @@ class AssignmentInspectorModule(CcpnModule):
             # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
             nmrResidues = set(objList.nmrResidues)  #        set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
-            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in nmrResidues]
+            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom and not cs.nmrAtom.isDeleted and cs.nmrAtom.nmrResidue in nmrResidues]
 
             self.chemicalShiftTable._highLightObjs(highlightList)
 
@@ -469,7 +470,7 @@ class AssignmentInspectorModule(CcpnModule):
             # peaks = self.assignedPeaksTable._dataFrameObject._objects
 
             nmrResidues = set([atom.nmrResidue for atom in self.current.nmrAtoms if atom])
-            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom.nmrResidue in nmrResidues]
+            highlightList = [cs for cs in chemicalShifts if cs.nmrAtom and not cs.nmrAtom.isDeleted and cs.nmrAtom.nmrResidue in nmrResidues]
             # print ('>>>', highlightList)
 
             self.chemicalShiftTable._highLightObjs(highlightList)
