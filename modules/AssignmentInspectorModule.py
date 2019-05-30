@@ -323,7 +323,7 @@ class AssignmentInspectorModule(CcpnModule):
                                                   )
 
     def _actionCallback(self, data):
-    # def _selectionCallback(self, data):
+        # def _selectionCallback(self, data):
         """
         Notifier single-click action on item in table
         Highlight nmrAtoms from chemicalShifts
@@ -336,11 +336,9 @@ class AssignmentInspectorModule(CcpnModule):
             nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
 
             if nmrResidues:
-
                 # navigate to nmrResidues in displays
 
                 pass
-
 
                 # with self._notifierBlanking():
                 #     # SHOULD be only 1, but multi-selection may give more
@@ -354,7 +352,7 @@ class AssignmentInspectorModule(CcpnModule):
                 #                                                   updateFromNmrResidues=False)
 
     def _selectionCallback(self, data):
-    # def _actionCallback(self, data):
+        # def _actionCallback(self, data):
         """
         Notifier Callback for double-clicking a row in the table
         Highlight all nmrAtoms belonging to the same nmrResidue as nmrAtom in checmicalShifts
@@ -661,10 +659,11 @@ class AssignmentInspectorTable(GuiTable):
         :param currentPeaks:
         """
 
-        if len(currentPeaks) > 0:
-            self._highLightObjs(currentPeaks)
-        else:
-            self.clearSelection()
+        self.highlightObjects(currentPeaks)
+        # if len(currentPeaks) > 0:
+        #     self._highLightObjs(currentPeaks)
+        # else:
+        #     self.clearSelection()
 
     def _updatePeakTableCallback(self, data=None):
         """
@@ -679,24 +678,24 @@ class AssignmentInspectorTable(GuiTable):
         self._updatePeakTable([atm for atm in nmrAtoms if atm is not None],
                               messageAll=True if numTexts == len(nmrAtoms) else False)
 
-    @contextmanager
-    def _projectBlanking(self):
-
-        self.project.blankNotification()
-        objs = self.getSelectedObjects()
-
-        try:
-            # transfer control to the calling function
-            yield
-
-        except Exception as es:
-            getLogger().warning('Error in AssignmentInspectorModule', str(es))
-
-        finally:
-            # populate from the Pandas dataFrame inside the dataFrameObject
-            self.setTableFromDataFrameObject(dataFrameObject=self._dataFrameObject)
-            self._highLightObjs(objs)
-            self.project.unblankNotification()
+    # @contextmanager
+    # def _projectBlanking(self):
+    #
+    #     self.project.blankNotification()
+    #     objs = self.getSelectedObjects()
+    #
+    #     try:
+    #         # transfer control to the calling function
+    #         yield
+    #
+    #     except Exception as es:
+    #         getLogger().warning('Error in AssignmentInspectorModule', str(es))
+    #
+    #     finally:
+    #         # populate from the Pandas dataFrame inside the dataFrameObject
+    #         self.setTableFromDataFrameObject(dataFrameObject=self._dataFrameObject)
+    #         self._highLightObjs(objs)
+    #         self.project.unblankNotification()
 
     def _updatePeakTable(self, nmrAtoms, messageAll=True):
         """
@@ -713,11 +712,14 @@ class AssignmentInspectorTable(GuiTable):
         self._peakList = _emptyObject()
         self._peakList.peaks = list(set([pk for nmrAtom in nmrAtoms for pk in nmrAtom.assignedPeaks]))
 
-        with self._projectBlanking():
-            self._dataFrameObject = self.getDataFrameFromList(table=self,
-                                                              buildList=self._peakList.peaks,
-                                                              colDefs=self.getColumns(),
-                                                              hiddenColumns=self._hiddenColumns)
+        # with self._projectBlanking():
+        #     self._dataFrameObject = self.getDataFrameFromList(table=self,
+        #                                                       buildList=self._peakList.peaks,
+        #                                                       colDefs=self.getColumns(),
+        #                                                       hiddenColumns=self._hiddenColumns)
+
+        self.populateTable(rowObjects=self._peakList.peaks,
+                           columnDefs=self.getColumns())
 
         ids = [atm.id for atm in nmrAtoms]
 

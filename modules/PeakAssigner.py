@@ -885,34 +885,44 @@ class AxisAssignmentObject(Frame):
             showWarning('Deassign Peak from NmrAtom', str(es))
 
     def setAssignedTable(self, atomList: list):
-        # self.project.blankNotification()
-        objs = self.tables[0].getSelectedObjects()
 
-        # build a dataFrame object from the list" atomList - list of nmrAtoms
-        self.dataFrameAssigned = self.tables[0].getDataFrameFromList(table=self.tables[0],
-                                                                     buildList=atomList,
-                                                                     colDefs=self.columnDefs,
-                                                                     hiddenColumns=self._hiddenColumns[0])
+        self.tables[0].populateTable(rowObjects=atomList,
+                                     columnDefs=self.columnDefs
+                                     )
 
-        # populate from the Pandas dataFrame inside the dataFrameObject
-        self.tables[0].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAssigned)
-        self.tables[0]._highLightObjs(objs)
-        # self.project.unblankNotification()
+        # # self.project.blankNotification()
+        # objs = self.tables[0].getSelectedObjects()
+        #
+        # # build a dataFrame object from the list" atomList - list of nmrAtoms
+        # self.dataFrameAssigned = self.tables[0].getDataFrameFromList(table=self.tables[0],
+        #                                                              buildList=atomList,
+        #                                                              colDefs=self.columnDefs,
+        #                                                              hiddenColumns=self._hiddenColumns[0])
+        #
+        # # populate from the Pandas dataFrame inside the dataFrameObject
+        # self.tables[0].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAssigned)
+        # self.tables[0]._highLightObjs(objs)
+        # # self.project.unblankNotification()
 
     def setAlternativesTable(self, atomList: list):
-        # self.project.blankNotification()
-        objs = self.tables[1].getSelectedObjects()
 
-        # build a dataFrame object from the list" atomList - list of nmrAtoms
-        self.dataFrameAlternatives = self.tables[1].getDataFrameFromList(table=self.tables[1],
-                                                                         buildList=atomList,
-                                                                         colDefs=self.columnDefs,
-                                                                         hiddenColumns=self._hiddenColumns[1])
+        self.tables[1].populateTable(rowObjects=atomList,
+                                     columnDefs=self.columnDefs
+                                     )
 
-        # populate from the Pandas dataFrame inside the dataFrameObject
-        self.tables[1].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAlternatives)
-        self.tables[1]._highLightObjs(objs)
-        # self.project.unblankNotification()
+        # # self.project.blankNotification()
+        # objs = self.tables[1].getSelectedObjects()
+        #
+        # # build a dataFrame object from the list" atomList - list of nmrAtoms
+        # self.dataFrameAlternatives = self.tables[1].getDataFrameFromList(table=self.tables[1],
+        #                                                                  buildList=atomList,
+        #                                                                  colDefs=self.columnDefs,
+        #                                                                  hiddenColumns=self._hiddenColumns[1])
+        #
+        # # populate from the Pandas dataFrame inside the dataFrameObject
+        # self.tables[1].setTableFromDataFrameObject(dataFrameObject=self.dataFrameAlternatives)
+        # self.tables[1]._highLightObjs(objs)
+        # # self.project.unblankNotification()
 
     def _updateAssignmentWidget(self, tableNum: int, item: object):
         """
