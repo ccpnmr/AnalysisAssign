@@ -297,8 +297,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 self.findAndDisplayMatches(nmrResidue)
 
             # update current (should trigger SequenceGraph)
-            self.application.current.nmrResidue = nmrResidue
             self.application.current.nmrChain = nmrResidue.nmrChain
+            self.application.current.nmrResidue = nmrResidue
 
         # finally:
         #     self.application._endCommandBlock()
@@ -501,22 +501,31 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                     finally:
                         self.nmrResidueTable.setUpdateSilence(False)
 
-                    # update the NmrResidueTable
-                    self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
                     if matchNmrResidue:
                         self.navigateToNmrResidue(matchNmrResidue)
 
-                    from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                    # # update the NmrResidueTable
+                    # getLogger().info('>>>DISPLAYTABLE', droppedNmrResidue.nmrChain, self.project.nmrChains)
+                    # self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
 
-                    GLSignals = GLNotifier(parent=self)
-                    GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
+                    # from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                    #
+                    # GLSignals = GLNotifier(parent=self)
+                    # GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
 
                 except Exception as es:
                     getLogger().warning(str(es))
                     # raise es
                 finally:
-                    # nmrResidue._endCommandEchoBlock()
                     pass
+
+        # update the NmrResidueTable - outside of the undoBlock for notifiers to catch up
+        self.nmrResidueTable.displayTableForNmrChain(droppedNmrResidue.nmrChain)
+
+        from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+
+        GLSignals = GLNotifier(parent=self)
+        GLSignals.emitEvent(triggers=[GLNotifier.GLMARKS])
 
     def _centreStripForNmrResidue(self, nmrResidue, strip):
         """

@@ -281,8 +281,8 @@ class PickAndAssignModule(NmrResidueTableModule):
             # update the NmrResidue table
             self.nmrResidueTable._update(nmrResidue.nmrChain)
 
-    # from ccpn.util.decorators import profile
-    # @profile
+    from ccpn.util.decorators import profile
+    @profile
     def restrictedPickAndAssign(self, nmrResidue=None):
         """
         Functionality for beta2 to include the Assign part

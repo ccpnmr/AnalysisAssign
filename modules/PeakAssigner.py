@@ -624,6 +624,9 @@ class AxisAssignmentObject(Frame):
                                         'Delta shift', None)])
         self._hiddenColumns = [['Pid', 'Shift'], ['Pid', 'Shift']]
 
+        self.tables[0]._hiddenColumns = ['Pid', 'Shift']
+        self.tables[1]._hiddenColumns = ['Pid', 'Shift']
+
         # set the fixed height of the frame
         self.setFixedHeight(175)
 
