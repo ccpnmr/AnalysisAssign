@@ -47,13 +47,14 @@ class Assign(Framework):
                                ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc'), ('enabled', False)]),
                                (),
                                ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
+                               ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'as')]),
                                ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
                                # ("Residue Information", self.showResidueInformation, [('shortcut', 'ri')]),
                                ])
         self.addApplicationMenuSpec(menuSpec)
 
         viewMenuItems = [("Sequence Graph", self.showSequenceGraph, [('shortcut', 'sg')]),
-                         ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'as')]),
+                         # ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'as')]),
                          ()
                          ]
         self.addApplicationMenuItems('View', viewMenuItems, position=8)
