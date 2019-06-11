@@ -328,8 +328,12 @@ class AssignmentInspectorModule(CcpnModule):
         Notifier single-click action on item in table
         Highlight nmrAtoms from chemicalShifts
         """
-
-        objList = (data[CallBack.OBJECT],)
+        # multiselection table will return a list of objects
+        objs = data[CallBack.OBJECT]
+        if isinstance(objs, (tuple, list)) and objs:
+            objList = objs
+        else:
+            objList = (objs,)
 
         if objList:
             getLogger().debug('AssignmentInspector_ChemicalShift>>> action', objList)
