@@ -146,7 +146,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         #self.moduleList = self.matchWidget.listWidget
 
         self._stripNotifiers = []  # list to store GuiNotifiers for strips
-
+        self.nmrResidueTable.multiSelect = False
+        self.nmrResidueTable.setSelectionMode(self.nmrResidueTable.SingleSelection)
         #self.nmrResidueTable._setWidgetHeight(48)
 
         self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
@@ -216,6 +217,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 del (notifier)
             self._stripNotifiers = []
 
+            print(nmrResidue)
             nr = nmrResidue.mainNmrResidue
             # navigate the displays
             for display in displays:
