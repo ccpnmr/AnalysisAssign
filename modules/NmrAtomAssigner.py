@@ -387,7 +387,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _setPeaksLabel(self):
         " update the peaks label from current.peaks"
-        if len(self.current.peaks) > 0:
+        if self.current.peaks and None not in self.current.peaks:
             splitter = ', '
             pText = _truncateText(splitter.join([p.id for p in self.current.peaks]), splitter=splitter)
             self.currentPeaksLabel.setToolTip(splitter.join([p.id for p in self.current.peaks]))
@@ -520,7 +520,7 @@ class NmrAtomAssignerModule(CcpnModule):
                 #     getLogger().warning('Not all peaks have the same number of dimensions.')
                 #     return False
 
-                if self.current.peaks:
+                if self.current.peaks and None not in self.current.peaks:
                     self._setPeakAxisCodes(self.current.peaks)
 
                 if self.radioButton1.isChecked():
@@ -538,7 +538,7 @@ class NmrAtomAssignerModule(CcpnModule):
                        QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.MinimumExpanding,
                        grid=(30, 30), gridSpan=(1, 1))
 
-                if self.current.peaks:
+                if self.current.peaks and None not in self.current.peaks:
                     self._predictHighlight(self.current.peaks)
                     self._assignWidgetShow()
             else:
