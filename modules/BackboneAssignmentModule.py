@@ -217,7 +217,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 del (notifier)
             self._stripNotifiers = []
 
-            print(nmrResidue)
             nr = nmrResidue.mainNmrResidue
             # navigate the displays
             for display in displays:
