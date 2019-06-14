@@ -290,9 +290,14 @@ class AssignmentInspectorModule(CcpnModule):
     def navigateToNmrResidueCallBack(self, data):
         """Navigate in selected displays to nmrResidue; skip if none defined
         """
-        chemicalShift = data[CallBack.OBJECT]
-        if not chemicalShift:
+        # handle a single chemicalShift - SHOULD always contain an object
+        objs = data[CallBack.OBJECT]
+        if not objs:
             return
+        if isinstance(objs, (tuple, list)):
+            chemicalShift = objs[0]
+        else:
+            chemicalShift = objs
 
         nmrResidue = chemicalShift.nmrAtom.nmrResidue
 
@@ -330,7 +335,9 @@ class AssignmentInspectorModule(CcpnModule):
         """
         # multiselection table will return a list of objects
         objs = data[CallBack.OBJECT]
-        if isinstance(objs, (tuple, list)) and objs:
+        if not objs:
+            return
+        if isinstance(objs, (tuple, list)):
             objList = objs
         else:
             objList = (objs,)
@@ -412,7 +419,15 @@ class AssignmentInspectorModule(CcpnModule):
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
 
-        peak = data[CallBack.OBJECT]
+        # get the first object from the callback
+        objs = data[CallBack.OBJECT]
+        if not objs:
+            return
+        if isinstance(objs, (tuple, list)):
+            peak = objs[0]
+        else:
+            peak = objs
+
         if peak:
             self.current.peak = peak
 

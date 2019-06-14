@@ -435,7 +435,6 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             with progressManager(self.mainWindow, progressText):
 
                 try:
-                    self.nmrResidueTable.setUpdateSilence(True)
                     matchNmrResidue = None
                     try:  # display popup warning
                         if data['shiftLeftMouse']:
@@ -497,13 +496,12 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                     nmrResidue.nmrChain.assignConnectedResidues(dropRes)
 
                             matchNmrResidue = droppedNmrResidue
+
                     except Exception as es:
                         showWarning('Connect NmrResidue', str(es))
                     finally:
-                        self.nmrResidueTable.setUpdateSilence(False)
-
-                    if matchNmrResidue:
-                        self.navigateToNmrResidue(matchNmrResidue)
+                        if matchNmrResidue:
+                            self.navigateToNmrResidue(matchNmrResidue)
 
                     # # update the NmrResidueTable
                     # getLogger().info('>>>DISPLAYTABLE', droppedNmrResidue.nmrChain, self.project.nmrChains)
