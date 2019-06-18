@@ -95,9 +95,9 @@ class PickAndAssignModule(NmrResidueTableModule):
                                                     setLayout=True, spacing=(0, 0),
                                                     callback=self.restrictedPickAndAssign)
 
-        self.restrictedPickButton.setEnabled(False)
-        self.assignSelectedButton.setEnabled(False)
-        self.restrictedPickAndAssignButton.setEnabled(False)
+        self.restrictedPickButton.setEnabled(True)
+        self.assignSelectedButton.setEnabled(True)
+        self.restrictedPickAndAssignButton.setEnabled(True)
         self.nmrResidueTable.addWidgetToPos(self.restrictedPickAndAssignButton, row=1, col=4)
 
         # change some of the defaults setting inherited from NmrResidueTableModule
