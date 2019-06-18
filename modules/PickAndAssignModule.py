@@ -103,7 +103,7 @@ class PickAndAssignModule(NmrResidueTableModule):
         # change some of the defaults setting inherited from NmrResidueTableModule
         self.nmrResidueTableSettings.sequentialStripsWidget.checkBox.setChecked(False)
         self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)  # select the <all> option
-
+        self.nmrResidueTableSettings.setLabelText('Navigate to\nDisplay(s):')
         self.nmrResidueTable._setWidgetHeight(45)
 
         # need to feedback to current.nmrResidueTable
@@ -112,12 +112,13 @@ class PickAndAssignModule(NmrResidueTableModule):
 
         # # these need to change whenever different spectrumDisplays are selected
         # self._setAxisCodes()
-        self.nmrResidueTableSettings.axisCodeOptions.selectAll()
+        if self.nmrResidueTableSettings.axisCodeOptions:
+            self.nmrResidueTableSettings.axisCodeOptions.selectAll()
 
-        # just clear the 'C' axes - this is the usual configuration
-        for ii, box in enumerate(self.nmrResidueTableSettings.axisCodeOptions.checkBoxes):
-            if box.text().upper().startswith('C'):
-                self.nmrResidueTableSettings.axisCodeOptions.clearIndex(ii)
+            # just clear the 'C' axes - this is the usual configuration
+            for ii, box in enumerate(self.nmrResidueTableSettings.axisCodeOptions.checkBoxes):
+                if box.text().upper().startswith('C'):
+                    self.nmrResidueTableSettings.axisCodeOptions.clearIndex(ii)
 
     def _registerNotifiers(self):
         """
@@ -230,11 +231,20 @@ class PickAndAssignModule(NmrResidueTableModule):
         with undoBlock():
 
             peaks = []
-            displays = self._getDisplays()
+            # displays = self._getDisplays()
+
+            gid = self.nmrResidueTableSettings.spectrumDisplayPulldown.getText()
+            displays = [self.application.getByGid(gid)]
+
             validPeakListViews = {}
 
             # loop through all the selected displays/spectrumViews/peakListViews that are visible
             for dp in displays:
+
+                # ignore undefined displays
+                if not dp:
+                    continue
+
                 if dp.strips:
                     for sv in dp.strips[0].spectrumViews:
                         for plv in sv.peakListViews:
