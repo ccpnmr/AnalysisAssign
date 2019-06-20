@@ -275,10 +275,11 @@ class NmrAtomAssignerModule(CcpnModule):
         # For selected peaks: get the pids of nmrResidues of assigned nmrAtoms
         newPids = []
         for peak in self.current.peaks:
-            for assignment in peak.assignments:
-                for nmrAtom in assignment:
-                    if nmrAtom:
-                        newPids.append(nmrAtom.nmrResidue.pid)
+            if peak:
+                for assignment in peak.assignments:
+                    for nmrAtom in assignment:
+                        if nmrAtom:
+                            newPids.append(nmrAtom.nmrResidue.pid)
         newPids = list(set(newPids))
         newPids.sort()
 
