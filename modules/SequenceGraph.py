@@ -2439,9 +2439,12 @@ class SequenceGraphModule(CcpnModule):
             # self.addNmrChainNotifiers()
 
             if self.nmrResiduesCheckBox.isChecked():
-                nmrList = [res for res in nmrChain.nmrResidues if res is res.mainNmrResidue]
+
+                # show all mainNmrResidues in the chain
+                nmrList = nmrChain.mainNmrResidues
 
             else:
+                # build the short stretch to the first break in th echain from either side
                 nmrResidue = self.current.nmrResidue
                 if nmrResidue in nmrChain.nmrResidues:
                     while nmrResidue.previousNmrResidue:  # go to start of connected stretch
