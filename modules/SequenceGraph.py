@@ -559,17 +559,22 @@ class NmrResidueList(object):
 
     #==========================================================================================
 
-    def addNmrResidue(self, nmrChainId, nmrResidue, index=0):
+    def addNmrResidue(self, nmrChainId, nmrResidue, index=0, _insertNmrRes=True):
         """Add a new nmrResidue at the required position.
         """
-        self._addNmrResidue(nmrChainId, nmrResidue, nmrResidueIndex=index, lineList=self.connectingLines)
+        self._addNmrResidue(nmrChainId, nmrResidue, nmrResidueIndex=index, lineList=self.connectingLines, _insertNmrRes=_insertNmrRes)
 
-    def _addNmrResidue(self, nmrChainId, nmrResidue, nmrResidueIndex=0, lineList=None):
+    def _addNmrResidue(self, nmrChainId, nmrResidue, nmrResidueIndex=0, lineList=None, _insertNmrRes=True):
         """Takes an Nmr Residue, and adds a residue to the sequence graph
         corresponding to the Nmr Residue at the required index.
         Nmr Residue name displayed beneath CA of residue drawn and residue type predictions displayed
         beneath Nmr Residue name
         """
+
+        # check whether the guiNmrResidue already exists, and skip
+        if nmrResidue in self.guiNmrResidues:
+            return
+
         guiAtoms = {}
         # mainNmrResidues = nmrResidue.nmrChain.mainNmrResidues
 
@@ -608,7 +613,8 @@ class NmrResidueList(object):
         # else:
 
         # insert into the correct nmrChain
-        self._insertNmrResiduePair(nmrChainId, nmrResidueIndex, nmrResidue, guiAtoms)
+        if _insertNmrRes:
+            self._insertNmrResiduePair(nmrChainId, nmrResidueIndex, nmrResidue, guiAtoms)
 
         # index = mainNmrResidues.index(nmrResidue)
         # self.allNmrResidues[nmrResidue][index] = (nmrResidue, guiAtoms)
@@ -2060,6 +2066,7 @@ class SequenceGraphModule(CcpnModule):
                 if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.nmrResidueList.guiNmrResidues:
                     print('>>>change nmrResidue - create', nmrResidue)
                     if not self._createNmrResidues(nmrResidue):
+                        print('>>>error? redraw list')
                         self.setNmrChainDisplay(self.nmrChain)
 
                 elif nmrResidue in self.nmrResidueList.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
@@ -2072,6 +2079,7 @@ class SequenceGraphModule(CcpnModule):
                     # this is the event htat fires on a name change
                     self._deleteBadNmrResidues(nmrResidue)
                     if not self._createNmrResidues(nmrResidue):
+                        print('>>>error? redraw list')
                         self.setNmrChainDisplay(self.nmrChain)
         except Exception as es:
             # strange error not traced yet, interesting, but not fatal if trapped - think I've found it
@@ -2123,7 +2131,10 @@ class SequenceGraphModule(CcpnModule):
 
         nmrResidues = makeIterableList(nmrResidues)
         nmrResidues = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain is self.nmrChain]
-        return self._buildNmrResidues(nmrResidues)
+
+        for nmrChainId in self.nmrResidueList.nmrChains.keys():
+            if self._buildNmrResidues(nmrChainId, nmrResidues):
+                return True
 
     def _deleteNmrResidues(self, nmrResidues):
         """Delete the nmrResidue from the scene
@@ -2361,7 +2372,7 @@ class SequenceGraphModule(CcpnModule):
                 except Exception as es:
                     pass
 
-    def _buildNmrResidues(self, nmrResidueList):
+    def _buildNmrResidues(self, nmrChainId, nmrResidueList):
         """Build the new residues in the list, inserting into the predicted stretch at the correct index.
         """
         print('>>>_buildNmrResidues')
@@ -2372,45 +2383,59 @@ class SequenceGraphModule(CcpnModule):
             for nmrResidue in nmrResidueList:
                 if nmrResidue is nmrResidue.mainNmrResidue:
 
-                    nmrResIndex = _getNmrIndex(nmrResidue)
+                    # nmrResIndex = _getNmrIndex(nmrResidue)
 
-
-                    # nasty way of putting the nmrResidue back into the list
-                    ii = None
-                    if nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
-                        nmr = nmrResidue.previousNmrResidue.mainNmrResidue
-                        iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
-                        if iiLeft is not None:
-                            ii = iiLeft + 1
-                            # print('>>>L1', nmrResidue, nmr, ii)
-
-                        elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
-                            nmr = nmrResidue.nextNmrResidue.mainNmrResidue
-                            iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
-                            if iiRight is not None:
-                                ii = iiRight
-                                # print('>>>R2', nmrResidue, nmr, ii)
-
-                    elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
-                        nmr = nmrResidue.nextNmrResidue.mainNmrResidue
-                        iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
-                        if iiRight is not None:
-                            ii = iiRight
-                            # print('>>>R1', nmrResidue, nmr, ii)
-
-                        elif nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
-                            nmr = nmrResidue.previousNmrResidue.mainNmrResidue
-                            iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
-                            if iiLeft is not None:
-                                ii = iiLeft + 1
-                                # print('>>>L2', nmrResidue, nmr, ii)
-
-                    if ii is None:
-                        ii = self.nmrChain.mainNmrResidues.index(nmrResidue) - 1
-                        # print('>>>MID', ii)
+                    # take the current nmrList, and the new nmrResidue, and get intersection
+                    # with the mainNmrResidues - should be correct order or empty
+                    newResSet = list((OrderedSet(self.nmrResidueList.nmrChains[nmrChainId]) |
+                                 OrderedSet([nmrResidue])) & \
+                                OrderedSet(nmrResidue.nmrChain.mainNmrResidues))        # keeps the ordering of the second set
+                    print('>>>newResSet', newResSet)
+                    if not newResSet:
                         return
 
-                    self.nmrResidueList.addNmrResidue(nmrResidue.nmrChain.pid, nmrResidue, ii)
+                    # iterate through and and add new residues
+                    self.nmrResidueList.nmrChains[nmrChainId] = newResSet
+                    for ii, nmrRes in enumerate(newResSet):
+                        # do not _insertNmRes as the list is built
+                        self.nmrResidueList.addNmrResidue(nmrChainId, nmrRes, ii, _insertNmrRes=False)
+
+                    # # nasty way of putting the nmrResidue back into the list
+                    # ii = None
+                    # if nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
+                    #     nmr = nmrResidue.previousNmrResidue.mainNmrResidue
+                    #     iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
+                    #     if iiLeft is not None:
+                    #         ii = iiLeft + 1
+                    #         # print('>>>L1', nmrResidue, nmr, ii)
+                    #
+                    #     elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
+                    #         nmr = nmrResidue.nextNmrResidue.mainNmrResidue
+                    #         iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
+                    #         if iiRight is not None:
+                    #             ii = iiRight
+                    #             # print('>>>R2', nmrResidue, nmr, ii)
+                    #
+                    # elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
+                    #     nmr = nmrResidue.nextNmrResidue.mainNmrResidue
+                    #     iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
+                    #     if iiRight is not None:
+                    #         ii = iiRight
+                    #         # print('>>>R1', nmrResidue, nmr, ii)
+                    #
+                    #     elif nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
+                    #         nmr = nmrResidue.previousNmrResidue.mainNmrResidue
+                    #         iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
+                    #         if iiLeft is not None:
+                    #             ii = iiLeft + 1
+                    #             # print('>>>L2', nmrResidue, nmr, ii)
+                    #
+                    # if ii is None:
+                    #     ii = self.nmrChain.mainNmrResidues.index(nmrResidue) - 1
+                    #     # print('>>>MID', ii)
+                    #     return
+
+                    # self.nmrResidueList.addNmrResidue(nmrResidue.nmrChain.pid, nmrResidue, ii)
 
         else:
             # find where to add in the predicted stretch
