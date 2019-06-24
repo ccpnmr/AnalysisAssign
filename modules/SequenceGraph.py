@@ -65,6 +65,8 @@ from ccpn.ui.gui.widgets.SettingsWidgets import SequenceGraphSettings
 from ccpn.core.lib.AssignmentLib import getSpinSystemsLocation
 from ccpn.core.lib.ContextManagers import notificationEchoBlocking, catchExceptions, undoBlock
 from ccpnc.clibrary import Clibrary
+
+
 _getNmrIndex = Clibrary.getNmrResidueIndex
 
 logger = getLogger()
@@ -459,21 +461,21 @@ class NmrResidueList(object):
         self.selectedLine = None
 
         # change to an orderedDict so that more nmrChains can be seen in the future
-        self.nmrChains = OrderedDict()                     # referenced by nmrChain
+        self.nmrChains = OrderedDict()  # referenced by nmrChain
 
         # store all visible gui items
-        self.guiNmrResidues = OrderedDict()                     # referenced by nmrResidue
-        self.guiNmrAtoms = OrderedDict()                        # referenced by nmrAtom
-        self.guiGhostNmrResidues = OrderedDict()                # referenced by nmrResidue
+        self.guiNmrResidues = OrderedDict()  # referenced by nmrResidue
+        self.guiNmrAtoms = OrderedDict()  # referenced by nmrAtom
+        self.guiGhostNmrResidues = OrderedDict()  # referenced by nmrResidue
 
-        self.guiNmrAtomsFromNmrResidue = OrderedDict()          # referenced by nmrResidue -> list(guiNmrAtoms)
+        self.guiNmrAtomsFromNmrResidue = OrderedDict()  # referenced by nmrResidue -> list(guiNmrAtoms)
 
         self.ghostList = {}
 
-        self.connectingLines = {}           # referenced by peak?
+        self.connectingLines = {}  # referenced by peak?
         self.assignmentLines = {}
 
-        self.nmrChain = None                # current active nmrChain
+        self.nmrChain = None  # current active nmrChain
 
     def size(self, nmrChainId):
         """return the number of elements in the list nmrChain.
@@ -598,7 +600,6 @@ class NmrResidueList(object):
 
         # store the reference to all gui NmrAtoms from nmrResidue
         self.guiNmrAtomsFromNmrResidue[nmrResidue] = guiAtoms
-
 
         # self._updateAllNmrResidueSize()
 
@@ -757,7 +758,7 @@ class NmrResidueList(object):
         self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['CO'], guiAtoms['CA'],
                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=nmrResidue)
 
-        # self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, guiAtoms['CA'])
+        self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, guiAtoms['CA'])
 
         return guiResidueGroup
 
@@ -825,7 +826,7 @@ class NmrResidueList(object):
 
         # mainNmrResidues = self.nmrChain.mainNmrResidues
         # get the list of nmrResidues in the required nmrChain referenced by nmrChainId
-        mainNmrResidues = self.nmrChains[nmrChainId]            #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
+        mainNmrResidues = self.nmrChains[nmrChainId]  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
 
         # iterate through the adjacent pairs
         for prevRes, thisRes in zip(mainNmrResidues[:-1], mainNmrResidues[1:]):
@@ -836,7 +837,7 @@ class NmrResidueList(object):
             prevGuiAtoms = self.guiNmrAtomsFromNmrResidue[prevRes]
             thisGuiAtoms = self.guiNmrAtomsFromNmrResidue[thisRes]
 
-            if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes):      # and connectsNeeded:
+            if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes):  # and connectsNeeded:
                 # connect from this 'N' to the previous 'CO'
                 self._addConnectingLineToGroup(self.guiNmrResidues[prevRes],
                                                prevGuiAtoms['CO'], thisGuiAtoms['N'],
@@ -871,7 +872,7 @@ class NmrResidueList(object):
             return
 
         # get the list of nmrResidues in the required nmrChain referenced by nmrChainId
-        mainNmrResidues = self.nmrChains[nmrChainId]            #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
+        mainNmrResidues = self.nmrChains[nmrChainId]  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
 
         for ii, nmrResidue in enumerate(mainNmrResidues):
             # nmrResidue, guiAtoms = item
@@ -910,7 +911,7 @@ class NmrResidueList(object):
 
             # mainNmrResidues = self.nmrChain.mainNmrResidues
             # get the list of nmrResidues in the required nmrChain referenced by nmrChainId
-            mainNmrResidues = self.nmrChains[nmrChainId]            #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
+            mainNmrResidues = self.nmrChains[nmrChainId]  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
 
             for nmrResidue in mainNmrResidues:
                 # guiRes = self.guiNmrAtomsFromNmrResidue[nmrResidue]
@@ -1841,7 +1842,7 @@ class SequenceGraphModule(CcpnModule):
     #         nmr = nmr.mainNmrResidue
     #         residueSet.add(nmr)
 
-    def _rebuildNmrResidues(self, nmrResidues):
+    def _rebuildNmrResidues(self, nmrChainId, nmrResidues):
         """Rebuild the peaks of a specified nmrResidue.
         """
         # now rebuild for the new peak values
@@ -1903,7 +1904,7 @@ class SequenceGraphModule(CcpnModule):
             # self._addPeakAssignmentLinesToAdjacentGroup(self._module.nmrChain, self.LOCALcrossChainAtomPairing,
             #                                             self.assignmentLines, self.connectingLines)
 
-        self.nmrResidueList.updateGuiResiduePositions(nmrResidues[0].nmrChain.pid, updateMainChain=True, updateConnectedChains=True)
+        self.nmrResidueList.updateGuiResiduePositions(nmrChainId, updateMainChain=True, updateConnectedChains=True)
 
     # def _rebuildPeakLines(self, peaks, rebuildPeakLines=False, makeListFromPeak=False):
     #     """Clear all lines on the display associated with peak.
@@ -2034,18 +2035,20 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrResidue = data[Notifier.OBJECT]
 
-        print('>>>_updateNmrResidues', nmrResidue)
+        # print('>>>_updateNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
         with self.sceneBlocking():
             if trigger == Notifier.DELETE:
-                print('>>>delete nmrResidue', nmrResidue)
+                # print('>>>delete nmrResidue', nmrResidue)
                 self._deleteNmrResidues(nmrResidue)
 
             elif trigger == Notifier.CREATE:
-                print('>>>create nmrResidue', nmrResidue)
+                # print('>>>create nmrResidue', nmrResidue)
                 if not self._createNmrResidues(nmrResidue):
-                    self.setNmrChainDisplay(self.nmrChain)
+                    # print('>>>error? redraw list')
+                    # self.setNmrChainDisplay(self.nmrChain)
+                    pass
 
             # elif trigger == Notifier.CHANGE:
             #     print('>>>change nmrResidue - no action', nmrResidue)
@@ -2058,29 +2061,34 @@ class SequenceGraphModule(CcpnModule):
         """
         nmrResidue = data[Notifier.OBJECT]
 
-        print('>>>_changeNmrResidues', nmrResidue)
+        # print('>>>_changeNmrResidues', nmrResidue)
         trigger = data[Notifier.TRIGGER]
 
         try:
             with self.sceneBlocking():
                 if nmrResidue in self.nmrChain.nmrResidues and nmrResidue not in self.nmrResidueList.guiNmrResidues:
-                    print('>>>change nmrResidue - create', nmrResidue)
+                    # print('>>>change nmrResidue - create', nmrResidue)
                     if not self._createNmrResidues(nmrResidue):
-                        print('>>>error? redraw list')
-                        self.setNmrChainDisplay(self.nmrChain)
+                        # print('>>>error? redraw list')
+                        # self.setNmrChainDisplay(self.nmrChain)
+                        pass
 
                 elif nmrResidue in self.nmrResidueList.guiNmrResidues and nmrResidue not in self.nmrChain.nmrResidues:
                     # not in chain, but in residues as other chain
                     self._deleteGuiNmrResidues(nmrResidue)
+                    # self._deleteNmrResidues(nmrResidue)
 
                 else:
-                    print('>>>change2 nmrResidue - create **** rename', nmrResidue)
+                    # print('>>>change2 nmrResidue - create **** rename', nmrResidue)
 
-                    # this is the event htat fires on a name change
-                    self._deleteBadNmrResidues(nmrResidue)
+                    # this is the event that fires on a name change
+                    # self._deleteBadNmrResidues(nmrResidue)
+                    self._deleteNmrResidues(nmrResidue)
                     if not self._createNmrResidues(nmrResidue):
-                        print('>>>error? redraw list')
-                        self.setNmrChainDisplay(self.nmrChain)
+                        # print('>>>error? redraw list')
+                        # self.setNmrChainDisplay(self.nmrChain)
+                        pass
+
         except Exception as es:
             # strange error not traced yet, interesting, but not fatal if trapped - think I've found it
             getLogger().warning(str(es))
@@ -2126,123 +2134,213 @@ class SequenceGraphModule(CcpnModule):
     def _createNmrResidues(self, nmrResidues):
         """Create new nmrResidues in the scene
         """
-        print('>>>_createNmrResidues')
+        # print('>>>_createNmrResidues')
 
-
+        # get the nmrResidue in the current selected chain
         nmrResidues = makeIterableList(nmrResidues)
-        nmrResidues = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain is self.nmrChain]
 
         for nmrChainId in self.nmrResidueList.nmrChains.keys():
-            if self._buildNmrResidues(nmrChainId, nmrResidues):
-                return True
+            thisResList = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain.pid == nmrChainId]
+            if thisResList:
+                self._buildNmrResidues(nmrChainId, thisResList)
+
+        return True
 
     def _deleteNmrResidues(self, nmrResidues):
         """Delete the nmrResidue from the scene
         """
-        print('>>>_deleteNmrResidues')
+        # print('>>>_deleteNmrResidues')
 
+        # get the nmrResidue in the current selected chain
+        nmrResidues = makeIterableList(nmrResidues)
+
+        for nmrChainId in self.nmrResidueList.nmrChains.keys():
+            thisResList = [nmrResidue for nmrResidue in nmrResidues if nmrResidue.nmrChain.pid == nmrChainId]
+            if thisResList:
+                self._removeNmrResidues(nmrChainId, thisResList)
+
+        return True
+
+    def _removeNmrResidues(self, nmrChainId, nmrResidues):
+        """Delete the nmrResidue from the scene
+        """
+        # print('>>>  _removeNmrResidues')
 
         nmrResidues = makeIterableList(nmrResidues)
 
         for nmrResidue in nmrResidues:
 
-            # ignore if not in the visible chain
-            ii = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
-            if ii is not None:
-                self.nmrResidueList.deleteNmrResidueIndex(ii)
+            # this SHOULD never fail
+            if nmrResidue not in self.nmrResidueList.nmrChains[nmrChainId]:
+                continue
 
-                if ii:
-                    previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii - 1)
-                    self._rebuildNmrResidues(previousNmrResidue)
+            ii = self.nmrResidueList.nmrChains[nmrChainId].index(nmrResidue)
 
-                # ii = self.predictedStretch.index(nmrResidue)
-                # # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
-                #
-                # # remove from the visible list
-                # self.predictedStretch.pop(ii)
-                # self.guiResiduesShown.pop(ii)
-                #
-                # if ii:
-                #     previousNmrResidue = self.predictedStretch[ii - 1]
-                #     self._rebuildNmrResidues(previousNmrResidue)
+            # take the current nmrList, and remove the deleted nmrResidue
+            # with the mainNmrResidues - should be correct order or empty
+            delResSet = list(OrderedSet(self.nmrResidueList.nmrChains[nmrChainId]) -
+                             OrderedSet([nmrResidue]))
+            # print('>>>    delResSet', delResSet)
+            self.nmrResidueList.nmrChains[nmrChainId] = delResSet
 
-                # if nmrResidue.previousNmrResidue:
-                #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
-                #     self._rebuildNmrResidues(previousNmrResidue)
+            if ii > 0:
+                # rebuild peak lines, etc, for the previous nmrResidue - may need to check for +1 offsets
+                previousNmrResidue = self.nmrResidueList.nmrChains[nmrChainId][ii - 1]
+                self._rebuildNmrResidues(nmrChainId, previousNmrResidue)
 
-                guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms])
+            self._cleanupNmrResidue(nmrResidue)
 
-                for guiAtom in guiNmrAtomSet:
-                    for guiLineList in self.nmrResidueList.assignmentLines.values():
-                        guiLines = [guiLine for guiLine in guiLineList
-                                    if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+        # update the prediction in the sequenceModule
+        if self.nmrResidueList.size(nmrChainId) > 2:
+            self.predictSequencePosition(self.nmrResidueList.nmrChains[nmrChainId])
 
-                        # remove all graphic lines
-                        for guiLine in guiLines:
-                            guiLineList.remove(guiLine)
-                            if guiLine in self.scene.items():
-                                self.scene.removeItem(guiLine)
+            # # ignore if not in the visible chain
+            # ii = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
+            # if ii is not None:
+            #     self.nmrResidueList.deleteNmrResidueIndex(ii)
+            #
+            #     if ii:
+            #         previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii - 1)
+            #         self._rebuildNmrResidues(previousNmrResidue)
 
-                    for guiLineList in self.nmrResidueList.connectingLines.values():
-                        guiLines = [guiLine for guiLine in guiLineList
-                                    if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+            # ii = self.predictedStretch.index(nmrResidue)
+            # # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
+            #
+            # # remove from the visible list
+            # self.predictedStretch.pop(ii)
+            # self.guiResiduesShown.pop(ii)
+            #
+            # if ii:
+            #     previousNmrResidue = self.predictedStretch[ii - 1]
+            #     self._rebuildNmrResidues(previousNmrResidue)
 
-                        # remove all graphic lines
-                        for guiLine in guiLines:
-                            guiLineList.remove(guiLine)
-                            if guiLine in self.scene.items():
-                                self.scene.removeItem(guiLine)
+            # if nmrResidue.previousNmrResidue:
+            #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
+            #     self._rebuildNmrResidues(previousNmrResidue)
 
-                    # clear connectivity list of guiNmrAtoms
-                    guiAtom.clearConnectedList()
+            # guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms
+            #                      if nmrAtom in self.nmrResidueList.guiNmrAtoms])
+            #
+            # for guiAtom in guiNmrAtomSet:
+            #     for guiLineList in self.nmrResidueList.assignmentLines.values():
+            #         guiLines = [guiLine for guiLine in guiLineList
+            #                     if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+            #
+            #         # remove all graphic lines
+            #         for guiLine in guiLines:
+            #             guiLineList.remove(guiLine)
+            #             if guiLine in self.scene.items():
+            #                 self.scene.removeItem(guiLine)
+            #
+            #     for guiLineList in self.nmrResidueList.connectingLines.values():
+            #         guiLines = [guiLine for guiLine in guiLineList
+            #                     if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+            #
+            #         # remove all graphic lines
+            #         for guiLine in guiLines:
+            #             guiLineList.remove(guiLine)
+            #             if guiLine in self.scene.items():
+            #                 self.scene.removeItem(guiLine)
+            #
+            #     # clear connectivity list of guiNmrAtoms
+            #     guiAtom.clearConnectedList()
+            #
+            # self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
 
-                self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
+    def _cleanupNmrResidue(self, nmrResidue):
+        """remove guiNmrAtoms and guiNmrResidue from scene
+        Clean up dicts in nmrResidueList
+        """
+        guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms
+                             if nmrAtom in self.nmrResidueList.guiNmrAtoms])
+
+        for guiAtom in guiNmrAtomSet:
+            for guiLineList in self.nmrResidueList.assignmentLines.values():
+                guiLines = [guiLine for guiLine in guiLineList
+                            if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+
+                # remove all graphic lines
+                for guiLine in guiLines:
+                    guiLineList.remove(guiLine)
+                    if guiLine in self.scene.items():
+                        self.scene.removeItem(guiLine)
+
+            for guiLineList in self.nmrResidueList.connectingLines.values():
+                guiLines = [guiLine for guiLine in guiLineList
+                            if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+
+                # remove all graphic lines
+                for guiLine in guiLines:
+                    guiLineList.remove(guiLine)
+                    if guiLine in self.scene.items():
+                        self.scene.removeItem(guiLine)
+
+            # clear connectivity list of guiNmrAtoms
+            guiAtom.clearConnectedList()
+
+        self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
+
+        del self.nmrResidueList.guiNmrResidues[nmrResidue]
+        for nmrAtom in nmrResidue.nmrAtoms:
+            if nmrAtom in self.nmrResidueList.guiNmrAtoms:
+                del self.nmrResidueList.guiNmrAtoms[nmrAtom]
 
     def _deleteGuiNmrResidues(self, nmrResidues):
         """Delete items from an old nmrResidue.
         """
-        print('>>>_deleteGuiNmrResidues')
+        # print('>>>_deleteGuiNmrResidues')
 
         nmrResidues = makeIterableList(nmrResidues)
 
         for nmrResidue in nmrResidues:
-            guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms
-                                 if nmrAtom in self.nmrResidueList.guiNmrAtoms])
+            self._cleanupNmrResidue(nmrResidue)
 
-            for guiAtom in guiNmrAtomSet:
-                for guiLineList in self.nmrResidueList.assignmentLines.values():
-                    guiLines = [guiLine for guiLine in guiLineList
-                                if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+        # nmrChains contain nmrResidue in the wrong place and must be removed before sequence prediction
+        for nmrChainId, nmrList in self.nmrResidueList.nmrChains.items():
+            thisResList = [nmrResidue for nmrResidue in nmrList if nmrResidue.nmrChain.pid == nmrChainId]
+            if thisResList:
 
-                    # remove all graphic lines
-                    for guiLine in guiLines:
-                        guiLineList.remove(guiLine)
-                        if guiLine in self.scene.items():
-                            self.scene.removeItem(guiLine)
+                # update the prediction in the sequenceModule
+                if self.nmrResidueList.size(nmrChainId) > 2:
+                    self.predictSequencePosition(thisResList)
 
-                for guiLineList in self.nmrResidueList.connectingLines.values():
-                    guiLines = [guiLine for guiLine in guiLineList
-                                if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
-
-                    # remove all graphic lines
-                    for guiLine in guiLines:
-                        guiLineList.remove(guiLine)
-                        if guiLine in self.scene.items():
-                            self.scene.removeItem(guiLine)
-
-                # clear connectivity list of guiNmrAtoms
-                guiAtom.clearConnectedList()
-
-            self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
+            # guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms
+            #                      if nmrAtom in self.nmrResidueList.guiNmrAtoms])
+            #
+            # for guiAtom in guiNmrAtomSet:
+            #     for guiLineList in self.nmrResidueList.assignmentLines.values():
+            #         guiLines = [guiLine for guiLine in guiLineList
+            #                     if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+            #
+            #         # remove all graphic lines
+            #         for guiLine in guiLines:
+            #             guiLineList.remove(guiLine)
+            #             if guiLine in self.scene.items():
+            #                 self.scene.removeItem(guiLine)
+            #
+            #     for guiLineList in self.nmrResidueList.connectingLines.values():
+            #         guiLines = [guiLine for guiLine in guiLineList
+            #                     if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+            #
+            #         # remove all graphic lines
+            #         for guiLine in guiLines:
+            #             guiLineList.remove(guiLine)
+            #             if guiLine in self.scene.items():
+            #                 self.scene.removeItem(guiLine)
+            #
+            #     # clear connectivity list of guiNmrAtoms
+            #     guiAtom.clearConnectedList()
+            #
+            # self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
 
             # oldInd = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
             # ii = self.nmrChain.mainNmrResidues
             # self._storeIndex(nmrResidue, oldInd)
 
-            self.nmrResidueList.deleteNmrResidue(nmrResidue)
-            del self.nmrResidueList.guiNmrResidues[nmrResidue]
-            for nmrAtom in nmrResidue.nmrAtoms:
-                del self.nmrResidueList.guiNmrAtoms[nmrAtom]
+            # self.nmrResidueList.deleteNmrResidue(nmrResidue)
+            # del self.nmrResidueList.guiNmrResidues[nmrResidue]
+            # for nmrAtom in nmrResidue.nmrAtoms:
+            #     del self.nmrResidueList.guiNmrAtoms[nmrAtom]
 
     # def _storeIndex(self, nmrResidue, index):
     #     """Store the index for the undo.
@@ -2259,65 +2357,65 @@ class SequenceGraphModule(CcpnModule):
     #
     #     return None
 
-    def _deleteBadNmrResidues(self, nmrResidues):
-        """Delete the nmrResidue from the scene
-        """
-        print('>>>_deleteBadNmrResidues')
-
-        nmrResidues = makeIterableList(nmrResidues)
-
-        for nmrResidue in nmrResidues:
-
-            ii = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
-            if ii is not None:
-                self.nmrResidueList.deleteNmrResidueIndex(ii)
-
-                # # ignore if not in the visible chain
-                # if nmrResidue in self.predictedStretch:
-                #
-                #     ii = self.predictedStretch.index(nmrResidue)
-                #     # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
-                #
-                #     # remove from the visible list
-                #     self.predictedStretch.pop(ii)
-                #     self.guiResiduesShown.pop(ii)
-
-                if ii:
-                    # previousNmrResidue = self.predictedStretch[ii - 1]
-                    previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii - 1)
-                    self._rebuildNmrResidues(previousNmrResidue)
-
-                # if nmrResidue.previousNmrResidue:
-                #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
-                #     self._rebuildNmrResidues(previousNmrResidue)
-
-                guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms])
-
-                for guiAtom in guiNmrAtomSet:
-                    for guiLineList in self.nmrResidueList.assignmentLines.values():
-                        guiLines = [guiLine for guiLine in guiLineList
-                                    if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
-
-                        # remove all graphic lines
-                        for guiLine in guiLines:
-                            guiLineList.remove(guiLine)
-                            if guiLine in self.scene.items():
-                                self.scene.removeItem(guiLine)
-
-                    for guiLineList in self.nmrResidueList.connectingLines.values():
-                        guiLines = [guiLine for guiLine in guiLineList
-                                    if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
-
-                        # remove all graphic lines
-                        for guiLine in guiLines:
-                            guiLineList.remove(guiLine)
-                            if guiLine in self.scene.items():
-                                self.scene.removeItem(guiLine)
-
-                    # clear connectivity list of guiNmrAtoms
-                    guiAtom.clearConnectedList()
-
-                self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
+    # def _deleteBadNmrResidues(self, nmrResidues):
+    #     """Delete the nmrResidue from the scene
+    #     """
+    #     print('>>>_deleteBadNmrResidues')
+    #
+    #     nmrResidues = makeIterableList(nmrResidues)
+    #
+    #     for nmrResidue in nmrResidues:
+    #
+    #         ii = self.nmrResidueList.getIndexNmrResidue(nmrResidue)
+    #         if ii is not None:
+    #             self.nmrResidueList.deleteNmrResidueIndex(ii)
+    #
+    #             # # ignore if not in the visible chain
+    #             # if nmrResidue in self.predictedStretch:
+    #             #
+    #             #     ii = self.predictedStretch.index(nmrResidue)
+    #             #     # nmrResiduesToUpdate = self.predictedStretch[max(0, ii - 1):min(ii + 1, len(self.predictedStretch))]
+    #             #
+    #             #     # remove from the visible list
+    #             #     self.predictedStretch.pop(ii)
+    #             #     self.guiResiduesShown.pop(ii)
+    #
+    #             if ii:
+    #                 # previousNmrResidue = self.predictedStretch[ii - 1]
+    #                 previousNmrResidue, guiAtom = self.nmrResidueList._getNmrResiduePair(ii - 1)
+    #                 self._rebuildNmrResidues(previousNmrResidue)
+    #
+    #             # if nmrResidue.previousNmrResidue:
+    #             #     previousNmrResidue = nmrResidue.previousNmrResidue.mainNmrResidue
+    #             #     self._rebuildNmrResidues(previousNmrResidue)
+    #
+    #             guiNmrAtomSet = set([self.nmrResidueList.guiNmrAtoms[nmrAtom] for nmrAtom in nmrResidue.nmrAtoms])
+    #
+    #             for guiAtom in guiNmrAtomSet:
+    #                 for guiLineList in self.nmrResidueList.assignmentLines.values():
+    #                     guiLines = [guiLine for guiLine in guiLineList
+    #                                 if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+    #
+    #                     # remove all graphic lines
+    #                     for guiLine in guiLines:
+    #                         guiLineList.remove(guiLine)
+    #                         if guiLine in self.scene.items():
+    #                             self.scene.removeItem(guiLine)
+    #
+    #                 for guiLineList in self.nmrResidueList.connectingLines.values():
+    #                     guiLines = [guiLine for guiLine in guiLineList
+    #                                 if guiLine.guiAtom1 is guiAtom or guiLine.guiAtom2 is guiAtom]
+    #
+    #                     # remove all graphic lines
+    #                     for guiLine in guiLines:
+    #                         guiLineList.remove(guiLine)
+    #                         if guiLine in self.scene.items():
+    #                             self.scene.removeItem(guiLine)
+    #
+    #                 # clear connectivity list of guiNmrAtoms
+    #                 guiAtom.clearConnectedList()
+    #
+    #             self.scene.removeItem(self.nmrResidueList.guiNmrResidues[nmrResidue])
 
     # def _createNmrAtoms(self, nmrAtoms):
     #     """Create new peak lines associated with the created/undeleted nmrAtoms.
@@ -2375,74 +2473,42 @@ class SequenceGraphModule(CcpnModule):
     def _buildNmrResidues(self, nmrChainId, nmrResidueList):
         """Build the new residues in the list, inserting into the predicted stretch at the correct index.
         """
-        print('>>>_buildNmrResidues')
+        # print('>>>  _buildNmrResidues')
 
-        if self.nmrResiduesCheckBox.isChecked():
+        # this SHOULD be a list of only one item but use like this just to be sure
+        for nmrResidue in nmrResidueList:
+            if nmrResidue is nmrResidue.mainNmrResidue:
 
-            # this SHOULD be a list of only one item but use like this just to be sure
-            for nmrResidue in nmrResidueList:
-                if nmrResidue is nmrResidue.mainNmrResidue:
+                # take the current nmrList, and the new nmrResidue, and get intersection
+                # with the mainNmrResidues - should be correct order or empty
+                newResSet = list((OrderedSet(self.nmrResidueList.nmrChains[nmrChainId]) |
+                                  OrderedSet([nmrResidue])) & \
+                                 OrderedSet(nmrResidue.nmrChain.mainNmrResidues))  # keeps the ordering of the second set
+                # print('>>>    newResSet', newResSet)
 
-                    # nmrResIndex = _getNmrIndex(nmrResidue)
+                # if not showing all nmrResidues then get the connected stretch from the current nmrResidue
+                if not self.nmrResiduesCheckBox.isChecked():
+                    # get the connected stretch of mainNmrResidues
+                    if self.current.nmrResidue:
+                        mainNmrRes = self.current.nmrResidue.mainNmrResidue
+                        if mainNmrRes in newResSet:
+                            indL = indR = newResSet.index(mainNmrRes)
+                            while newResSet[indL].previousNmrResidue and indL > 0:
+                                indL -= 1
+                            while newResSet[indR].nextNmrResidue and indR < len(newResSet):
+                                indR += 1
+                            newResSet = newResSet[indL:indR + 1]
 
-                    # take the current nmrList, and the new nmrResidue, and get intersection
-                    # with the mainNmrResidues - should be correct order or empty
-                    newResSet = list((OrderedSet(self.nmrResidueList.nmrChains[nmrChainId]) |
-                                 OrderedSet([nmrResidue])) & \
-                                OrderedSet(nmrResidue.nmrChain.mainNmrResidues))        # keeps the ordering of the second set
-                    print('>>>newResSet', newResSet)
-                    if not newResSet:
-                        return
+                if not newResSet:
+                    return
 
-                    # iterate through and and add new residues
-                    self.nmrResidueList.nmrChains[nmrChainId] = newResSet
-                    for ii, nmrRes in enumerate(newResSet):
-                        # do not _insertNmRes as the list is built
-                        self.nmrResidueList.addNmrResidue(nmrChainId, nmrRes, ii, _insertNmrRes=False)
+                # update to the new list
+                self.nmrResidueList.nmrChains[nmrChainId] = newResSet
 
-                    # # nasty way of putting the nmrResidue back into the list
-                    # ii = None
-                    # if nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
-                    #     nmr = nmrResidue.previousNmrResidue.mainNmrResidue
-                    #     iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
-                    #     if iiLeft is not None:
-                    #         ii = iiLeft + 1
-                    #         # print('>>>L1', nmrResidue, nmr, ii)
-                    #
-                    #     elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
-                    #         nmr = nmrResidue.nextNmrResidue.mainNmrResidue
-                    #         iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
-                    #         if iiRight is not None:
-                    #             ii = iiRight
-                    #             # print('>>>R2', nmrResidue, nmr, ii)
-                    #
-                    # elif nmrResidue.nextNmrResidue and nmrResidue.nextNmrResidue.mainNmrResidue:
-                    #     nmr = nmrResidue.nextNmrResidue.mainNmrResidue
-                    #     iiRight = self.nmrResidueList.getIndexNmrResidue(nmr)
-                    #     if iiRight is not None:
-                    #         ii = iiRight
-                    #         # print('>>>R1', nmrResidue, nmr, ii)
-                    #
-                    #     elif nmrResidue.previousNmrResidue and nmrResidue.previousNmrResidue.mainNmrResidue:
-                    #         nmr = nmrResidue.previousNmrResidue.mainNmrResidue
-                    #         iiLeft = self.nmrResidueList.getIndexNmrResidue(nmr)
-                    #         if iiLeft is not None:
-                    #             ii = iiLeft + 1
-                    #             # print('>>>L2', nmrResidue, nmr, ii)
-                    #
-                    # if ii is None:
-                    #     ii = self.nmrChain.mainNmrResidues.index(nmrResidue) - 1
-                    #     # print('>>>MID', ii)
-                    #     return
-
-                    # self.nmrResidueList.addNmrResidue(nmrResidue.nmrChain.pid, nmrResidue, ii)
-
-        else:
-            # find where to add in the predicted stretch
-            return
-
-        # if self.nmrResidueList.size > 2:
-        #     self.predictSequencePosition(self.nmrResidueList.allNmrResidues)
+                # iterate through and and add new residues that don't already exists
+                for ii, nmrRes in enumerate(newResSet):
+                    # do not _insertNmrRes as the list is built
+                    self.nmrResidueList.addNmrResidue(nmrChainId, nmrRes, ii, _insertNmrRes=False)
 
         # add the connecting lines
         # guiNmrResidues = [self.guiNmrResidues[nmrResidue] for nmrResidue in nmrResidueList if nmrResidue is nmrResidue.mainNmrResidue]
@@ -2489,6 +2555,10 @@ class SequenceGraphModule(CcpnModule):
 
         self.nmrResidueList.rebuildNmrResidues(nmrResidueList)
 
+        # update the prediction in the sequenceModule
+        if self.nmrResidueList.size(nmrChainId) > 2:
+            self.predictSequencePosition(self.nmrResidueList.nmrChains[nmrChainId])
+
         return True
 
         # # add the peakAssignments
@@ -2532,6 +2602,8 @@ class SequenceGraphModule(CcpnModule):
 
     def setNmrChainDisplay(self, nmrChainOrPid):
 
+        # print('>>>setNmrChainDisplay')
+
         if isinstance(nmrChainOrPid, str):
             if not Pid.isValid(nmrChainOrPid):
                 self.resetScene()
@@ -2574,14 +2646,11 @@ class SequenceGraphModule(CcpnModule):
                             indL -= 1
                         while nmrList[indR].nextNmrResidue and indR < len(nmrList):
                             indR += 1
-                        nmrList = nmrList[indL:indR+1]
+                        nmrList = nmrList[indL:indR + 1]
 
             # add the nmrResidues to the scene
             for ii, nmrRes in enumerate(nmrList):
                 self.nmrResidueList.addNmrResidue(thisChainId, nmrRes, index=ii)
-
-            if self.nmrResidueList.size(thisChainId) > 2:
-                self.predictSequencePosition(self.nmrResidueList.nmrChains[thisChainId])
 
             # add the connecting lines
             self.nmrResidueList.addConnectionsBetweenGroups(thisChainId)
@@ -2591,6 +2660,10 @@ class SequenceGraphModule(CcpnModule):
 
             # put all the guiResidueGroups in the correct positions
             self.nmrResidueList.updateGuiResiduePositions(thisChainId, updateMainChain=True, updateConnectedChains=True)
+
+            # update the prediction in the sequenceModule
+            if self.nmrResidueList.size(thisChainId) > 2:
+                self.predictSequencePosition(self.nmrResidueList.nmrChains[thisChainId])
 
     def showNmrChainFromPulldown(self, data=None):
         """Clear and redraw the nmrChain selected from the pulldown.
@@ -2995,7 +3068,7 @@ class SequenceGraphModule(CcpnModule):
         """
         if self.project.chains and self.project.chemicalShiftLists:
 
-            nmrResidues = nmrResidueList                # [item[0] for item in nmrResidueList]
+            nmrResidues = nmrResidueList  # [item[0] for item in nmrResidueList]
 
             matchesDict = {}
             for chainNum, chain in enumerate(self.project.chains):
