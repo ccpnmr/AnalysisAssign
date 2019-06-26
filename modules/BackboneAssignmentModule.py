@@ -59,6 +59,7 @@ MINMATCHES = 1
 MAXMATCHES = 7
 DEFAULTMATCHES = 2
 STRIPBACKBONE = 'backboneAssignment'
+MARKCONNECTED = False
 
 
 class BackboneAssignmentModule(NmrResidueTableModule):
@@ -275,24 +276,28 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             # if 'i-1' residue, take CA CB, and take H, N from the 'i' residue (.mainNmrResidue)
             # check if contains '-1' in pid, is this robust? no :)
 
-            if nmrResidue.relativeOffset == -1:
-                # -1 residue so need to split the CA, CB from the N, H
-                nmrAtomsMinus = nmrAtomsFromResidue(nmrResidue)
-                nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
+            if self.nmrResidueTableSettings.markPositionsWidget.checkBox.isChecked():
+                if nmrResidue.relativeOffset is not None and nmrResidue.relativeOffset != 0:
+                    # -1, +1 residue so need to split the CA, CB from the N, H
+                    nmrAtomsOffset = nmrAtomsFromResidue(nmrResidue)
+                    nmrAtomsCentre = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
 
-                nmrAtoms = []
-                # this should check the experiment type and choose the correct atoms from there
-                for naMinus in nmrAtomsMinus:
-                    if naMinus.name.startswith('CA') or naMinus.name.startswith('CB'):
-                        nmrAtoms.append(naMinus)
-                for naCentre in nmrAtomsCentre:
-                    if naCentre.name.startswith('N') or naCentre.name.startswith('H'):
-                        nmrAtoms.append(naCentre)
+                    nmrAtoms = []
+                    # this should check the experiment type and choose the correct atoms from there
+                    for naOffset in nmrAtomsOffset:
+                        if naOffset.name.startswith('CA') or naOffset.name.startswith('CB'):
+                            nmrAtoms.append(naOffset)
+                    for naCentre in nmrAtomsCentre:
+                        if naCentre.name.startswith('N') or naCentre.name.startswith('H'):
+                            nmrAtoms.append(naCentre)
 
-                markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
-            else:
-                nmrAtoms = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
-                markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
+                    markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
+                else:
+                    if MARKCONNECTED:
+                        nmrAtoms = nmrAtomsFromResidue(nmrResidue.mainNmrResidue)
+                    else:
+                        nmrAtoms = nmrResidue.mainNmrResidue.nmrAtoms
+                    markNmrAtoms(mainWindow=self.mainWindow, nmrAtoms=nmrAtoms)
 
             if self.matchCheckBoxWidget.isChecked():
                 self.findAndDisplayMatches(nmrResidue)
@@ -724,6 +729,23 @@ def nmrAtomsFromResidue(nmrResidue):
     nextNmrResidue = nmrResidue.nextNmrResidue
     if nextNmrResidue:
         nmrResidues.append(nextNmrResidue)
+
+    nmrAtoms = []
+    for nr in nmrResidues:
+        nmrAtoms.extend(nr.nmrAtoms)
+
+    return nmrAtoms
+
+
+def nmrAtomsFromOffsets(nmrResidue):
+    """
+    Retrieve a list of nmrAtoms from nmrResidue
+    """
+    # nmrResidue = nmrResidue.mainNmrResidue
+    nmrResidues = []
+    nmrResidues.append(nmrResidue)
+    if nmrResidue.offsetNmrResidues:
+        nmrResidues.extend(nmrResidue.offsetNmrResidues)
 
     nmrAtoms = []
     for nr in nmrResidues:
