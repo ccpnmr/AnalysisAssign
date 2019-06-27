@@ -149,7 +149,8 @@ class NmrAtomAssignerModule(CcpnModule):
         self.modeTypeLabel = Label(self._ASwidget, 'Mode', grid=(row, 0))
         self.modeRadioButtons = RadioButtons(self._ASwidget, texts=['Backbone', 'Side chain'], selectedInd=0,
                                              callback=self._createButtonsCallback, grid=(row, 1))
-        self.radioButton1, self.radioButton2 = self.modeRadioButtons.radioButtons
+        self.radioButton1 = self.modeRadioButtons.getRadioButton('Backbone')
+        self.radioButton2 = self.modeRadioButtons.getRadioButton('Side chain')
 
         # modifiers for sidechain
         row += 1
@@ -630,8 +631,15 @@ class NmrAtomAssignerModule(CcpnModule):
         ###self._assignWidget.layout().addWidget(_Label, 0, 0)
         self.buttons = {}
         atoms = ATOM_TYPES
+
+        # seems to be deleting the same widgets as _clean
         for b in self.buttonGroup.buttons():
             self.buttonGroup.removeButton(b)
+            del b
+
+        #     b.setParent(None)
+        #     print('>>>deleting', b)
+        #     del b
 
         # rowCount = self._assignWidget.layout().rowCount()
         # colCount = self._assignWidget.layout().columnCount()
@@ -930,33 +938,25 @@ class NmrAtomAssignerModule(CcpnModule):
         else:
             [button.hide() for button in buttons]
 
+    def _removeWidget(self, widget, removeTopWidget=False):
+        """Destroy a widget and all it's contents
+        """
+        def deleteItems(layout):
+            if layout is not None:
+                while layout.count():
+                    item = layout.takeAt(0)
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.setVisible(False)
+                        widget.setParent(None)
+                        del widget
+
+        deleteItems(widget.getLayout())
+        if removeTopWidget:
+            del widget
+
     def _cleanupPickAndAssignWidget(self):
-
-        layout = self._assignWidget.layout()
-
-        for i in reversed(range(layout.count())):
-            widget = layout.takeAt(i).widget()
-            if widget is not None:
-                widget.setParent(None)
-
-        # rowCount = self._assignWidget.layout().rowCount()
-        # colCount = self._assignWidget.layout().columnCount()
-        #
-        # for r in range(1, rowCount):
-        #     for m in range(colCount):
-        #         item = self._assignWidget.layout().itemAtPosition(r, m)
-        #         if item:
-        #             if item.widget():
-        #                 item.widget().hide()
-        #         self._assignWidget.layout().removeItem(item)
-
-        # for r in range(layout.rowCount() - 1, -1, -1):
-        #     for c in range(layout.columnCount() - 1, -1, -1):
-        #         item = layout.itemAtPosition(r, c)
-        #         if item:
-        #             if item.widget():
-        #                 item.widget().hide()
-        #         layout.removeItem(item)
+        self._removeWidget(self._assignWidget)
 
     def atomLabel(self, atom, offset, showAll=False):
         if showAll:
