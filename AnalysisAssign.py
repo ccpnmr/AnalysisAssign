@@ -46,8 +46,8 @@ class Assign(Framework):
                                ("Backbone Assignment", self.showBackboneAssignmentModule, [('shortcut', 'bb')]),
                                ("Sidechain Assignment", self.showSidechainAssignmentModule, [('shortcut', 'sc'), ('enabled', False)]),
                                (),
-                               ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'aa')]),
-                               ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'as')]),
+                               ("Peak Assigner", self.showPeakAssigner, [('shortcut', 'ap')]),
+                               ("NmrAtom Assigner", self.showAtomSelector, [('shortcut', 'an')]),
                                ("Assignment Inspector", self.showAssignmentInspectorModule, [('shortcut', 'ai')]),
                                # ("Residue Information", self.showResidueInformation, [('shortcut', 'ri')]),
                                ])
