@@ -642,11 +642,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
                 # this is where the nmrResidue can be dropped in the existing nmrChain
                 scoreLabelling.append('i+1')
-                matchDirection = -1
+                matchDirection = 1
             else:
                 iNmrResidue = matchResidue
                 scoreLabelling.append('i-1')
-                matchDirection = +1
+                matchDirection = -1
 
             scoreAssignment.append('%i' % int(100 - min(1000 * assignmentScore, 100)) + '%')
 
