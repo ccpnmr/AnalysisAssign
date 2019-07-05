@@ -102,7 +102,10 @@ class PickAndAssignModule(NmrResidueTableModule):
 
         # change some of the defaults setting inherited from NmrResidueTableModule
         self.nmrResidueTableSettings.sequentialStripsWidget.checkBox.setChecked(False)
-        self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)  # select the <all> option
+
+        if self.nmrResidueTableSettings.displaysWidget:
+            self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)  # select the <all> option
+
         self.nmrResidueTableSettings.setLabelText('Navigate to\nDisplay(s):')
         self.nmrResidueTable._setWidgetHeight(45)
 

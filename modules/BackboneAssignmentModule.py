@@ -70,6 +70,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     settingsPosition = 'left'
     settingsMinimumSizes = (500, 200)
 
+    includeDisplaySettings = True
+
     def __init__(self, mainWindow=None, name='Backbone Assignment'):
 
         super(BackboneAssignmentModule, self).__init__(mainWindow=mainWindow, name=name)
@@ -89,7 +91,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
         # change some of the defaults setting inherited from NmrResidueTableModule
         self.nmrResidueTableSettings.sequentialStripsWidget.checkBox.setChecked(True)
-        self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)
+        if self.nmrResidueTableSettings.displaysWidget:
+            self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)
 
         colWidth0 = 140
         colWidth = 200  # for labels of the compound widgets
@@ -160,13 +163,16 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     def _getDisplays(self):
         "return list of displays to navigate"
         displays = []
-        dGids = self.nmrResidueTableSettings.displaysWidget.getTexts()  # gid's of displays
-        if len(dGids) == 0: return displays
-        mGids = self.matchWidget.getTexts()  # gid of the match displays
-        if ALL in dGids:
-            displays = [dp for dp in self.application.ui.mainWindow.spectrumDisplays if dp.pid not in mGids]
-        else:
-            displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
+
+        if self.nmrResidueTableSettings.displaysWidget:
+            dGids = self.nmrResidueTableSettings.displaysWidget.getTexts()  # gid's of displays
+            if len(dGids) == 0: return displays
+            mGids = self.matchWidget.getTexts()  # gid of the match displays
+            if ALL in dGids:
+                displays = [dp for dp in self.application.ui.mainWindow.spectrumDisplays if dp.pid not in mGids]
+            else:
+                displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
+
         return displays
 
     def _getMatchDisplays(self):
@@ -193,7 +199,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         If matchCheckbox is checked, also call findAndDisplayMatches
         """
         displays = self._getDisplays()
-        if len(displays) == 0:
+        if len(displays) == 0 and self.nmrResidueTableSettings.displaysWidget:
+
             getLogger().warning('Undefined display module(s); select in settings first')
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
