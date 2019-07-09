@@ -150,7 +150,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         #self.moduleList = self.matchWidget.listWidget
 
         self._stripNotifiers = []  # list to store GuiNotifiers for strips
-        self.nmrResidueTable.multiSelect = False
+        self.nmrResidueTable.multiSelect = True
         self.nmrResidueTable.setSelectionMode(self.nmrResidueTable.SingleSelection)
         #self.nmrResidueTable._setWidgetHeight(48)
 
@@ -188,7 +188,13 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         """
         from ccpn.core.lib.CallBack import CallBack
 
-        nmrResidue = data[CallBack.OBJECT]
+        # nmrResidue = data[CallBack.OBJECT]
+        # if not nmrResidue:
+        #     return
+        # if isinstance(nmrResidue, (tuple, list)):
+        #     nmrResidue = nmrResidue[0]
+
+        nmrResidue = data[CallBack.ROWOBJECT]           # the item clicked, not everything selected
         row = data[CallBack.ROW]
         col = data[CallBack.COL]
         self.navigateToNmrResidue(nmrResidue, row=row, col=col)
