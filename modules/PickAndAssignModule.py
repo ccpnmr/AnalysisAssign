@@ -72,6 +72,8 @@ class PickAndAssignModule(NmrResidueTableModule):
     includeNmrChains = False
     includeSpectrumTable = True
 
+    includeDisplaySettings = True
+
     def __init__(self, mainWindow, name='Pick and Assign'):
 
         super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name=name)  # ejb ='Pick And Assign')
