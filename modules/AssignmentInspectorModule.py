@@ -168,7 +168,7 @@ class AssignmentInspectorModule(CcpnModule):
                 fixedWidths=(colwidth, 30),
                 orientation='left',
                 labelText='Show nmrAtom list:',
-                checked=False,
+                checked=True,
                 callback=self._setNmrAtomListVisible,
                 )
 
