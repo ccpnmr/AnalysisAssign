@@ -821,7 +821,8 @@ class AssignmentInspectorTable(GuiTable):
 
             # columns.append(c)
             # tipTexts.append(tipText)
-
+        columns._columns.append(Column('height', lambda pk: pk.height, '', None))
+        columns._columns.append(Column('volume', lambda pk: pk.volume, '', None))
         return columns
 
     # def _setCurrentPeak(self, data):
