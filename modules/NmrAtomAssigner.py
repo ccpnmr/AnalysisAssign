@@ -190,15 +190,19 @@ class NmrAtomAssignerModule(CcpnModule):
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
                                               grid=(0, 0), hPolicy='minimal', minimumWidths=None)
-        self._newNmrResidueButton = Button(_f, text='New', grid=(0, 2), gridSpan=(1,1), callback=self._newNmrResidueCallback)
-        self._nmrResidueEditButton = Button(_f, text='Edit', grid=(0, 3), gridSpan=(1,1), callback=self._nmrResidueEditCallback)
+        self._newNmrResidueButton = Button(_f, text='New', grid=(0, 2), gridSpan=(1,1),
+                                           callback=self._newNmrResidueCallback, hPolicy='minimal')
+        self._newNmrResidueButton.setToolTip('Create new nmrResidue in current chain')
+        self._nmrResidueEditButton = Button(_f, text='Edit', grid=(0, 3), gridSpan=(1,1),
+                                            callback=self._nmrResidueEditCallback, hPolicy='minimal')
+        self._nmrResidueEditButton.setToolTip('Edit current nmrResidue')
 
         Spacer(_f, 2, 2, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
-               grid=(0, 2), gridSpan=(1, 1))
+               grid=(1, 4), gridSpan=(1, 1))
         resRow += 1
 
         self._labelFrame = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0),
-                                 gridSpan=(1, 3))
+                                 gridSpan=(1, 4))
         labRow = 0
 
         # modifier for atomCode
