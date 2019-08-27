@@ -190,7 +190,8 @@ class NmrAtomAssignerModule(CcpnModule):
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
                                               grid=(0, 0), hPolicy='minimal', minimumWidths=None)
-        self._nmrResidueEditButton = Button(_f, text='Edit', grid=(0, 2), gridSpan=(1,1), callback=self._nmrResidueEditCallback)
+        self._newNmrResidueButton = Button(_f, text='New', grid=(0, 2), gridSpan=(1,1), callback=self._newNmrResidueCallback)
+        self._nmrResidueEditButton = Button(_f, text='Edit', grid=(0, 3), gridSpan=(1,1), callback=self._nmrResidueEditCallback)
 
         Spacer(_f, 2, 2, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
                grid=(0, 2), gridSpan=(1, 1))
@@ -298,12 +299,23 @@ class NmrAtomAssignerModule(CcpnModule):
         newPids = newPids + [pid for pid in pids if _isOk(pid)]
         return newPids
 
+    def _newNmrResidueCallback(self):
+        """Callback to create a new nmrResidue and add to the current chain
+        """
+        nmrChain = self._nmrChain.getSelectedObject()
+        if nmrChain:
+            nmrResidue = self._fetchNmrResidue(nmrChain)
+            self.current.nmrResidue = nmrResidue
+
     def _nmrResidueEditCallback(self, data):
         """Callback to edit the current nmrResidue
         """
         # call popup on current nmrResidue
-        print('>>>>>>Edit', self.current.nmrResidue)
-        pass
+        from ccpn.ui.gui.popups.NmrResiduePopup import NmrResiduePopup
+
+        popup = NmrResiduePopup(parent=self.mainWindow, mainWindow=self.mainWindow,
+                                nmrResidue=self.current.nmrResidue)
+        popup.exec_()
 
     def _nmrChainPullDownCallback(self, value):
         "Callback for the NmrChain selection"
