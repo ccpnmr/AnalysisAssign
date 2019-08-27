@@ -147,10 +147,10 @@ class NmrAtomAssignerModule(CcpnModule):
 
         row += 1
         self.modeTypeLabel = Label(self._ASwidget, 'Mode', grid=(row, 0))
-        self.modeRadioButtons = RadioButtons(self._ASwidget, texts=['Backbone', 'Side chain'], selectedInd=0,
+        self.modeRadioButtons = RadioButtons(self._ASwidget, texts=['Backbone', 'All'], selectedInd=0,
                                              callback=self._createButtonsCallback, grid=(row, 1))
         self.radioButton1 = self.modeRadioButtons.getRadioButton('Backbone')
-        self.radioButton2 = self.modeRadioButtons.getRadioButton('Side chain')
+        self.radioButton2 = self.modeRadioButtons.getRadioButton('All')
 
         # modifiers for sidechain
         row += 1
@@ -181,7 +181,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         _f = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
         self._nmrChain = NmrChainPulldown(_f, project=self.project,
-                                          labelText='Filter:', showSelectName=True,
+                                          labelText='NmrChain:', showSelectName=True,
                                           setCurrent=False,
                                           callback=self._nmrChainPullDownCallback,
                                           grid=(0, 1), hPolicy='minimal', minimumWidths=None)
@@ -190,6 +190,7 @@ class NmrAtomAssignerModule(CcpnModule):
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
                                               grid=(0, 0), hPolicy='minimal', minimumWidths=None)
+        self._nmrResidueEditButton = Button(_f, text='Edit', grid=(0, 2), gridSpan=(1,1), callback=self._nmrResidueEditCallback)
 
         Spacer(_f, 2, 2, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed,
                grid=(0, 2), gridSpan=(1, 1))
@@ -296,6 +297,13 @@ class NmrAtomAssignerModule(CcpnModule):
 
         newPids = newPids + [pid for pid in pids if _isOk(pid)]
         return newPids
+
+    def _nmrResidueEditCallback(self, data):
+        """Callback to edit the current nmrResidue
+        """
+        # call popup on current nmrResidue
+        print('>>>>>>Edit', self.current.nmrResidue)
+        pass
 
     def _nmrChainPullDownCallback(self, value):
         "Callback for the NmrChain selection"
