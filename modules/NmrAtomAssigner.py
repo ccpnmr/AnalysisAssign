@@ -86,7 +86,9 @@ logger = getLogger()
 # TODO:ED Add DNA, RNA structures to the list
 # MOLECULE_TYPES = ['protein', 'DNA', 'RNA', 'carbohydrate', 'other']
 MOLECULE_TYPES = ['protein']
-ATOM_TYPES = ['H', 'N', 'CA', 'CB', 'CO', 'HA', 'HB']
+BACKBONEATOMS = ['H', 'N', 'CA', 'CB', 'C', 'HA', 'HB']
+ADDITIONALBACKBONEATOMS = ['H', 'N', 'C']
+
 MSG = '<Not-defined. Select any to start>'
 PROTEIN_MOLECULE = 'protein'
 DNA_MOLECULE = 'DNA'
@@ -149,8 +151,8 @@ class NmrAtomAssignerModule(CcpnModule):
         self.modeTypeLabel = Label(self._ASwidget, 'Mode', grid=(row, 0))
         self.modeRadioButtons = RadioButtons(self._ASwidget, texts=['Backbone', 'All'], selectedInd=0,
                                              callback=self._createButtonsCallback, grid=(row, 1))
-        self.radioButton1 = self.modeRadioButtons.getRadioButton('Backbone')
-        self.radioButton2 = self.modeRadioButtons.getRadioButton('All')
+        self.selectBackboneButton = self.modeRadioButtons.getRadioButton('Backbone')
+        self.selectAllButton = self.modeRadioButtons.getRadioButton('All')
 
         # modifiers for sidechain
         row += 1
@@ -251,6 +253,8 @@ class NmrAtomAssignerModule(CcpnModule):
                          NmrResidue._pluralLinkName, callback=self._currentNmrResiduesCallback, onceOnly=True)
         self.setGuiNotifier(self.mainWidget,[GuiNotifier.DROPEVENT],
                             [DropBase.PIDS], callback=self._handleNmrResidue)
+        self.setNotifier(self.project, [Notifier.RENAME],
+                         'NmrResidue', self._updateNmrResidue, onceOnly=True)
 
     def _unRegisterNotifiers(self):
         """clean up the notifiers
@@ -529,6 +533,13 @@ class NmrAtomAssignerModule(CcpnModule):
         finally:
             self._unblockEvents()
 
+    def _updateNmrResidue(self, data):
+        """Update the widget after renaming an nmrResidue
+        """
+        nmrResidue = data[Notifier.OBJECT]
+        if nmrResidue and nmrResidue == self.current.nmrResidue:
+            self._updateWidget()
+
     def _updateWidget(self, dataDict=None):  # also used as notifier callback function
         "Update the widget to reflect the proper state"
         # try:
@@ -549,11 +560,11 @@ class NmrAtomAssignerModule(CcpnModule):
                 if self.current.peaks and None not in self.current.peaks:
                     self._setPeakAxisCodes(self.current.peaks)
 
-                if self.radioButton1.isChecked():
+                if self.selectBackboneButton.isChecked():
                     for w in self._sidechainModifiers:
                         w.hide()
                     ii, jj = self._createBackBoneButtons()
-                elif self.radioButton2.isChecked():
+                elif self.selectAllButton.isChecked():
                     for w in self._sidechainModifiers:
                         w.show()
                     ii, jj = self._createSideChainButtons()
@@ -588,9 +599,16 @@ class NmrAtomAssignerModule(CcpnModule):
         currentDisplayedButtons = self.buttonGroup.buttons()
         buttonsToCheck = []
 
+        currentAxis = self._getValidAxisCodeIndex()
+
         for peak in peaks:
             counts = set()
-            for assignedNmrAtom in makeIterableList(peak.assignedNmrAtoms):
+            if self.selectAxisCode.isChecked():
+                peakList = makeIterableList(peak.dimensionNmrAtoms[currentAxis])
+            else:
+                peakList = makeIterableList(peak.assignedNmrAtoms)
+
+            for assignedNmrAtom in peakList:                            #makeIterableList(peak.assignedNmrAtoms):
                 if assignedNmrAtom in nmrResidue.nmrAtoms:
                     for button in currentDisplayedButtons:
                         if assignedNmrAtom:
@@ -653,11 +671,11 @@ class NmrAtomAssignerModule(CcpnModule):
         # cludge: don't know why I have to do this for the button to appear:
         ###_Label = Label(self, text='')
         ###self._assignWidget.layout().addWidget(_Label, 0, 0)
-        self.buttons = {}
-        atoms = ATOM_TYPES
+        atoms = BACKBONEATOMS
 
+        self.buttons = {}
         # seems to be deleting the same widgets as _clean
-        for b in self.buttonGroup.buttons():
+        for b in list(self.buttonGroup.buttons()):
             self.buttonGroup.removeButton(b)
             del b
 
@@ -770,9 +788,9 @@ class NmrAtomAssignerModule(CcpnModule):
                 self.atomTypeOptions.hide()
 
     def _toggleBox(self):
-        if self.radioButton1.isChecked():
+        if self.selectBackboneButton.isChecked():
             for w in self._sidechainModifiers: w.hide()
-        elif self.radioButton2.isChecked():
+        elif self.selectAllButton.isChecked():
             for w in self._sidechainModifiers: w.show()
         self._updateWidget()
 
@@ -784,6 +802,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
     def _getAtomButtonList(self, residueType=None):
 
+        additionalAtoms = list(ADDITIONALBACKBONEATOMS)
         alphaAtoms = [x for x in ALL_ATOMS_SORTED['alphas']]
         betaAtoms = [x for x in ALL_ATOMS_SORTED['betas']]
         gammaAtoms = [x for x in ALL_ATOMS_SORTED['gammas']]
@@ -795,28 +814,35 @@ class NmrAtomAssignerModule(CcpnModule):
         zetaAtoms = [x for x in ALL_ATOMS_SORTED['zetas']]
         etaAtoms = [x for x in ALL_ATOMS_SORTED['etas']]
         moreEtaAtoms = [x for x in ALL_ATOMS_SORTED['moreEtas']]
-        atomButtonList = [alphaAtoms, betaAtoms, gammaAtoms, moreGammaAtoms, deltaAtoms, moreDeltaAtoms,
+
+        atomButtonList = [additionalAtoms,
+                          alphaAtoms, betaAtoms, gammaAtoms, moreGammaAtoms, deltaAtoms, moreDeltaAtoms,
                           epsilonAtoms, moreEpsilonAtoms, zetaAtoms, etaAtoms, moreEtaAtoms]
 
-        if residueType and residueType in PROTEIN_ATOM_NAMES:
-            residueAtoms = PROTEIN_ATOM_NAMES[residueType]
-            residueAlphas = [atom for atom in alphaAtoms if atom in residueAtoms]
-            residueBetas = [atom for atom in betaAtoms if atom in residueAtoms]
-            residueGammas = [atom for atom in gammaAtoms if atom in residueAtoms]
-            residueMoreGammas = [atom for atom in moreGammaAtoms if atom in residueAtoms]
-            residueDeltas = [atom for atom in deltaAtoms if atom in residueAtoms]
-            residueMoreDeltas = [atom for atom in moreDeltaAtoms if atom in residueAtoms]
-            residueEpsilons = [atom for atom in epsilonAtoms if atom in residueAtoms]
-            residueMoreEpsilons = [atom for atom in moreEpsilonAtoms if atom in residueAtoms]
-            residueZetas = [atom for atom in zetaAtoms if atom in residueAtoms]
-            residueEtas = [atom for atom in etaAtoms if atom in residueAtoms]
-            residueMoreEtas = [atom for atom in moreEtaAtoms if atom in residueAtoms]
-            residueAtomButtonList = [residueAlphas, residueBetas, residueGammas, residueMoreGammas,
-                                     residueDeltas, residueMoreDeltas, residueEpsilons,
-                                     residueMoreEpsilons, residueZetas, residueEtas, residueMoreEtas]
-            return residueAtomButtonList
+        if residueType and isinstance(residueType, str):
+            residueType = residueType.upper()
+            if residueType in PROTEIN_ATOM_NAMES:
+                residueAtoms = PROTEIN_ATOM_NAMES[residueType]
+                residueAdditional = [atom for atom in additionalAtoms if atom in residueAtoms]
+                residueAlphas = [atom for atom in alphaAtoms if atom in residueAtoms]
+                residueBetas = [atom for atom in betaAtoms if atom in residueAtoms]
+                residueGammas = [atom for atom in gammaAtoms if atom in residueAtoms]
+                residueMoreGammas = [atom for atom in moreGammaAtoms if atom in residueAtoms]
+                residueDeltas = [atom for atom in deltaAtoms if atom in residueAtoms]
+                residueMoreDeltas = [atom for atom in moreDeltaAtoms if atom in residueAtoms]
+                residueEpsilons = [atom for atom in epsilonAtoms if atom in residueAtoms]
+                residueMoreEpsilons = [atom for atom in moreEpsilonAtoms if atom in residueAtoms]
+                residueZetas = [atom for atom in zetaAtoms if atom in residueAtoms]
+                residueEtas = [atom for atom in etaAtoms if atom in residueAtoms]
+                residueMoreEtas = [atom for atom in moreEtaAtoms if atom in residueAtoms]
+                residueAtomButtonList = [residueAdditional,
+                                         residueAlphas, residueBetas, residueGammas, residueMoreGammas,
+                                         residueDeltas, residueMoreDeltas, residueEpsilons,
+                                         residueMoreEpsilons, residueZetas, residueEtas, residueMoreEtas]
+                return residueAtomButtonList
 
-        return atomButtonList
+        else:
+            return atomButtonList
 
     def _getDnaRnaButtonList(self, atomList=None, residueType=None):
         residueAtomButtonList = copy.deepcopy(ALL_DNARNA_ATOMS_SORTED)
@@ -832,21 +858,7 @@ class NmrAtomAssignerModule(CcpnModule):
 
         return [residueAtomButtonList[atom] for atom in residueAtomButtonList.keys()]
 
-    def _updateChainLayout(self):
-
-        # needs more work to allow DNA/RNA molecules
-        if self.molTypePulldown.currentText() == PROTEIN_MOLECULE:
-            # group atoms in useful categories based on usage
-            atomButtonList = self._getAtomButtonList()
-
-        elif self.molTypePulldown.currentText() == DNA_MOLECULE:
-            # testing DNA/RNA buttonlist
-            atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
-
-        elif self.molTypePulldown.currentText() == RNA_MOLECULE:
-            # testing DNA/RNA buttonlist
-            atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
-
+    def _removeCodes(self, atomButtonList):
         if self.selectAxisCode.isChecked():
             # add atoms for the axisCode selected
             [self._getAtomsForButtons(atomList, self._getValidAxisCode()) for atomList in atomButtonList]
@@ -868,6 +880,45 @@ class NmrAtomAssignerModule(CcpnModule):
                     [self._removeAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
                     [self._removeAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
                     [self._removeAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+
+    def _updateChainLayout(self):
+
+        # needs more work to allow DNA/RNA molecules
+        if self.molTypePulldown.currentText() == PROTEIN_MOLECULE:
+            # group atoms in useful categories based on usage
+            atomButtonList = self._getAtomButtonList()
+
+        elif self.molTypePulldown.currentText() == DNA_MOLECULE:
+            # testing DNA/RNA buttonlist
+            atomButtonList = self._getDnaRnaButtonList(DNA_ATOM_NAMES, 'DT')
+
+        elif self.molTypePulldown.currentText() == RNA_MOLECULE:
+            # testing DNA/RNA buttonlist
+            atomButtonList = self._getDnaRnaButtonList(RNA_ATOM_NAMES, 'G')
+
+        self._removeCodes(atomButtonList)
+
+        # if self.selectAxisCode.isChecked():
+        #     # add atoms for the axisCode selected
+        #     [self._getAtomsForButtons(atomList, self._getValidAxisCode()) for atomList in atomButtonList]
+        #
+        # else:
+        #     # add atoms for atom type selected
+        #     validAtomType = self._getValidAtomType()
+        #     if validAtomType == 'C':
+        #         [self._getAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+        #
+        #     elif validAtomType == 'H':
+        #         [self._getAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
+        #
+        #     elif validAtomType == 'N':
+        #         [self._getAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
+        #
+        #     elif validAtomType == 'Other':
+        #         for atomList in atomButtonList:
+        #             [self._removeAtomsForButtons(atomList, 'C') for atomList in atomButtonList]
+        #             [self._removeAtomsForButtons(atomList, 'H') for atomList in atomButtonList]
+        #             [self._removeAtomsForButtons(atomList, 'N') for atomList in atomButtonList]
                     # [atomList.remove(atom) for atom in sorted(atomList) if not atom.startswith('C') \
                     #  and not atom.startswith('H') \
                     #  and not atom.startswith('N')]
@@ -899,13 +950,20 @@ class NmrAtomAssignerModule(CcpnModule):
         #                 item.widget().hide()
         #         self._assignWidget.layout().removeItem(item)
 
+
         rows = 0
         cols = 0
         if self.current.nmrResidue:
             # self.currentNmrResidueLabel.setText(self.current.nmrResidue.id)
             self._nmrResidue.select(self.current.nmrResidue.pid)
-            if self.current.nmrResidue.residueType == '':
-                self.buttons = {}
+
+            self.buttons = {}
+            # seems to be deleting the same widgets as _clean
+            for b in list(self.buttonGroup.buttons()):
+                self.buttonGroup.removeButton(b)
+                del b
+
+            if not self.current.nmrResidue.residueType:
                 for ii, atomList in enumerate(atomButtonList):
 
                     for jj, atom in enumerate(atomList):
@@ -925,15 +983,17 @@ class NmrAtomAssignerModule(CcpnModule):
                     if atomList:
                         rows += 1
             else:
-                self.buttons = {}
                 if self.offsetSelector.currentText() == '-1':
                     nmrResidue = self.current.nmrResidue.previousNmrResidue
                 elif self.offsetSelector.currentText() == '+1':
                     nmrResidue = self.current.nmrResidue.nextNmrResidue
                 else:
                     nmrResidue = self.current.nmrResidue
-                residueType = nmrResidue.residueType.upper()
+                residueType = nmrResidue.residueType.upper() if nmrResidue else None
+
                 atomButtonList2 = self._getAtomButtonList(residueType)
+                self._removeCodes(atomButtonList2)
+
                 for ii, atomList in enumerate(atomButtonList2):
                     for jj, atom in enumerate(atomList):
                         self.buttons[atom] = []
@@ -1212,7 +1272,7 @@ class NmrAtomAssignerModule(CcpnModule):
             isotopeCode = peak.peakList.spectrum.isotopeCodes[spectrumIndices[1]]
 
             # backbone
-            if self.radioButton1.isChecked():
+            if self.selectBackboneButton.isChecked():
                 predictedAtomTypes = [
                     getNmrAtomPrediction(ccpCode, peak.position[spectrumIndices[1]], isotopeCode, strict=True)
                     for ccpCode in CCP_CODES]
@@ -1249,7 +1309,7 @@ class NmrAtomAssignerModule(CcpnModule):
                 #                                      foundPredictList, 'backbone')
 
             # sidechain is checked
-            elif self.radioButton2.isChecked():
+            elif self.selectAllButton.isChecked():
                 foundPredictList = {}
 
                 if self.current.nmrResidue.residueType == '':
@@ -1268,6 +1328,11 @@ class NmrAtomAssignerModule(CcpnModule):
                         nmrResidue = self.current.nmrResidue.nextNmrResidue
                     else:
                         nmrResidue = self.current.nmrResidue
+
+                    # don't need to predict if there is no nmrResidue
+                    if not nmrResidue:
+                        return
+
                     predictedAtomTypes = getNmrAtomPrediction(nmrResidue.residueType.title(),
                                                               peak.position[spectrumIndices[1]], isotopeCode)
 
@@ -1282,21 +1347,41 @@ class NmrAtomAssignerModule(CcpnModule):
                             predictedDict[type[1]] = (type[0], score)
                 # print ('>>>predictedDict', predictedDict)
 
+                currentOffset = self.offsetSelector.currentText()
                 for atomDictType in predictedDict.keys():
-                    bText = self.atomLabel(atomDictType, '0')
+                    bText = self.atomLabel(atomDictType, currentOffset)
                     for atomType, buttons in self.buttons.items():  # get the correct button list
                         if atomDictType == atomType:
                             for button in buttons:
                                 if bText == button.getText():
-                                    # print('>type[1], atomType, button>', atomDictType, bText)
-                                    foundPredictList[self.atomLabel(atomDictType, '0')] = score
 
-                                    if score >= 85:
-                                        button.setStyleSheet(GREEN_BUTTON)
-                                    elif 50 < score < 85:
-                                        button.setStyleSheet(ORANGE_BUTTON)
-                                    if score < 50:
-                                        button.setStyleSheet(RED_BUTTON)
+                                    if atomType in ['CA', 'CB']:
+
+                                        # match the colouring above
+                                        if (currentOffset == '-1' and anyInterOnlyExperiments) or \
+                                                (currentOffset == '0' and not anyInterOnlyExperiments):
+
+                                            # print('>type[1], atomType, button>', atomDictType, bText)
+                                            foundPredictList[self.atomLabel(atomDictType, currentOffset)] = score
+
+                                            if score >= 85:
+                                                button.setStyleSheet(GREEN_BUTTON)
+                                            elif 50 < score < 85:
+                                                button.setStyleSheet(ORANGE_BUTTON)
+                                            if score < 50:
+                                                button.setStyleSheet(RED_BUTTON)
+
+                                    else:
+
+                                        # print('>type[1], atomType, button>', atomDictType, bText)
+                                        foundPredictList[self.atomLabel(atomDictType, currentOffset)] = score
+
+                                        if score >= 85:
+                                            button.setStyleSheet(GREEN_BUTTON)
+                                        elif 50 < score < 85:
+                                            button.setStyleSheet(ORANGE_BUTTON)
+                                        if score < 50:
+                                            button.setStyleSheet(RED_BUTTON)
 
                 # new routine to colour any existing atoms
                 # atomButtonList = self._getAtomButtonList()
