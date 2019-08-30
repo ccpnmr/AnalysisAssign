@@ -51,6 +51,10 @@ functionDict = {
 def getNmrResidueMatches(queryShifts, matchNmrResiduesDict, scoringMethod, isotopeCode='13C'):
     scoringMatrix = {}
     for res, mShifts in matchNmrResiduesDict.items():
+
+        if res.isDeleted or res._flaggedForDelete:
+            continue
+
         scoringValues = []
         mShifts2 = [shift for shift in mShifts if shift and shift.nmrAtom.isotopeCode == isotopeCode]
         for mShift in mShifts2:
