@@ -1618,13 +1618,13 @@ class SequenceGraphModule(CcpnModule):
                                                  fixedWidths=(colwidth, colwidth, colwidth),
                                                  callback=self.showNmrChainFromPulldown)
 
-        self.refreshCheckBox = CheckBoxCompoundWidget(self._MWwidget,
-                                                      labelText='Auto refresh NmrChain:',
-                                                      checked=True,
-                                                      fixedWidths=(colwidth, 15),
-                                                      orientation='right', hAlign='left',
-                                                      tipText='Update display when current.nmrChain changes',
-                                                      grid=(0, 1), gridSpan=(1, 1))
+        # self.refreshCheckBox = CheckBoxCompoundWidget(self._MWwidget,
+        #                                               labelText='Auto refresh NmrChain:',
+        #                                               checked=True,
+        #                                               fixedWidths=(colwidth, 15),
+        #                                               orientation='right', hAlign='left',
+        #                                               tipText='Update display when current.nmrChain changes',
+        #                                               grid=(0, 1), gridSpan=(1, 1))
 
         self.sequenceCheckBox = CheckBoxCompoundWidget(self._MWwidget,
                                                        labelText='Show Sequence:',
@@ -1836,19 +1836,19 @@ class SequenceGraphModule(CcpnModule):
         """
         self.showNmrChainFromPulldown()
 
-    def _updateModule(self, nmrChains=None):
-        """Update in response to change of current.nmrChains
-        """
-        #if nmrChains is None or len(nmrChains)==0: return
-        nmrChain = self.current.nmrChain
-        if not nmrChain:
-            return
-
-        if not self.refreshCheckBox.isChecked():
-            return
-
-        # select the chain from the pullDown - should automatically change the display
-        self.nmrChainPulldown.select(nmrChain.pid)
+    # def _updateModule(self, nmrChains=None):
+    #     """Update in response to change of current.nmrChains
+    #     """
+    #     #if nmrChains is None or len(nmrChains)==0: return
+    #     nmrChain = self.current.nmrChain
+    #     if not nmrChain:
+    #         return
+    #
+    #     if not self.refreshCheckBox.isChecked():
+    #         return
+    #
+    #     # select the chain from the pullDown - should automatically change the display
+    #     self.nmrChainPulldown.select(nmrChain.pid)
 
     # def setMode(self, mode):
     #   if self.project.nmrChains:
