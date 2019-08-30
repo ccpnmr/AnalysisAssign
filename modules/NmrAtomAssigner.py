@@ -186,12 +186,14 @@ class NmrAtomAssignerModule(CcpnModule):
                                           labelText='NmrChain:', showSelectName=True,
                                           setCurrent=False,
                                           callback=self._nmrChainPullDownCallback,
-                                          grid=(0, 1), hPolicy='minimal', minimumWidths=None)
+                                          grid=(0, 1), hPolicy='minimal', minimumWidths=None,
+                                          sizeAdjustPolicy=QtWidgets.QComboBox.AdjustToContents)
         self._nmrResidue = NmrResiduePulldown(_f, project=self.project,
                                               labelText='NmrResidue:', useIds=False, showSelectName=False,
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
-                                              grid=(0, 0), hPolicy='minimal', minimumWidths=None)
+                                              grid=(0, 0), hPolicy='minimal', minimumWidths=None,
+                                              sizeAdjustPolicy=QtWidgets.QComboBox.AdjustToContents)
         self._newNmrResidueButton = Button(_f, text='New', grid=(0, 2), gridSpan=(1,1),
                                            callback=self._newNmrResidueCallback, hPolicy='minimal')
         self._newNmrResidueButton.setToolTip('Create new nmrResidue in current chain')

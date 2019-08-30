@@ -826,7 +826,7 @@ class NmrResidueList(object):
 
         # mainNmrResidues = self.nmrChain.mainNmrResidues
         # get the list of nmrResidues in the required nmrChain referenced by nmrChainId
-        mainNmrResidues = self.nmrChains[nmrChainId]  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
+        mainNmrResidues = self.nmrChains[nmrChainId] if nmrChainId in self.nmrChains else []  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
 
         # iterate through the adjacent pairs
         for prevRes, thisRes in zip(mainNmrResidues[:-1], mainNmrResidues[1:]):
@@ -1486,6 +1486,10 @@ class NmrResidueList(object):
 # Sequence Graph Main Module
 #==========================================================================================
 
+
+LINKTOPULLDOWNCLASS = 'linkToPulldownClass'
+
+
 class SequenceGraphModule(CcpnModule):
     """
     A module for the display of stretches of sequentially linked and assigned stretches of
@@ -1496,6 +1500,9 @@ class SequenceGraphModule(CcpnModule):
     includeSettingsWidget = True
     maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
     settingsPosition = 'left'
+
+    # consistent with nmrResidueTable - move to generic class later
+    activePulldownClass = NmrChain
 
     def __init__(self, mainWindow=None, name='Sequence Graph', nmrChain=None):
 
@@ -1581,6 +1588,16 @@ class SequenceGraphModule(CcpnModule):
                                                         '_init'   : None,
                                                         }),
                                     ))
+        if self.activePulldownClass:
+            settingsDict.update(OrderedDict(((LINKTOPULLDOWNCLASS, {'label'   : 'Link to current %s:' % self.activePulldownClass.className,
+                                                       'tipText' : 'Set/update current %s when selecting from pulldown' % self.activePulldownClass.className,
+                                                       'callBack': None,
+                                                       'enabled' : True,
+                                                       'checked' : False,
+                                                       '_init'   : None,
+                                                       }),
+                                )))
+
         self._SGwidget = SequenceGraphSettings(parent=self.settingsWidget, mainWindow=self.mainWindow,
                                                settingsDict=settingsDict,
                                                grid=(0, 0))
@@ -1592,7 +1609,7 @@ class SequenceGraphModule(CcpnModule):
                                              self.scene, self)
         self._deleteStore = {}
 
-        colwidth = 140
+        colwidth = 180
         self._MWwidget = Widget(self.mainWidget, setLayout=True,
                                 grid=(0, 0), vAlign='top', hAlign='left')
 
@@ -1797,6 +1814,21 @@ class SequenceGraphModule(CcpnModule):
                                                            [Notifier.CURRENT],
                                                            targetName=NmrResidue._pluralLinkName,
                                                            callback=self._selectCurrentNmrResidues)
+
+        # new notifier to respond to changing current nmrChain
+        if self.activePulldownClass:
+            self._setCurrentPulldown = Notifier(self.current,
+                                                [Notifier.CURRENT],
+                                                targetName=self.activePulldownClass._pluralLinkName,
+                                                callback=self._selectCurrentPulldownClass)
+
+    def _selectCurrentPulldownClass(self, data):
+        """Respond to change in current activePulldownClass
+        """
+        checkBox = self._SGwidget._getCheckBox(LINKTOPULLDOWNCLASS)
+        if self.activePulldownClass and checkBox and checkBox.isChecked() and \
+                self.current.nmrChain and self.current.nmrChain != self.nmrChain:
+            self.nmrChainPulldown.select(self.current.nmrChain.pid)
 
     def _repopulateModule(self):
         """CCPN Internal: Repopulate the required widgets in the module
@@ -2679,9 +2711,30 @@ class SequenceGraphModule(CcpnModule):
             with self.sceneBlocking():
                 self.setNmrChainDisplay(nmrChainPid)
 
+            # check whther to update self.current.nmrChain
+            self._setCurrentNmrChain(nmrChainPid)
         else:
             # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
             self.resetScene()
+
+    def _setCurrentNmrChain(self, nmrChainOrPid):
+
+        if isinstance(nmrChainOrPid, str):
+            if not Pid.isValid(nmrChainOrPid):
+                return
+
+            nmrChain = self.project.getByPid(nmrChainOrPid)
+        else:
+            nmrChain = nmrChainOrPid
+
+        # nmrChainOrPid could be '<Select>' in which case nmrChain would be None
+        if not nmrChain:
+            self.resetScene()
+            return
+
+        checkBox = self._SGwidget._getCheckBox(LINKTOPULLDOWNCLASS)
+        if self.current.nmrChain and self.current.nmrChain != nmrChain and checkBox and checkBox.isChecked():
+            self.current.nmrChain = nmrChain
 
     def resetSequenceGraph(self):
         """Reset the module to the default nmrChain.

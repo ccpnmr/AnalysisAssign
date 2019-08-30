@@ -32,6 +32,7 @@ from PyQt5 import QtGui, QtWidgets
 from ccpn.AnalysisAssign.lib.scoring import getNmrResidueMatches
 from ccpn.core.ChemicalShift import ChemicalShift
 from ccpn.core.NmrResidue import NmrResidue
+from ccpn.core.NmrChain import NmrChain
 from ccpn.ui.gui.lib.SpectrumDisplay import makeStripPlot
 
 from ccpn.ui.gui.lib.Strip import matchAxesAndNmrAtoms
@@ -71,6 +72,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
     settingsMinimumSizes = (500, 200)
 
     includeDisplaySettings = True
+    activePulldownClass = NmrChain
 
     def __init__(self, mainWindow=None, name='Backbone Assignment'):
 
@@ -94,11 +96,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         if self.nmrResidueTableSettings.displaysWidget:
             self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)
 
-        colWidth0 = 140
+        colWidth0 = 180
         colWidth = 200  # for labels of the compound widgets
         colWidth2 = 120  # for the numberOfMatchesWidget
 
-        row = 4  ## Number of widgets of NmrResidueTable
+        row = self.nmrResidueTableSettings.maxRows  ## Number of widgets of NmrResidueTable - add extra widgets below
         col = 0
 
         # Number of matches to show
@@ -144,7 +146,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self._setupShiftDicts()
         self._spacer = Spacer(self.settingsWidget, 5, 5,
                               QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding,
-                              grid=(row + 1, 10), gridSpan=(1, 1))
+                              grid=(row + 20, 10), gridSpan=(1, 1))
 
         # for compatibility with previous implementation
         #self.moduleList = self.matchWidget.listWidget
@@ -315,9 +317,9 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             if self.matchCheckBoxWidget.isChecked():
                 self.findAndDisplayMatches(nmrResidue)
 
-            # update current (should trigger SequenceGraph)
-            self.application.current.nmrChain = nmrResidue.nmrChain
-            self.application.current.nmrResidue = nmrResidue
+            # # update current (should trigger SequenceGraph)
+            # self.application.current.nmrChain = nmrResidue.nmrChain
+            # self.application.current.nmrResidue = nmrResidue
 
         # finally:
         #     self.application._endCommandBlock()

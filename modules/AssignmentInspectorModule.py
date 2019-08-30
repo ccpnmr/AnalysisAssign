@@ -199,7 +199,7 @@ class AssignmentInspectorModule(CcpnModule):
 
         # install the event filter to handle maximising from floated dock
         self.installMaximiseEventHandler(self._maximise, self._closeModule)
-        self._setNmrAtomListVisible(False)
+        self._setNmrAtomListVisible(True)
 
         self._registerNotifiers()
 
