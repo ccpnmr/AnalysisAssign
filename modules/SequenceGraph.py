@@ -914,7 +914,7 @@ class NmrResidueList(object):
 
             # mainNmrResidues = self.nmrChain.mainNmrResidues
             # get the list of nmrResidues in the required nmrChain referenced by nmrChainId
-            mainNmrResidues = self.nmrChains[nmrChainId]  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
+            mainNmrResidues = self.nmrChains[nmrChainId] if nmrChainId in self.nmrChains else []  #[resPair[0] for resPair in self.nmrChains[nmrChainId]]
 
             for nmrResidue in mainNmrResidues:
                 # guiRes = self.guiNmrAtomsFromNmrResidue[nmrResidue]
@@ -2699,7 +2699,8 @@ class SequenceGraphModule(CcpnModule):
             self.nmrResidueList.updateGuiResiduePositions(thisChainId, updateMainChain=True, updateConnectedChains=True)
 
             # update the prediction in the sequenceModule
-            self.predictSequencePosition(self.nmrResidueList.nmrChains[thisChainId])
+            if thisChainId in self.nmrResidueList.nmrChains:
+                self.predictSequencePosition(self.nmrResidueList.nmrChains[thisChainId])
 
     def showNmrChainFromPulldown(self, data=None):
         """Clear and redraw the nmrChain selected from the pulldown.
