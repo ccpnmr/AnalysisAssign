@@ -1593,7 +1593,7 @@ class SequenceGraphModule(CcpnModule):
                                                        'tipText' : 'Set/update current %s when selecting from pulldown' % self.activePulldownClass.className,
                                                        'callBack': None,
                                                        'enabled' : True,
-                                                       'checked' : False,
+                                                       'checked' : True,
                                                        '_init'   : None,
                                                        }),
                                 )))
