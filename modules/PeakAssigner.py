@@ -1057,9 +1057,10 @@ class AxisAssignmentObject(Frame):
         if self.lastNmrAtomSelected:
             atomNames.extend([self.lastNmrAtomSelected[3]])
 
-        greekSort = 'ABGDEZHQIKLMNXOPRSTUFCYWabgdezhqiklmnxoprstufcyw'
-        greekLetterCount = len(greekSort)
         def greekKey(word):
+            greekSort = 'ABGDEZHQIKLMNXOPRSTUFCYWabgdezhqiklmnxoprstufcyw'
+            greekLetterCount = len(greekSort)
+
             key = (0,)
             if word:
                 key = (ord(word[0]),)
