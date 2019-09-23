@@ -1057,7 +1057,16 @@ class AxisAssignmentObject(Frame):
         if self.lastNmrAtomSelected:
             atomNames.extend([self.lastNmrAtomSelected[3]])
 
-        self.atomTypePulldown.setData(list(set(atomNames)))
+        greekSort = 'ABGDEZHQIKLMNXOPRSTUFCYWabgdezhqiklmnxoprstufcyw'
+        greekLetterCount = len(greekSort)
+        def greekKey(word):
+            key = (0,)
+            if word:
+                key = (ord(word[0]),)
+                key += tuple(greekSort.index(c) if c in greekSort else greekLetterCount for c in word[1:])
+            return key
+
+        self.atomTypePulldown.setData(sorted(list(set(atomNames)), key=greekKey))
         self.atomTypePulldown.setIndex(self.atomTypePulldown.texts.index(thisAtom) if thisAtom in self.atomTypePulldown.texts else 0)
 
     def _deleteNmrAtom(self, dim: int):
