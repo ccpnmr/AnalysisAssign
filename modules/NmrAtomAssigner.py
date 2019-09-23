@@ -606,7 +606,7 @@ class NmrAtomAssignerModule(CcpnModule):
         for peak in peaks:
             counts = set()
             if self.selectAxisCode.isChecked():
-                peakList = makeIterableList(peak.dimensionNmrAtoms[currentAxis])
+                peakList = makeIterableList(peak.dimensionNmrAtoms[currentAxis]) if currentAxis < len(peak.dimensionNmrAtoms) else []
             else:
                 peakList = makeIterableList(peak.assignedNmrAtoms)
 
