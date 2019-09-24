@@ -748,79 +748,85 @@ class AxisAssignmentObject(Frame):
             return
 
         try:
+            # get options form the pulldowns
             currentNmrAtomSelected = (self.chainPulldown.currentText(),
                                       self.seqCodePulldown.currentText(),
                                       self.resTypePulldown.currentText(),
                                       self.atomTypePulldown.currentText())
             atomCompare = self._atomCompare(self.lastNmrAtomSelected, currentNmrAtomSelected)
+            nmrAtom = None
 
-            nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
+            # wrap all actions in a single undo block
+            with undoBlock():
 
-            if not action and (atomCompare[0] == True and
-                               atomCompare[1] == True and
-                               atomCompare[2] == False):
+                # get the current chain (but may create a new one)
+                nmrChain = self.project.fetchNmrChain(self.chainPulldown.currentText())
 
-                seqCode = self.seqCodePulldown.currentText()
-                newResType = self.resTypePulldown.currentText()
-                if showYesNoWarning('Assigning nmrAtoms',
-                                    'This will change all nmrAtoms to the residueType %s, continue?' % newResType):
-                    nmrResidue = nmrChain.fetchNmrResidue(seqCode)
+                if not action and (atomCompare[0] == True and
+                                   atomCompare[1] == True and
+                                   atomCompare[2] == False):
 
-                    # change the residueType
-                    nmrResidue.rename('.'.join([seqCode, newResType]))
+                    seqCode = self.seqCodePulldown.currentText()
+                    newResType = self.resTypePulldown.currentText()
+                    if showYesNoWarning('Assigning nmrAtoms',
+                                        'This will change all nmrAtoms to the residueType %s, continue?' % newResType):
+                        nmrResidue = nmrChain.fetchNmrResidue(seqCode)
+
+                        # change the residueType
+                        nmrResidue.rename('.'.join([seqCode, newResType]))
+                    else:
+                        return
+
                 else:
-                    return
+                    nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText(),
+                                                          self.resTypePulldown.currentText())
 
+                if nmrResidue:
+                    nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
+
+                try:
+
+                    for peak in self.current.peaks:
+
+                        dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
+
+                        currentObject = nmrAtom
+                        if nmrAtom not in dimNmrAtoms:
+                            dimNmrAtoms.append(nmrAtom)
+
+                            toAssign = dimNmrAtoms.index(currentObject)
+
+                            dimNmrAtoms[toAssign] = nmrAtom
+                            allAtoms = list(peak.dimensionNmrAtoms)
+                            allAtoms[dim] = dimNmrAtoms
+                            peak.dimensionNmrAtoms = allAtoms
+
+                except Exception as es:
+                    showWarning(str(self.windowTitle()), str(es))
+
+            # notifier to update other tables
+            # nmrResidue._finaliseAction('change')
+
+            self._parent._updateInterface()
+            self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
+
+            if nmrAtom:
+                self._updateAssignmentWidget(0, nmrAtom)
+
+                self.lastTableSelected = 0
+                self.buttonList.setButtonEnabled('Delete', True)
+                self.buttonList.setButtonEnabled('Deassign', True)
+                self.buttonList.setButtonEnabled('Assign', False)
             else:
-                nmrResidue = nmrChain.fetchNmrResidue(self.seqCodePulldown.currentText(),
-                                                      self.resTypePulldown.currentText())
+                self._updateAssignmentWidget(0, None)
 
-            if nmrResidue:
-                nmrAtom = nmrResidue.fetchNmrAtom(self.atomTypePulldown.currentText())
+                self.lastTableSelected = 0
+                self.buttonList.setButtonEnabled('Delete', False)
+                self.buttonList.setButtonEnabled('Deassign', False)
+                self.buttonList.setButtonEnabled('Assign', False)
 
-                with undoBlock():
-                    try:
-
-                        for peak in self.current.peaks:
-
-                            dimNmrAtoms = list(peak.dimensionNmrAtoms[dim])
-
-                            currentObject = nmrAtom
-                            if nmrAtom not in dimNmrAtoms:
-                                dimNmrAtoms.append(nmrAtom)
-
-                                toAssign = dimNmrAtoms.index(currentObject)
-
-                                dimNmrAtoms[toAssign] = nmrAtom
-                                allAtoms = list(peak.dimensionNmrAtoms)
-                                allAtoms[dim] = dimNmrAtoms
-                                peak.dimensionNmrAtoms = allAtoms
-
-                    except Exception as es:
-                        showWarning(str(self.windowTitle()), str(es))
-
-                    # notifier to update other tables
-                    # nmrResidue._finaliseAction('change')
-
-                self._parent._updateInterface()
-                self.tables[0].selectObjects([nmrAtom], setUpdatesEnabled=False)
-
-                if nmrAtom:
-                    self._updateAssignmentWidget(0, nmrAtom)
-
-                    self.lastTableSelected = 0
-                    self.buttonList.setButtonEnabled('Delete', True)
-                    self.buttonList.setButtonEnabled('Deassign', True)
-                    self.buttonList.setButtonEnabled('Assign', False)
-                else:
-                    self._updateAssignmentWidget(0, None)
-
-                    self.lastTableSelected = 0
-                    self.buttonList.setButtonEnabled('Delete', False)
-                    self.buttonList.setButtonEnabled('Deassign', False)
-                    self.buttonList.setButtonEnabled('Assign', False)
-
-                self.update()
+            # update the module
+            self.update()
 
         except Exception as es:
             showWarning('Assign Peak to NmrAtom', str(es))
