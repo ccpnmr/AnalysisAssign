@@ -340,14 +340,11 @@ class PeakAssigner(CcpnModule):
             self.axisTables[dim].axisLabel.setText(text)
             self.axisDivergeLabels[dim][2].setText(axisCode + ': peaks diverge')
 
-    def getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> str:
+    def _getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> typing.Union[float, str]:
         """
         Calculation of delta shift to add to the table.
         """
-        if not self.current.peaks:
-            return ''
-
-        if nmrAtom is NOL:
+        if (not self.current.peaks) or nmrAtom is NOL:
             return ''
 
         deltas = []
@@ -361,25 +358,23 @@ class PeakAssigner(CcpnModule):
         # average = sum(deltas)/len(deltas) #Bug: ZERO DIVISION!
 
         if len(deltas) > 0:
-            return '%6.3f' % np.mean(deltas)
+            return float(np.mean(deltas))          #'%6.3f' % np.mean(deltas) - handled by table
         else:
             return ''
 
-    def _getShift(self, nmrAtom: NmrAtom) -> str:
+    def _getShift(self, nmrAtom: NmrAtom) -> typing.Union[float, str]:
         """
         Calculation of chemical shift value to add to the table.
         """
-        if not self.current.peaks:
+        if (not self.current.peaks) or nmrAtom is NOL:
             return ''
 
-        if nmrAtom is NOL:
-            return ''
         for peak in self.current.peaks:
             shiftList = peak.peakList.spectrum.chemicalShiftList
             if shiftList:
                 shift = shiftList.getChemicalShift(nmrAtom.id)
                 if shift:
-                    return '%8.3f' % shift.value
+                    return shift.value          # '%8.3f' % shift.value
 
     def _peaksAreCompatible(self) -> bool:
         """
@@ -615,13 +610,13 @@ class AxisAssignmentObject(Frame):
         self.lastNmrAtomSelected = None
 
         # set column definitions and hidden columns for each table
-        self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None),
-                                       ('Pid', lambda nmrAtom: str(nmrAtom.pid), 'Pid of the nmrAtom', None),
-                                       ('_object', lambda nmrAtom: nmrAtom, 'Object', None),
+        self.columnDefs = ColumnClass([('NmrAtom', lambda nmrAtom: str(nmrAtom.id), 'NmrAtom identifier', None, None),
+                                       ('Pid', lambda nmrAtom: str(nmrAtom.pid), 'Pid of the nmrAtom', None, None),
+                                       ('_object', lambda nmrAtom: nmrAtom, 'Object', None, None),
                                        ('Shift', lambda nmrAtom: parentModule._getShift(nmrAtom), 'Chemical shift',
-                                        None),
-                                       ('Delta', lambda nmrAtom: parentModule.getDeltaShift(nmrAtom, index),
-                                        'Delta shift', None)])
+                                        None, '%8.3f'),
+                                       ('Delta', lambda nmrAtom: parentModule._getDeltaShift(nmrAtom, index),
+                                        'Delta shift', None, '%6.3f')])
         self._hiddenColumns = [['Pid', 'Shift'], ['Pid', 'Shift']]
 
         self.tables[0]._hiddenColumns = ['Pid', 'Shift']

@@ -783,10 +783,10 @@ class AssignmentInspectorTable(GuiTable):
 
     def getColumns(self):
         "get columns for initialisation of table"
-        columns = ColumnClass([('Peak', lambda pk: pk.id, '', None),
-                               ('Pid', lambda pk: pk.pid, 'Pid of peak', None),
-                               ('_object', lambda pk: pk, 'Object', None),
-                               ('serial', lambda pk: pk.serial, '', None)])
+        columns = ColumnClass([('Peak', lambda pk: pk.id, '', None, None),
+                               ('Pid', lambda pk: pk.pid, 'Pid of peak', None, None),
+                               ('_object', lambda pk: pk, 'Object', None, None),
+                               ('serial', lambda pk: pk.serial, '', None, None)])
         tipTexts = []
         # get the maxmimum number of dimensions from all spectra in the project
         numDim = max([sp.dimensionCount for sp in self.application.project.spectra] + [1])
@@ -796,6 +796,7 @@ class AssignmentInspectorTable(GuiTable):
             c = Column('Assign F%d' % j,
                        lambda pk, dim=i: getPeakAnnotation(pk, dim),
                        'NmrAtom assignments of peak in dimension %d' % j,
+                       None,
                        None)
             columns._columns.append(c)
 
@@ -816,13 +817,14 @@ class AssignmentInspectorTable(GuiTable):
             c = Column(text,
                        lambda pk, dim=i, unit=unit: getPeakPosition(pk, dim, unit),
                        tipText,
-                       None)
+                       None,
+                       '%0.3f')
             columns._columns.append(c)
 
             # columns.append(c)
             # tipTexts.append(tipText)
-        columns._columns.append(Column('height', lambda pk: pk.height, '', None))
-        columns._columns.append(Column('volume', lambda pk: pk.volume, '', None))
+        columns._columns.append(Column('height', lambda pk: pk.height, '', None, None))
+        columns._columns.append(Column('volume', lambda pk: pk.volume, '', None, None))
         return columns
 
     # def _setCurrentPeak(self, data):
