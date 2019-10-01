@@ -38,7 +38,7 @@ from ccpn.core.NmrAtom import NmrAtom
 from ccpn.core.NmrResidue import NmrResidue
 from ccpn.core.Peak import Peak
 from ccpn.core.lib import CcpnSorting
-from ccpn.core.lib.AssignmentLib import ATOM_NAMES, nmrAtomsForPeaks, peaksAreOnLine, sameAxisCodes
+from ccpn.core.lib.AssignmentLib import ATOM_NAMES, nmrAtomsForPeaks, peaksAreOnLine, sameAxisCodes, NEF_ATOM_NAMES
 from ccpn.ui.gui.modules.CcpnModule import CcpnModule
 from ccpn.ui.gui.widgets.Button import Button
 from ccpn.ui.gui.widgets.ButtonList import ButtonList
@@ -339,6 +339,37 @@ class PeakAssigner(CcpnModule):
             text = '%s: %.3f' % (axisCode, avgPos)
             self.axisTables[dim].axisLabel.setText(text)
             self.axisDivergeLabels[dim][2].setText(axisCode + ': peaks diverge')
+
+            # check whether the buttons can be enabled/disabled
+
+            currentNmrAtomSelected = (self.axisTables[dim].chainPulldown.currentText(),
+                                      self.axisTables[dim].seqCodePulldown.currentText(),
+                                      self.axisTables[dim].resTypePulldown.currentText(),
+                                      self.axisTables[dim].atomTypePulldown.currentText())
+
+            enable = False
+            for nmrAtom in self.nmrAtoms:
+                nmrChain = str(nmrAtom.nmrResidue.nmrChain.id)
+                sequenceCode = str(nmrAtom.nmrResidue.sequenceCode)
+                residueType = str(nmrAtom.nmrResidue.residueType)
+                atomType = str(nmrAtom.name)
+
+                item = (nmrChain, sequenceCode, residueType, atomType)
+                enable = enable or (False not in self.axisTables[dim]._atomCompare(item, currentNmrAtomSelected))
+
+            self.axisTables[dim].buttonList.setButtonEnabled('Deassign', enable)
+
+            enable = False
+            for nmrAtom in nmrAtomsForTables[dim]:
+                nmrChain = str(nmrAtom.nmrResidue.nmrChain.id)
+                sequenceCode = str(nmrAtom.nmrResidue.sequenceCode)
+                residueType = str(nmrAtom.nmrResidue.residueType)
+                atomType = str(nmrAtom.name)
+
+                item = (nmrChain, sequenceCode, residueType, atomType)
+                enable = enable or (False not in self.axisTables[dim]._atomCompare(item, currentNmrAtomSelected))
+
+            self.axisTables[dim].buttonList.setButtonEnabled('Assign', enable)
 
     def _getDeltaShift(self, nmrAtom: NmrAtom, dim: int) -> typing.Union[float, str]:
         """
@@ -812,6 +843,7 @@ class AxisAssignmentObject(Frame):
                 self.buttonList.setButtonEnabled('Delete', True)
                 self.buttonList.setButtonEnabled('Deassign', True)
                 self.buttonList.setButtonEnabled('Assign', False)
+
             else:
                 self._updateAssignmentWidget(0, None)
 
@@ -877,6 +909,7 @@ class AxisAssignmentObject(Frame):
                     self.buttonList.setButtonEnabled('Delete', True)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', True)
+
                 else:
                     self._updateAssignmentWidget(1, None)
 
@@ -1050,8 +1083,8 @@ class AxisAssignmentObject(Frame):
         if self.current.peak:
             isotopeCode = self.current.peak.peakList.spectrum.isotopeCodes[self.index]
             # atomPrefix = isotopeCode[-1]
-            if isotopeCode in ATOM_NAMES:
-                atomNames.extend([atomName for atomName in ATOM_NAMES[isotopeCode]])
+            if isotopeCode in NEF_ATOM_NAMES:
+                atomNames.extend([atomName for atomName in NEF_ATOM_NAMES[isotopeCode]])
         if nmrAtom:
             atomNames.extend([nmrAtom.name])
             thisAtom = nmrAtom.name  # set only if nmrAtom defined
@@ -1059,7 +1092,7 @@ class AxisAssignmentObject(Frame):
             atomNames.extend([self.lastNmrAtomSelected[3]])
 
         def greekKey(word):
-            greekSort = 'ABGDEZHQIKLMNXOPRSTUFCYWabgdezhqiklmnxoprstufcyw'
+            greekSort = '0123456789ABGDEZHQIKLMNXOPRSTUFCYWabgdezhqiklmnxoprstufcyw'
             greekLetterCount = len(greekSort)
 
             key = (0,)
@@ -1091,6 +1124,7 @@ class AxisAssignmentObject(Frame):
                     self.buttonList.setButtonEnabled('Delete', False)
                     self.buttonList.setButtonEnabled('Deassign', False)
                     self.buttonList.setButtonEnabled('Assign', False)
+
                     self._updateAssignmentWidget(self.lastTableSelected, None)
                 else:
                     self._updateAssignmentWidget(self.lastTableSelected, nextAtoms[0])

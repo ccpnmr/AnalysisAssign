@@ -755,7 +755,7 @@ class NmrResidueList(object):
 
         self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['N'], guiAtoms['CA'],
                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=nmrResidue)
-        self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['CO'], guiAtoms['CA'],
+        self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['C'], guiAtoms['CA'],
                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=nmrResidue)
 
         self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, guiAtoms['CA'])
@@ -786,7 +786,7 @@ class NmrResidueList(object):
 
         self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['N'], guiAtoms['CA'],
                                        self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
-        self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['CO'], guiAtoms['CA'],
+        self._addConnectingLineToGroup(guiResidueGroup, guiAtoms['C'], guiAtoms['CA'],
                                        self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
 
         return guiResidueGroup
@@ -838,9 +838,9 @@ class NmrResidueList(object):
             thisGuiAtoms = self.guiNmrAtomsFromNmrResidue[thisRes]
 
             if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes):  # and connectsNeeded:
-                # connect from this 'N' to the previous 'CO'
+                # connect from this 'N' to the previous 'C'
                 self._addConnectingLineToGroup(self.guiNmrResidues[prevRes],
-                                               prevGuiAtoms['CO'], thisGuiAtoms['N'],
+                                               prevGuiAtoms['C'], thisGuiAtoms['N'],
                                                self._lineColour, 1.0, lineList=self.connectingLines,
                                                lineId=thisRes)
 
@@ -2556,7 +2556,7 @@ class SequenceGraphModule(CcpnModule):
         # for ii, res in enumerate(guiNmrResidues):
         #     if not self.nmrResiduesCheckBox.isChecked() or ii in connectingLinesNeeded:
         #         self._addConnectingLineToGroup(tuple(self.guiNmrResidues.values())[ii],
-        #                                        res['CO'], self.guiResiduesShown[ii + 1]['N'],
+        #                                        res['C'], self.guiResiduesShown[ii + 1]['N'],
         #                                        self._lineColour, 1.0, lineList=self.connectingLines, lineId=res)
 
         # # add connecting lines
@@ -2584,9 +2584,9 @@ class SequenceGraphModule(CcpnModule):
         #             thisRes, thisGuiAtoms = this
         #
         #             if (prevRes.nextNmrResidue and prevRes.nextNmrResidue is thisRes) and connectsNeeded:
-        #                 # connect from this 'N' to the previous 'CO'
+        #                 # connect from this 'N' to the previous 'C'
         #                 self._addConnectingLineToGroup(self.guiNmrResidues[prevRes],
-        #                                                prevGuiAtoms['CO'], thisGuiAtoms['N'],
+        #                                                prevGuiAtoms['C'], thisGuiAtoms['N'],
         #                                                self._lineColour, 1.0, lineList=self.connectingLines,
         #                                                lineId=thisRes)
 
@@ -2938,7 +2938,7 @@ class SequenceGraphModule(CcpnModule):
     #         self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
     #
     #     self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
-    #     self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+    #     self._addConnectingLineToGroup(guiResidueGroup, atoms['C'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
     #
     #     self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
     #
@@ -2966,7 +2966,7 @@ class SequenceGraphModule(CcpnModule):
     #         self._addConnectingLineToGroup(guiResidueGroup, atoms['H'], atoms['N'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
     #
     #     self._addConnectingLineToGroup(guiResidueGroup, atoms['N'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
-    #     self._addConnectingLineToGroup(guiResidueGroup, atoms['CO'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
+    #     self._addConnectingLineToGroup(guiResidueGroup, atoms['C'], atoms['CA'], self._lineColour, 1.0, lineList=lineList, lineId=nmrResidue)
     #
     #     # self._addGroupResiduePredictions(guiResidueGroup, nmrResidue, atoms['CA'])
     #
@@ -3681,7 +3681,7 @@ DEFAULT_RESIDUE_ATOMS = {'H' : np.array([0, 0]),
                          'N' : np.array([0, -1 * atomSpacing]),
                          'CA': np.array([atomSpacing, -1 * atomSpacing]),
                          'CB': np.array([atomSpacing, -2 * atomSpacing]),
-                         'CO': np.array([2 * atomSpacing, -1 * atomSpacing])
+                         'C': np.array([2 * atomSpacing, -1 * atomSpacing])
                          }
 
 # Use loadCompoundPickle from chemBuild to load the structure for these; found in compound.variants.bonds
@@ -3854,15 +3854,37 @@ ATOM_POSITION_DICT = {
 #       self._addConnectingLine(cg, hg3, 'white', 1.0, 0.0)
 #       self._addConnectingLine(cg, cd, 'white', 1.0, 0.0)
 
+def greekKey(word):
+    greekSort = '0123456789ABGDEZHQIKLMNXOPRSTUFCYWabgdezhqiklmnxoprstufcyw'
+    greekLetterCount = len(greekSort)
+
+    key = (0,)
+    if word:
+        key = (ord(word[0]),)
+        key += tuple(greekSort.index(c) if c in greekSort else greekLetterCount for c in word[1:])
+    return key
+
+
 if __name__ == '__main__':
     from ccpn.ui.gui.widgets.Application import TestApplication
     from ccpn.ui.gui.widgets.TextEditor import TextEditor
+    from ccpnmodel.ccpncore.lib.assignment.ChemicalShift import PROTEIN_ATOM_NAMES, ALL_ATOMS_SORTED
 
+    isotopes = ['13C', '1H', '15N']
+    axisCodes = ['C', 'H', 'N']
 
-    app = TestApplication()
+    atoms = {'H', 'N', 'CA', 'CB', 'C'}
+    for k, v in ALL_ATOMS_SORTED.items():
+        atoms = atoms | set(v)
 
-    popup = SequenceGraphModule()
+    thisDict = {}
+    for axis, isotope in zip(axisCodes, isotopes):
+        thisDict[isotope] = sorted([at for at in set(atoms) if at.startswith(axis)], key=greekKey)
 
-    popup.show()
-    popup.raise_()
-    app.start()
+    # app = TestApplication()
+    #
+    # popup = SequenceGraphModule()
+    #
+    # popup.show()
+    # popup.raise_()
+    # app.start()
