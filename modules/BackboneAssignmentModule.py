@@ -411,13 +411,20 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                if shift.nmrAtom.isotopeCode == '13C']
             matchShifts = self.interShifts
 
-        assignMatrix = getNmrResidueMatches(queryShifts, matchShifts, 'averageQScore')
+        if True:
+            queryShifts = [shift for shift in self.allShifts[nmrResidue]
+                           if shift.nmrAtom.isotopeCode == '13C']
+            assignMatrix = getNmrResidueMatches(queryShifts, self.allShifts, 'averageQScore')
+            print('assignMatrix',assignMatrix)
+        else:
+            assignMatrix = getNmrResidueMatches(queryShifts, matchShifts, 'averageQScore')
+
         if not assignMatrix.values():
             getLogger().info('No matches found for NmrResidue: %s' % nmrResidue.pid)
             return
         self._createMatchStrips(assignMatrix)
 
-    def _processDroppedNmrResidueLabel(self, data, toLabel=None, plusChain=None):
+    def _processDroppedNmrResidrueLabel(self, data, toLabel=None, plusChain=None):
         if toLabel and toLabel.obj:
             self._processDroppedNmrResidue(data, toLabel.obj, plusChain)
 
@@ -683,6 +690,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         """
         self.intraShifts = OrderedDict()
         self.interShifts = OrderedDict()
+        self.allShifts = OrderedDict()
         chemicalShiftList = self.application.project.getByPid(self.shiftListWidget.pulldownList.currentText())
 
         if chemicalShiftList:
@@ -693,6 +701,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                     self.interShifts[nmrResidue] = shifts
                 else:
                     self.intraShifts[nmrResidue] = shifts
+                self.allShifts[nmrResidue] = shifts
 
     def _createMatchStrips(self, assignMatrix: typing.Tuple[typing.Dict[NmrResidue, typing.List[ChemicalShift]], typing.List[float]]):
         """
