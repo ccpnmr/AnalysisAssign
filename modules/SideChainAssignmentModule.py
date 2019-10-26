@@ -50,7 +50,7 @@ class SideChainAssignmentModule(PickAndAssignModule):
                                           targetName='NmrAtom', callback=self._updateModules,
                                           )
 
-        # self.refreshButton.show()             # ejb - not working
+        # self.refreshButton.show()
         # self.refreshButton.setCallback(self._startAssignment)
         # self.spectrumSelectionWidget.refreshBox.setCallback(self._mediateRefresh)
         # self.nmrResidueTable.nmrResidueTable.setTableCallback(self._startAssignment)
