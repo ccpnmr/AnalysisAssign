@@ -263,21 +263,21 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                         if strip is not None:
                             # NB connections are made as connectPrevious / connectNext to passed-in NmrResidue
                             # It follows that it IS the mainNMr Residue that should be passed in here
-                            # Note, though, that you get teh same connections WHICHEVER strip you drop on
-                            label = strip.header.getLabel(position='l')
-                            notifier = GuiNotifier(label,  #getStripLabel(),
-                                                   [GuiNotifier.DROPEVENT], [DropBase.TEXT],
-                                                   self._processDroppedNmrResidueLabel,
-                                                   toLabel=strip.header.getLabel(position='c'),
-                                                   plusChain=False)
-                            self._stripNotifiers.append(notifier)
-                            label = strip.header.getLabel(position='r')
-                            notifier = GuiNotifier(label,  #getStripLabel(),
-                                                   [GuiNotifier.DROPEVENT], [DropBase.TEXT],
-                                                   self._processDroppedNmrResidueLabel,
-                                                   toLabel=strip.header.getLabel(position='c'),
-                                                   plusChain=True)
-                            self._stripNotifiers.append(notifier)
+                            # Note, though, that you get the same connections WHICHEVER strip you drop on
+                            # label = strip.header.getLabel(position='l')
+                            # notifier = GuiNotifier(label,  #getStripLabel(),
+                            #                        [GuiNotifier.DROPEVENT], [DropBase.TEXT],
+                            #                        self._processDroppedNmrResidueLabel,
+                            #                        toLabel=strip.header.getLabel(position='c'),
+                            #                        plusChain=False)
+                            # self._stripNotifiers.append(notifier)
+                            # label = strip.header.getLabel(position='r')
+                            # notifier = GuiNotifier(label,  #getStripLabel(),
+                            #                        [GuiNotifier.DROPEVENT], [DropBase.TEXT],
+                            #                        self._processDroppedNmrResidueLabel,
+                            #                        toLabel=strip.header.getLabel(position='c'),
+                            #                        plusChain=True)
+                            # self._stripNotifiers.append(notifier)
 
                             strip.header.handle = STRIPBACKBONE
                             strip.header.headerVisible = True
