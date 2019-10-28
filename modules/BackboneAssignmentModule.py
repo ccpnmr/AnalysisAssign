@@ -656,14 +656,14 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 iNmrResidue = matchResidue.mainNmrResidue
 
                 # this is where the nmrResidue can be dropped in the existing nmrChain
-                scoreLabelling.append('i+1')
+                scoreLabelling.append(' [ i+1 ] ')
                 matchDirection = 1
             else:
                 iNmrResidue = matchResidue
-                scoreLabelling.append('i-1')
+                scoreLabelling.append(' [ i-1 ] ')
                 matchDirection = -1
 
-            scoreAssignment.append('%i' % int(100 - min(1000 * assignmentScore, 100)) + '%')
+            scoreAssignment.append(' [ %i' % int(100 - min(1000 * assignmentScore, 100)) + '% ] ')
 
             nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
@@ -698,7 +698,10 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 strip.header.reset()
                 strip.header.setLabelText(position='l', text=scoreLabelling[ii])
                 strip.header.setLabelText(position='c', text=nmrResiduePid)
-                strip.header.setLabelConnectDir(position='c', connectDir=STRIPCONNECT_LEFT if scoreLabelling[ii].startswith('i-1') else STRIPCONNECT_RIGHT)
+
+                # TODO:ED need to improve this
+                # strip.header.setLabelConnectDir(position='c', connectDir=STRIPCONNECT_LEFT if scoreLabelling[ii].startswith('i-1') else STRIPCONNECT_RIGHT)
+                strip.header.setLabelConnectDir(position='c', connectDir=STRIPCONNECT_LEFT if 'i-1' in scoreLabelling[ii] else STRIPCONNECT_RIGHT)
                 strip.header.setLabelText(position='r', text=scoreAssignment[ii])
 
                 # disable dropping onto these labels
