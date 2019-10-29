@@ -124,17 +124,33 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                                     )
 
         # Match module selection
+        # row += 1
+        # # cannot set a notifier for displays, as these are not (yet?) implemented
+        # self.matchWidget = ListCompoundWidget(self.nmrResidueTableSettings,
+        #                                       grid=(row, col), vAlign='top', hAlign='left',
+        #                                       fixedWidths=(colWidth0, colWidth0, colWidth0),
+        #                                       orientation='left',
+        #                                       labelText="Match module(s):",
+        #                                       texts=[display.pid for display in self.mainWindow.spectrumDisplays]
+        #                                       )
+        # self.matchWidget.setPreSelect(self._fillDisplayWidget)
+        # self.matchWidget.setFixedHeights((None, None, 40))
+
+        # new match module pulldown list
         row += 1
-        # cannot set a notifier for displays, as these are not (yet?) implemented
-        self.matchWidget = ListCompoundWidget(self.nmrResidueTableSettings,
-                                              grid=(row, col), vAlign='top', hAlign='left',
-                                              fixedWidths=(colWidth0, colWidth0, colWidth0),
-                                              orientation='left',
-                                              labelText="Match module(s):",
-                                              texts=[display.pid for display in self.mainWindow.spectrumDisplays]
-                                              )
-        self.matchWidget.setPreSelect(self._fillDisplayWidget)
-        self.matchWidget.setFixedHeights((None, None, 40))
+        self.matchWidget = PulldownListCompoundWidget(self.nmrResidueTableSettings, labelText="Match module:",
+                                                      fixedWidths=(colWidth0, colWidth0, None), grid=(row, col), gridSpan=(1, 2))
+        self.matchWidget.setPreSelect(self._fillMatchWidget)
+        self._fillMatchWidget()
+        self.matchWidget.pulldownList.setIndex(0)
+
+        # new result module pulldown list
+        row += 1
+        self.resultWidget = PulldownListCompoundWidget(self.nmrResidueTableSettings, labelText="Result module:",
+                                                      fixedWidths=(colWidth0, colWidth0, None), grid=(row, col), gridSpan=(1, 2))
+        self.resultWidget.setPreSelect(self._fillResultWidget)
+        self._fillResultWidget()
+        self.resultWidget.pulldownList.setIndex(0)
 
         # Chemical shift list selection
         row += 1
@@ -158,9 +174,19 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
         self.mainWidget.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
-    def _fillDisplayWidget(self):
+    def _fillMatchWidget(self):
         ll = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
+        thisText = self.matchWidget.getText()
         self.matchWidget.pulldownList.setData(texts=ll)
+        if thisText:
+            self.matchWidget.select(thisText, True)
+
+    def _fillResultWidget(self):
+        ll = ['> select-to-add <'] + [display.pid for display in self.mainWindow.spectrumDisplays]
+        thisText = self.resultWidget.getText()
+        self.resultWidget.pulldownList.setData(texts=ll)
+        if thisText:
+            self.resultWidget.select(thisText, True)
 
     def _getDisplays(self):
         "return list of displays to navigate"
@@ -169,19 +195,29 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         if self.nmrResidueTableSettings.displaysWidget:
             dGids = self.nmrResidueTableSettings.displaysWidget.getTexts()  # gid's of displays
             if len(dGids) == 0: return displays
-            mGids = self.matchWidget.getTexts()  # gid of the match displays
+
+            matchGids = self.matchWidget.getText()          # gid of the match module
+            resultGids = None   #.resultWidget.getText()         # gid of the results module - don't discard for the minute
+
             if ALL in dGids:
-                displays = [dp for dp in self.application.ui.mainWindow.spectrumDisplays if dp.pid not in mGids]
+                displays = [dp for dp in self.application.ui.mainWindow.spectrumDisplays if dp.pid not in (matchGids, resultGids)]
             else:
-                displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in mGids)]
+                displays = [self.application.getByGid(gid) for gid in dGids if (gid != ALL and gid not in (matchGids, resultGids))]
 
         return displays
 
     def _getMatchDisplays(self):
-        "return list of displays to display matches"
-        displays = []
-        mGids = self.matchWidget.getTexts()  # gid of the match displays
-        displays = [self.application.getByGid(gid) for gid in mGids]
+        """return list of displays to display matches
+        """
+        mGids = self.matchWidget.getText()  # gid of the match displays
+        displays = [self.application.getByGid(gid) for gid in (mGids,)]
+        return displays
+
+    def _getResultDisplays(self):
+        """return list of displays to display results
+        """
+        mGids = self.resultWidget.getText()  # gid of the match displays
+        displays = [self.application.getByGid(gid) for gid in (mGids,)]
         return displays
 
     def navigateToNmrResidueCallBack(self, data):
@@ -213,9 +249,14 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
 
-        if self.matchCheckBoxWidget.isChecked() and len(self.matchWidget.getTexts()) == 0:
+        if self.matchCheckBoxWidget.isChecked() and self.matchWidget.getIndex() == 0:
             getLogger().warning('Undefined match module; select in settings first or unselect "Find matches"')
             showWarning('startAssignment', 'Undefined match module;\nselect in settings first or unselect "Find matches"')
+            return
+
+        if self.matchCheckBoxWidget.isChecked() and self.resultWidget.getIndex() == 0:
+            getLogger().warning('Undefined result module; select in settings first or unselect "Find matches"')
+            showWarning('startAssignment', 'Undefined result module;\nselect in settings first or unselect "Find matches"')
             return
 
         with undoBlock():
@@ -234,6 +275,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             self._stripNotifiers = []
 
             nr = nmrResidue.mainNmrResidue
+            resultDisplays = self._getResultDisplays()
+
             # navigate the displays
             for display in displays:
 
@@ -255,7 +298,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                                                            widths=newWidths,
                                                            showSequentialResidues=(len(display.axisCodes) > 2) and
                                                                                   self.nmrResidueTableSettings.sequentialStripsWidget.checkBox.isChecked(),
-                                                           markPositions=False  #self.nmrResidueTableSettings.markPositionsWidget.checkBox.isChecked()
+                                                           markPositions=False,  #self.nmrResidueTableSettings.markPositionsWidget.checkBox.isChecked()
+                                                           showDropHeaders=display in resultDisplays,
                                                            )
 
                     # activate a callback notifiers; allow dropping onto the NmrResidueLabel
