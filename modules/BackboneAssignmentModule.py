@@ -147,7 +147,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         # new result module pulldown list
         row += 1
         self.resultWidget = PulldownListCompoundWidget(self.nmrResidueTableSettings, labelText="Result module:",
-                                                      fixedWidths=(colWidth0, colWidth0, None), grid=(row, col), gridSpan=(1, 2))
+                                                       fixedWidths=(colWidth0, colWidth0, None), grid=(row, col), gridSpan=(1, 2))
         self.resultWidget.setPreSelect(self._fillResultWidget)
         self._fillResultWidget()
         self.resultWidget.pulldownList.setIndex(0)
@@ -196,8 +196,8 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             dGids = self.nmrResidueTableSettings.displaysWidget.getTexts()  # gid's of displays
             if len(dGids) == 0: return displays
 
-            matchGids = self.matchWidget.getText()          # gid of the match module
-            resultGids = None   #.resultWidget.getText()         # gid of the results module - don't discard for the minute
+            matchGids = self.matchWidget.getText()  # gid of the match module
+            resultGids = None  #.resultWidget.getText()         # gid of the results module - don't discard for the minute
 
             if ALL in dGids:
                 displays = [dp for dp in self.application.ui.mainWindow.spectrumDisplays if dp.pid not in (matchGids, resultGids)]
@@ -232,7 +232,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         # if isinstance(nmrResidue, (tuple, list)):
         #     nmrResidue = nmrResidue[0]
 
-        nmrResidue = data[CallBack.ROWOBJECT]           # the item clicked, not everything selected
+        nmrResidue = data[CallBack.ROWOBJECT]  # the item clicked, not everything selected
         row = data[CallBack.ROW]
         col = data[CallBack.COL]
         self.navigateToNmrResidue(nmrResidue, row=row, col=col)
@@ -244,19 +244,25 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         """
         displays = self._getDisplays()
         if len(displays) == 0 and self.nmrResidueTableSettings.displaysWidget:
-
             getLogger().warning('Undefined display module(s); select in settings first')
             showWarning('startAssignment', 'Undefined display module(s);\nselect in settings first')
             return
 
-        if self.matchCheckBoxWidget.isChecked() and self.matchWidget.getIndex() == 0:
+        matchIndex = self.matchWidget.getIndex()
+        resultIndex = self.resultWidget.getIndex()
+        if self.matchCheckBoxWidget.isChecked() and matchIndex == 0:
             getLogger().warning('Undefined match module; select in settings first or unselect "Find matches"')
             showWarning('startAssignment', 'Undefined match module;\nselect in settings first or unselect "Find matches"')
             return
 
-        if self.matchCheckBoxWidget.isChecked() and self.resultWidget.getIndex() == 0:
+        if self.matchCheckBoxWidget.isChecked() and resultIndex == 0:
             getLogger().warning('Undefined result module; select in settings first or unselect "Find matches"')
             showWarning('startAssignment', 'Undefined result module;\nselect in settings first or unselect "Find matches"')
+            return
+
+        if (matchIndex == resultIndex) and matchIndex != 0:
+            getLogger().warning('Match module and Result module cannot be the same')
+            showWarning('startAssignment', 'Match module and Result module cannot be the same')
             return
 
         with undoBlock():
@@ -280,7 +286,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
             # navigate the displays
             for display in displays:
 
-                display.showAllStripHeaders()       # tag all headers with backboneAssignment module as handler
+                display.showAllStripHeaders()  # tag all headers with backboneAssignment module as handler
 
                 if len(display.strips) > 0:
 
@@ -636,8 +642,11 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         yShifts = matchAxesAndNmrAtoms(strips[0], nmrResidue.nmrAtoms)[strips[0].axisOrder[1]]
         yShiftValues = [x.value for x in yShifts]
         if yShiftValues:
+
+            _minPpmWidths = {'H': 0.5, 'C': 8.0, 'N': 2.0}              # based on standard ratios
+
             yPosition = (max(yShiftValues) + min(yShiftValues)) / 2
-            yWidth = max(yShiftValues) - min(yShiftValues) + 10
+            yWidth = max(yShiftValues) - min(yShiftValues)
 
             # original strips match axes
             strips[0].orderedAxes[1].position = yPosition
@@ -645,15 +654,24 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
             try:
                 axisCode = strips[0].axisCodes[1]
+
                 for strip in strips:
-                    strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPosition, update=False)
-                    strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yWidth, update=False)
+                    # adjust the position of the strip to be clear of the new headers
+
+                    minPpm = 1.0 if axisCode[0] not in _minPpmWidths else _minPpmWidths[axisCode[0]]
+
+                    yPixel = max(yWidth, minPpm) / strip._CcpnGLWidget.height()
+                    yPos = yPosition - (40 * yPixel)
+                    yW = max(yWidth, minPpm) + (140 * yPixel)
+
+                    strip._CcpnGLWidget.setAxisPosition(axisCode=axisCode, position=yPos, update=False)
+                    strip._CcpnGLWidget.setAxisWidth(axisCode=axisCode, width=yW, update=False)
                     strip._CcpnGLWidget._scaleToYAxis()
 
-                    from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
+                from ccpn.ui.gui.lib.OpenGL.CcpnOpenGL import GLNotifier
 
-                    GLSignals = GLNotifier(parent=self)
-                    GLSignals.emitPaintEvent()
+                GLSignals = GLNotifier(parent=self)
+                GLSignals.emitPaintEvent()
 
             except Exception as es:
                 getLogger().debugGL('OpenGL widget not instantiated')

@@ -42,6 +42,7 @@ from ccpn.core.lib.AssignmentLib import getNmrResiduePrediction
 from ccpn.core.lib.Notifiers import Notifier
 from ccpn.core.lib.CallBack import CallBack
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay, _getCurrentZoomRatio
+from ccpn.ui.gui.lib.mouseEvents import makeDragEvent
 from ccpn.ui.gui.widgets.Widget import Widget
 from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
 from ccpn.ui.gui.guiSettings import getColours
@@ -218,35 +219,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
             nmrItem = self
 
             if nmrItem:
-                drag = QtGui.QDrag(event.widget())
-                mimeData = QtCore.QMimeData()
-                itemData = json.dumps({'pids': [nmrItem.nmrResidue.pid]})  # nmrChain.pid
-
-                # ejb - added so that itemData works with PyQt5
-                tempData = QtCore.QByteArray()
-                stream = QtCore.QDataStream(tempData, QtCore.QIODevice.WriteOnly)
-                stream.writeQString(itemData)
-                mimeData.setData(ccpnmrJsonData, tempData)
-
-                # mimeData.setData(ccpnmrJsonData, itemData)
-                mimeData.setText(itemData)
-                drag.setMimeData(mimeData)
-
-                dragLabel = QtWidgets.QLabel()
-                dragLabel.setText(self.toPlainText())
-                dragLabel.setFont(textFont)
-                dragLabel.setStyleSheet('color : %s' % (self.colours[GUINMRRESIDUE]))
-
-                pixmap = dragLabel.grab()
-
-                painter = QtGui.QPainter(pixmap)
-                painter.setCompositionMode(painter.CompositionMode_DestinationIn)
-                painter.fillRect(pixmap.rect(), QtGui.QColor(0, 0, 0, 240))
-                painter.end()
-                drag.setPixmap(pixmap)
-                drag.setHotSpot(QtCore.QPoint(dragLabel.width() // 2, dragLabel.height() // 2))
-
-                drag.exec_(QtCore.Qt.MoveAction)  # ejb - same as BackboneAssignment
+                makeDragEvent(event.widget(), {'pids': [nmrItem.nmrResidue.pid]}, self.toPlainText(), action=QtCore.Qt.MoveAction)
 
     def _mousePressEvent(self, event):
         self.current.nmrResidue = self.nmrResidue
