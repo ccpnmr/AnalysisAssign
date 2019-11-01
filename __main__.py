@@ -22,6 +22,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 # Start of code
 #=========================================================================================
 
+# from PyQt5 import QtGui, QtWidgets, QtCore
 from ccpn.framework import Framework
 from ccpn.AnalysisAssign.AnalysisAssign import Assign as Application
 from ccpn.framework.Version import applicationVersion
@@ -36,6 +37,12 @@ if __name__ == '__main__':
 
     # add any additional commandline argument here
     commandLineArguments = parser.parse_args()
+
+    # viewportFormat = QtGui.QSurfaceFormat()
+    # viewportFormat.setSwapInterval(0)  #disable VSync - this works here!
+    # viewportFormat.setSwapBehavior(QtGui.QSurfaceFormat.TripleBuffer)
+    # QtGui.QSurfaceFormat().setDefaultFormat(viewportFormat)
+    # QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_ImmediateWidgetCreation, True)
 
     application = Application(Framework.AnalysisAssign, applicationVersion, commandLineArguments)
     Framework._getApplication = lambda: application
