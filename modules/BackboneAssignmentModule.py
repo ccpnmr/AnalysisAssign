@@ -718,14 +718,14 @@ class BackboneAssignmentModule(NmrResidueTableModule):
                 iNmrResidue = matchResidue.mainNmrResidue
 
                 # this is where the nmrResidue can be dropped in the existing nmrChain
-                scoreLabelling.append(' [ i+1 ] ')
+                scoreLabelling.append('[ i+1 ]')
                 matchDirection = 1
             else:
                 iNmrResidue = matchResidue
-                scoreLabelling.append(' [ i-1 ] ')
+                scoreLabelling.append('[ i-1 ]')
                 matchDirection = -1
 
-            scoreAssignment.append(' [ %i' % int(100 - min(1000 * assignmentScore, 100)) + '% ] ')
+            scoreAssignment.append('[ %i' % int(100 - min(1000 * assignmentScore, 100)) + '% ]')
 
             nmrAtomPairs.append((iNmrResidue.fetchNmrAtom(name='N'), iNmrResidue.fetchNmrAtom(name='H')))
 
