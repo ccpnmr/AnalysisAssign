@@ -26,15 +26,20 @@ __date__ = "$Date: 2016-05-23 10:02:47 +0100 (Mon, 23 May 2016) $"
 #=========================================================================================
 
 import math
+from numba import jit
 
-
+@jit(nopython = True)
 def qScore(value1: float, value2: float):
+    if value1 + value2 == 0: return 0 # otherwise is a ZeroDivision error.
     return math.sqrt(((value1 - value2) ** 2) / ((value1 + value2) ** 2))
 
 
+
 def averageQScore(valueLists):
+    if len(valueLists[0]) == 0: return 0 # otherwise is a ZeroDivision error.
     score = sum([qScore(valueList[0], valueList[1]) for valueList in valueLists]) / len(valueLists[0])
     return score
+
 
 
 def euclidean(valueList):
