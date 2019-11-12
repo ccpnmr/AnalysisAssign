@@ -1586,7 +1586,7 @@ class SequenceGraphModule(CcpnModule):
         self._MWwidget = Widget(self.mainWidget, setLayout=True,
                                 grid=(0, 0), vAlign='top', hAlign='left')
 
-        self.nmrChainPulldown = NmrChainPulldown(self._MWwidget, self.project, grid=(0, 0), gridSpan=(1, 1),
+        self.nmrChainPulldown = NmrChainPulldown(self._MWwidget, self.mainWindow, grid=(0, 0), gridSpan=(1, 1),
                                                  showSelectName=True,
                                                  fixedWidths=(colwidth, colwidth, colwidth),
                                                  callback=self.showNmrChainFromPulldown)

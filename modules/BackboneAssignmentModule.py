@@ -154,7 +154,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
         # Chemical shift list selection
         row += 1
-        self.shiftListWidget = ChemicalShiftListPulldown(self.nmrResidueTableSettings, self.application.project,
+        self.shiftListWidget = ChemicalShiftListPulldown(self.nmrResidueTableSettings, self.mainWindow,
                                                          grid=(row, col), vAlign='top', hAlign='left',
                                                          fixedWidths=(colWidth0, colWidth0, None),
                                                          callback=self._setupShiftDicts, default=None

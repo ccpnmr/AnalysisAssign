@@ -182,13 +182,13 @@ class NmrAtomAssignerModule(CcpnModule):
         resRow += 1
 
         _f = Frame(self._residueFrame, setLayout=True, showBorder=False, grid=(resRow, 0), gridSpan=(1, 3))
-        self._nmrChain = NmrChainPulldown(_f, project=self.project,
+        self._nmrChain = NmrChainPulldown(_f, mainWindow=self.mainWindow,
                                           labelText='NmrChain:', showSelectName=True,
                                           setCurrent=False,
                                           callback=self._nmrChainPullDownCallback,
                                           grid=(0, 0), hPolicy='minimal', minimumWidths=None,
                                           sizeAdjustPolicy=QtWidgets.QComboBox.AdjustToContents)
-        self._nmrResidue = NmrResiduePulldown(_f, project=self.project,
+        self._nmrResidue = NmrResiduePulldown(_f, mainWindow=self.mainWindow,
                                               labelText='NmrResidue:', useIds=False, showSelectName=False,
                                               setCurrent=True, followCurrent=True,
                                               filterFunction=self._filterResidues,
