@@ -6,7 +6,7 @@ Responds to current.peaks
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2019"
+__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2020"
 __credits__ = ("Ed Brooksbank, Luca Mureddu, Timothy J Ragan & Geerten W Vuister")
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license")
 __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, L.G., & Vuister, G.W.",
@@ -15,8 +15,8 @@ __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, 
 #=========================================================================================
 # Last code modification
 #=========================================================================================
-__modifiedBy__ = "$modifiedBy: CCPN $"
-__dateModified__ = "$dateModified: 2017-07-07 16:32:46 +0100 (Fri, July 07, 2017) $"
+__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__dateModified__ = "$dateModified: 2020-01-06 16:06:32 +0000 (Mon, January 06, 2020) $"
 __version__ = "$Revision: 3.0.0 $"
 #=========================================================================================
 # Created
@@ -211,9 +211,13 @@ class PeakAssigner(CcpnModule):
                                          [Notifier.CHANGE, Notifier.RENAME, Notifier.CREATE],
                                          targetName=NmrAtom.__name__,
                                          callback=self._updateNmrAtom)
-        self._nmrResidueNotifier = Notifier(self.project,
+        self._peakChangeNotifier = Notifier(self.project,
                                             [Notifier.CHANGE],
                                             targetName=Peak.__name__,
+                                            callback=self._updateNmrResidue)
+        self._nmrResidueNotifier = Notifier(self.project,
+                                            [Notifier.DELETE, Notifier.CREATE],
+                                            targetName=NmrResidue.__name__,
                                             callback=self._updateNmrResidue)
 
     def _unRegisterNotifiers(self):
@@ -221,6 +225,8 @@ class PeakAssigner(CcpnModule):
             self._peakNotifier.unRegister()
         if self._nmrAtomNotifier:
             self._nmrAtomNotifier.unRegister()
+        if self._peakChangeNotifier:
+            self._peakChangeNotifier.unRegister()
         if self._nmrResidueNotifier:
             self._nmrResidueNotifier.unRegister()
 
@@ -302,7 +308,8 @@ class PeakAssigner(CcpnModule):
         peaks = self.current.peaks
         doubleTolerance = self.doubleToleranceCheckbox.isChecked()
         intraResidual = self.intraCheckbox.isChecked()
-        nmrAtomsForTables = nmrAtomsForPeaks(peaks, self.project.nmrAtoms,
+        validNmrAtoms = [nmrAtom for nmrAtom in self.project.nmrAtoms if not (nmrAtom.nmrResidue.isDeleted or nmrAtom.nmrResidue._flaggedForDelete)]
+        nmrAtomsForTables = nmrAtomsForPeaks(peaks, validNmrAtoms,
                                              doubleTolerance=doubleTolerance,
                                              intraResidual=intraResidual)
 
@@ -318,6 +325,7 @@ class PeakAssigner(CcpnModule):
 
             ll = [set(peak.dimensionNmrAtoms[dim]) for peak in self.current.peaks]
             self.nmrAtoms = list(sorted(set.intersection(*ll)))  # was intersection
+            self.nmrAtoms = [nmrAtom for nmrAtom in self.nmrAtoms if not (nmrAtom.nmrResidue.isDeleted or nmrAtom.nmrResidue._flaggedForDelete)]
 
             self.currentList.append([str(a.pid) for a in self.nmrAtoms])  # ejb - keep another list
             self.axisTables[dim].setAssignedTable(self.nmrAtoms)
