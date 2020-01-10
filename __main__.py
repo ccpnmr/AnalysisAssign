@@ -1,7 +1,7 @@
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2019"
+__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2020"
 __credits__ = ("Ed Brooksbank, Luca Mureddu, Timothy J Ragan & Geerten W Vuister")
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license")
 __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, L.G., & Vuister, G.W.",
@@ -10,8 +10,8 @@ __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, 
 #=========================================================================================
 # Last code modification
 #=========================================================================================
-__modifiedBy__ = "$modifiedBy: CCPN $"
-__dateModified__ = "$dateModified: 2017-07-07 16:32:20 +0100 (Fri, July 07, 2017) $"
+__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__dateModified__ = "$dateModified: 2020-01-10 11:10:47 +0000 (Fri, January 10, 2020) $"
 __version__ = "$Revision: 3.0.0 $"
 #=========================================================================================
 # Created
@@ -22,7 +22,7 @@ __date__ = "$Date: 2017-04-07 10:28:40 +0000 (Fri, April 07, 2017) $"
 # Start of code
 #=========================================================================================
 
-# from PyQt5 import QtGui, QtWidgets, QtCore
+from PyQt5 import QtGui
 from ccpn.framework import Framework
 from ccpn.AnalysisAssign.AnalysisAssign import Assign as Application
 from ccpn.framework.Version import applicationVersion
@@ -38,10 +38,9 @@ if __name__ == '__main__':
     # add any additional commandline argument here
     commandLineArguments = parser.parse_args()
 
-    # viewportFormat = QtGui.QSurfaceFormat()
-    # viewportFormat.setSwapInterval(0)  #disable VSync - this works here!
-    # viewportFormat.setSwapBehavior(QtGui.QSurfaceFormat.TripleBuffer)
-    # QtGui.QSurfaceFormat().setDefaultFormat(viewportFormat)
+    viewportFormat = QtGui.QSurfaceFormat()
+    viewportFormat.setSwapInterval(0)  #disable VSync - this works here!
+    QtGui.QSurfaceFormat().setDefaultFormat(viewportFormat)
     # QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_ImmediateWidgetCreation, True)
 
     application = Application(Framework.AnalysisAssign, applicationVersion, commandLineArguments)
