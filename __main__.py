@@ -11,8 +11,8 @@ __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, 
 # Last code modification
 #=========================================================================================
 __modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
-__dateModified__ = "$dateModified: 2020-01-10 11:10:47 +0000 (Fri, January 10, 2020) $"
-__version__ = "$Revision: 3.0.0 $"
+__dateModified__ = "$dateModified: 2020-02-07 19:17:10 +0000 (Fri, February 07, 2020) $"
+__version__ = "$Revision: 3.0.1 $"
 #=========================================================================================
 # Created
 #=========================================================================================
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     commandLineArguments = parser.parse_args()
 
     viewportFormat = QtGui.QSurfaceFormat()
-    viewportFormat.setSwapInterval(0)  #disable VSync - this works here!
+    # viewportFormat.setSwapInterval(0)  #disable VSync - this works here!
     QtGui.QSurfaceFormat().setDefaultFormat(viewportFormat)
     # QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_ImmediateWidgetCreation, True)
 
