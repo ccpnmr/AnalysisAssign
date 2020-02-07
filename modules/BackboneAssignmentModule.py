@@ -170,18 +170,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
         self._stripNotifiers = []  # list to store GuiNotifiers for strips
         self.nmrResidueTable.multiSelect = True
         self.nmrResidueTable.setSelectionMode(self.nmrResidueTable.SingleSelection)
-        self.nmrResidueTable.setStyleSheet('''
-                    NmrResidueTable {border: 1px solid  #a9a9a9;
-                    border-bottom-right-radius: 2px;
-                    border-bottom-left-radius: 2px;}
-                    ''')
 
-        corner = QtGui.QWidget()
-        corner.setStyleSheet('''
-            border-top: 1px solid #a9a9a9;
-            border-left: 1px solid #a9a9a9;
-        ''')
-        self.nmrResidueTable.setCornerWidget(corner)
 
         #self.nmrResidueTable._setWidgetHeight(48)
 
