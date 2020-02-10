@@ -109,7 +109,7 @@ class PickAndAssignModule(NmrResidueTableModule):
             self.nmrResidueTableSettings.displaysWidget.addPulldownItem(0)  # select the <all> option
 
         self.nmrResidueTableSettings.setLabelText('Navigate to\nDisplay(s):')
-        self.nmrResidueTable._setWidgetHeight(45)
+        self.nmrResidueTable._setWidgetHeight(50)
 
         # need to feedback to current.nmrResidueTable
         self._selectOnTableCurrentNmrResiduesNotifier = None
