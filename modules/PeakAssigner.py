@@ -164,6 +164,11 @@ class PeakAssigner(CcpnModule):
         self._axisFrameScrollArea = ScrollArea(parent=self.mainWidget,
                                                grid=(1, 0),
                                                hPolicy='expanding', vPolicy='expanding')
+        self._axisFrameScrollArea.setStyleSheet('''.ScrollArea {
+                                    margin-left : 2px;
+                                    margin-right : 1px;
+                                    margin-bottom : 1px}
+                                    ''')
         self.axisFrameWidget = Widget(parent=None, acceptDrops=True)
 
         # put a container widget into the scroll area
@@ -183,6 +188,10 @@ class PeakAssigner(CcpnModule):
                                showBorder=False, fShape='noFrame',
                                grid=(1, 0),
                                hPolicy='expanding', vPolicy='expanding')
+        self.axisFrame.setStyleSheet('''.Frame {
+                                    padding-left: 2px;
+                                    padding-right: 3px;
+                                    }''')
         self.axisTables = []
         self.axisDivergeLabels = []
         self.NDims = 0
