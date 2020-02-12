@@ -76,7 +76,7 @@ class PickAndAssignModule(NmrResidueTableModule):
 
     def __init__(self, mainWindow, name='Pick and Assign'):
 
-        super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name=name)  # ejb ='Pick And Assign')
+        super(PickAndAssignModule, self).__init__(mainWindow=mainWindow, name=name,  selectFirstItem=True)  # ejb ='Pick And Assign')
 
         # Derive application, project, and current from mainWindow
         self.mainWindow = mainWindow
@@ -110,6 +110,7 @@ class PickAndAssignModule(NmrResidueTableModule):
 
         self.nmrResidueTableSettings.setLabelText('Navigate to\nDisplay(s):')
         self.nmrResidueTable._setWidgetHeight(50)
+
 
         # need to feedback to current.nmrResidueTable
         self._selectOnTableCurrentNmrResiduesNotifier = None
