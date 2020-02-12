@@ -76,7 +76,7 @@ class BackboneAssignmentModule(NmrResidueTableModule):
 
     def __init__(self, mainWindow=None, name='Backbone Assignment'):
 
-        super(BackboneAssignmentModule, self).__init__(mainWindow=mainWindow, name=name)
+        super(BackboneAssignmentModule, self).__init__(mainWindow=mainWindow, name=name, selectFirstItem=True)
 
         # Derive application, project, and current from mainWindow
         self.mainWindow = mainWindow
