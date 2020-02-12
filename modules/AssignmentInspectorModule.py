@@ -17,7 +17,7 @@ __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, 
 # Last code modification
 #=========================================================================================
 __modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
-__dateModified__ = "$dateModified: 2020-03-10 01:08:29 +0000 (Tue, March 10, 2020) $"
+__dateModified__ = "$dateModified: 2020-03-10 01:10:10 +0000 (Tue, March 10, 2020) $"
 __version__ = "$Revision: 3.0.1 $"
 #=========================================================================================
 # Created
@@ -596,7 +596,7 @@ class AssignmentInspectorTable(GuiTable):
 
         self.nmrAtomListFrame.setFixedWidth(self._nmrAtomListFrameWidth)
         self.nmrAtomLabel = Label(self.nmrAtomListFrame, 'Filter by NmrAtom(s):', bold=True,
-                                  grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2, 5, 2, 5])
+                                  grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2, 4, 2, 5])
 
         self.attachedNmrAtomsList = ListWidget(self.nmrAtomListFrame,
                                                contextMenu=False,
