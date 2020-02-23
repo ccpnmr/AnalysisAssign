@@ -7,7 +7,7 @@ modified by Geerten 1-9/12/2016:
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2019"
+__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2020"
 __credits__ = ("Ed Brooksbank, Luca Mureddu, Timothy J Ragan & Geerten W Vuister")
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license")
 __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, L.G., & Vuister, G.W.",
@@ -16,9 +16,9 @@ __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, 
 #=========================================================================================
 # Last code modification
 #=========================================================================================
-__modifiedBy__ = "$modifiedBy: CCPN $"
-__dateModified__ = "$dateModified: 2017-07-07 16:32:21 +0100 (Fri, July 07, 2017) $"
-__version__ = "$Revision: 3.0.0 $"
+__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__dateModified__ = "$dateModified: 2020-03-10 01:08:29 +0000 (Tue, March 10, 2020) $"
+__version__ = "$Revision: 3.0.1 $"
 #=========================================================================================
 # Created
 #=========================================================================================
@@ -54,6 +54,7 @@ from ccpn.ui.gui.lib.Strip import navigateToNmrAtomsInStrip, \
     _getCurrentZoomRatio, navigateToNmrResidueInDisplay
 from ccpn.core.PeakList import PeakList
 from ccpn.util.Common import makeIterableList
+from PyQt5.QtWidgets import QAbstractScrollArea
 
 
 logger = getLogger()
@@ -83,9 +84,11 @@ class AssignmentInspectorModule(CcpnModule):
     includeSettingsWidget = True
     maxSettingsState = 2  # states are defined as: 0: invisible, 1: both visible, 2: only settings visible
     settingsPosition = 'top'
+    LARGE_STRETCH = 100000
+    SETTING_PADDING = 4
 
-    def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None):
-        super().__init__(mainWindow=mainWindow, name=name)  # gwv
+    def __init__(self, mainWindow, name='Assignment Inspector', chemicalShiftList=None, selectFirstItem = False):
+        super().__init__(mainWindow=mainWindow, name=name, settingsScrollDirections=('horizontal',))  # gwv
 
         # Derive application, project, and current from mainWindow
         self.mainWindow = mainWindow
@@ -113,17 +116,29 @@ class AssignmentInspectorModule(CcpnModule):
         self.splitter.setChildrenCollapsible(False)
         self._assignmentFrame.setMinimumHeight(100)
 
-        self._AIwidget = Widget(self.settingsWidget, setLayout=True,
-                                grid=(0, 0), vAlign='top', hAlign='left')
 
         # cannot set a notifier for displays, as these are not (yet?) implemented and the Notifier routines
         # underpinning the addNotifier call do not allow for it either
         colwidth = 140
-        self.displaysWidget = ListCompoundWidget(self._AIwidget,
+
+
+
+
+        self.settingsWidget.layout().setColumnStretch(2, self.LARGE_STRETCH)
+
+        self._settingsScrollArea.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
+        self._settingsScrollArea.setStyleSheet(".ScrollArea {padding: %ipx}" % self.SETTING_PADDING)
+        self._settingsScrollArea.setScrollBarPolicies(('asNeeded', 'never'))
+
+        self._splitWidget = Frame(self.settingsWidget,grid=(0, 0),setLayout=True, vPolicy='minimumExpanding')
+
+        self._tickLisWidget = Frame(self._splitWidget,grid=(0, 1),setLayout=True, vPolicy='minimum')
+
+        self.displaysWidget = ListCompoundWidget(self._splitWidget,
                                                  grid=(0, 0), vAlign='top', stretch=(0, 0), hAlign='left',
-                                                 vPolicy='minimal',
+                                                 vPolicy='maximum',
                                                  #minimumWidths=(colwidth, 0, 0),
-                                                 fixedWidths=(colwidth, 2 * colwidth, None),
+
                                                  orientation='left',
                                                  labelText='Display(s):',
                                                  tipText='SpectrumDisplay modules to respond to double-click',
@@ -131,11 +146,10 @@ class AssignmentInspectorModule(CcpnModule):
                                                  defaults=[ALL]
                                                  )
         self.displaysWidget.setPreSelect(self._fillDisplayWidget)
-        self.displaysWidget.setFixedHeights((None, None, 40))
 
         self.sequentialStripsWidget = CheckBoxCompoundWidget(
-                self._AIwidget,
-                grid=(1, 0), vAlign='top', stretch=(0, 0), hAlign='left',
+                self._tickLisWidget,
+                grid=(0, 0), vAlign='top', stretch=(0, 0), hAlign='left',
                 #minimumWidths=(colwidth, 0),
                 fixedWidths=(colwidth, 30),
                 orientation='left',
@@ -144,8 +158,8 @@ class AssignmentInspectorModule(CcpnModule):
                 )
 
         self.markPositionsWidget = CheckBoxCompoundWidget(
-                self._AIwidget,
-                grid=(2, 0), vAlign='top', stretch=(0, 0), hAlign='left',
+                self._tickLisWidget,
+                grid=(1, 0), vAlign='top', stretch=(0, 0), hAlign='left',
                 #minimumWidths=(colwidth, 0),
                 fixedWidths=(colwidth, 30),
                 orientation='left',
@@ -153,8 +167,8 @@ class AssignmentInspectorModule(CcpnModule):
                 checked=True
                 )
         self.autoClearMarksWidget = CheckBoxCompoundWidget(
-                self._AIwidget,
-                grid=(3, 0), vAlign='top', stretch=(0, 0), hAlign='left',
+                self._tickLisWidget,
+                grid=(2, 0), vAlign='top', stretch=(0, 0), hAlign='left',
                 #minimumWidths=(colwidth, 0),
                 fixedWidths=(colwidth, 30),
                 orientation='left',
@@ -162,8 +176,8 @@ class AssignmentInspectorModule(CcpnModule):
                 checked=True
                 )
         self.showNmrAtomListWidget = CheckBoxCompoundWidget(
-                self._AIwidget,
-                grid=(4, 0), vAlign='top', stretch=(0, 0), hAlign='left',
+                self._tickLisWidget,
+                grid=(3, 0), vAlign='top', stretch=(0, 0), hAlign='left',
                 #minimumWidths=(colwidth, 0),
                 fixedWidths=(colwidth, 30),
                 orientation='left',
@@ -172,8 +186,12 @@ class AssignmentInspectorModule(CcpnModule):
                 callback=self._setNmrAtomListVisible,
                 )
 
-        # main window
+        self._tickLisWidget.layout().setRowStretch(4,self.LARGE_STRETCH)
 
+        minHeight = self._calculateMinHeight()
+        self._settingsScrollArea.setMinimumSizes((self._settingsScrollArea.minimumWidth(), minHeight))
+
+        # main window
         # AssignedPeaksTable need to be intialised before chemicalShiftTable, as the callback of the latter requires
         # the former to be present
         self.assignedPeaksTable = AssignmentInspectorTable(parent=self._assignmentFrame,
@@ -196,12 +214,34 @@ class AssignmentInspectorModule(CcpnModule):
         # settingsWidget
         if chemicalShiftList is not None:
             self.chemicalShiftTable.selectChemicalShiftList(chemicalShiftList)
+        elif selectFirstItem:
+            firstItemText = self.chemicalShiftTable._chemicalShiftListPulldown.getFirstItemText()
+            if firstItemText:
+                self.chemicalShiftTable._chemicalShiftListPulldown.selectFirstItem()
+                chemicalShiftList = self.chemicalShiftTable._chemicalShiftListPulldown.getSelectedObject()
+                self.chemicalShiftTable._update(chemicalShiftList)
+
+                dataFrameObject  = self.chemicalShiftTable._dataFrameObject
+                if len(dataFrameObject.objects) > 0:
+                    self._selectByChemicalShifts([dataFrameObject.objects[0]])
+
+
 
         # install the event filter to handle maximising from floated dock
         self.installMaximiseEventHandler(self._maximise, self._closeModule)
         self._setNmrAtomListVisible(True)
 
         self._registerNotifiers()
+
+
+        # self.settingsWidget.dumpObjectTree()
+
+    def _calculateMinHeight(self):
+        contentsMargins = self._settingsScrollArea.contentsMargins()
+        marginsTotalVertical =  contentsMargins.top() + contentsMargins.bottom()
+        minHeight = max(self._tickLisWidget.sizeHint().height(), self.displaysWidget.minimumSizeHint().height()) + (
+                    self.SETTING_PADDING * 2) + marginsTotalVertical
+        return minHeight
 
     def _fillDisplayWidget(self):
         ll = ['> select-to-add <'] + [ALL] + [display.pid for display in self.mainWindow.spectrumDisplays]
@@ -299,6 +339,9 @@ class AssignmentInspectorModule(CcpnModule):
         else:
             chemicalShift = objs
 
+        self._navigateByChemicalShift(chemicalShift)
+
+    def _navigateByChemicalShift(self, chemicalShift):
         nmrResidue = chemicalShift.nmrAtom.nmrResidue
 
         getLogger().debug('nmrResidue=%s' % (nmrResidue.id))
@@ -374,24 +417,27 @@ class AssignmentInspectorModule(CcpnModule):
         if objList:
             getLogger().debug('AssignmentInspector_ChemicalShift>>> action', objList)
 
-            nmrResidues = [cs.nmrAtom.nmrResidue for cs in objList]
+        self._selectByChemicalShifts(objList)
 
-            if nmrResidues:
-                with self._notifierBlanking():
+    def _selectByChemicalShifts(self, chemicalShifts):
+        nmrResidues = [cs.nmrAtom.nmrResidue for cs in chemicalShifts]
 
-                    nmrAtoms = OrderedSet()
-                    for nmrRes in nmrResidues:
-                        for nmrAtom in nmrRes.nmrAtoms:
-                            nmrAtoms.add(nmrAtom)
+        if nmrResidues:
+            with self._notifierBlanking():
 
-                    self.current.nmrAtoms = tuple(nmrAtoms)
-                    self.current.nmrResidues = nmrResidues
+                nmrAtoms = OrderedSet()
+                for nmrRes in nmrResidues:
+                    for nmrAtom in nmrRes.nmrAtoms:
+                        nmrAtoms.add(nmrAtom)
 
-                    self._highlightChemicalShifts(nmrResidues)
+                self.current.nmrAtoms = tuple(nmrAtoms)
+                self.current.nmrResidues = nmrResidues
 
-                    self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
-                                                                   NMRATOMS   : tuple(nmrAtoms)},
-                                                                  updateFromNmrResidues=True)
+                self._highlightChemicalShifts(nmrResidues)
+
+                self.assignedPeaksTable._updateModuleCallback({NMRRESIDUES: nmrResidues,
+                                                               NMRATOMS   : tuple(nmrAtoms)},
+                                                              updateFromNmrResidues=True)
 
     def _highlightChemicalShifts(self, nmrResidues):
         """
@@ -544,11 +590,12 @@ class AssignmentInspectorTable(GuiTable):
         # main window
 
         # Frame-1: NmrAtoms list, hidden when table first opens
-        self._nmrAtomListFrameWidth = 130
+        # GST NOT TRUE ANY MORE?
+        self._nmrAtomListFrameWidth = 150
         self.nmrAtomListFrame = Frame(parent, grid=(0, 0), gridSpan=(1, 1), setLayout=True)  # ejb
 
         self.nmrAtomListFrame.setFixedWidth(self._nmrAtomListFrameWidth)
-        self.nmrAtomLabel = Label(self.nmrAtomListFrame, 'NmrAtom(s):', bold=True,
+        self.nmrAtomLabel = Label(self.nmrAtomListFrame, 'Filter by NmrAtom(s):', bold=True,
                                   grid=(0, 0), gridSpan=(1, 1), vAlign='center', margins=[2, 5, 2, 5])
 
         self.attachedNmrAtomsList = ListWidget(self.nmrAtomListFrame,
@@ -561,6 +608,10 @@ class AssignmentInspectorTable(GuiTable):
         self.attachedNmrAtomsList.setFixedWidth(self._nmrAtomListFrameWidth - 2)
         self.attachedNmrAtomsList.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.MinimumExpanding)
         self.nmrAtomListFrame.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        self.attachedNmrAtomsList.setStyleSheet('''.ListWidget {
+                                                        border: 1px solid #a9a9a9;
+                                                        border-radius: 2px;}''')
+
 
         # Frame-2: peaks
         self.frame2 = Frame(parent, grid=(0, 1), gridSpan=(1, 1), setLayout=True)  # ejb
