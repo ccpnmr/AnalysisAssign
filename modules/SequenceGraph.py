@@ -4,7 +4,7 @@
 #=========================================================================================
 # Licence, Reference and Credits
 #=========================================================================================
-__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2019"
+__copyright__ = "Copyright (C) CCPN project (http://www.ccpn.ac.uk) 2014 - 2020"
 __credits__ = ("Ed Brooksbank, Luca Mureddu, Timothy J Ragan & Geerten W Vuister")
 __licence__ = ("CCPN licence. See http://www.ccpn.ac.uk/v3-software/downloads/license")
 __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, L.G., & Vuister, G.W.",
@@ -13,9 +13,9 @@ __reference__ = ("Skinner, S.P., Fogh, R.H., Boucher, W., Ragan, T.J., Mureddu, 
 #=========================================================================================
 # Last code modification
 #=========================================================================================
-__modifiedBy__ = "$modifiedBy: CCPN $"
-__dateModified__ = "$dateModified: 2017-07-07 16:32:21 +0100 (Fri, July 07, 2017) $"
-__version__ = "$Revision: 3.0.0 $"
+__modifiedBy__ = "$modifiedBy: Ed Brooksbank $"
+__dateModified__ = "$dateModified: 2020-03-17 00:13:56 +0000 (Tue, March 17, 2020) $"
+__version__ = "$Revision: 3.0.1 $"
 #=========================================================================================
 # Created
 #=========================================================================================
@@ -44,7 +44,7 @@ from ccpn.core.lib.CallBack import CallBack
 from ccpn.ui.gui.lib.Strip import navigateToNmrResidueInDisplay, _getCurrentZoomRatio
 from ccpn.ui.gui.lib.mouseEvents import makeDragEvent
 from ccpn.ui.gui.widgets.Widget import Widget
-from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
+# from ccpn.ui.gui.guiSettings import textFontSmall, textFontSmallBold, textFont
 from ccpn.ui.gui.guiSettings import getColours
 from ccpn.ui.gui.guiSettings import GUINMRATOM_NOTSELECTED, GUINMRATOM_SELECTED, \
     GUINMRRESIDUE, SEQUENCEGRAPHMODULE_LINE, SEQUENCEGRAPHMODULE_TEXT
@@ -196,7 +196,7 @@ class GuiNmrResidue(QtWidgets.QGraphicsTextItem):
         self.project = self.mainWindow.project
         self.current = self.mainWindow.application.current
 
-        self.setFont(textFontSmall)
+        self.setFont(self.mainWindow.application._fontSettings.textFontSmall)
         self.colours = getColours()
         self.setDefaultTextColor(QtGui.QColor(self.colours[GUINMRRESIDUE]))
 
@@ -829,7 +829,7 @@ class NmrResidueList(object):
             predictionLabel = QtWidgets.QGraphicsTextItem()
             predictionLabel.setPlainText(prediction[0] + ' ' + prediction[1])
             predictionLabel.setDefaultTextColor(QtGui.QColor(self._textColour))
-            predictionLabel.setFont(textFontSmallBold)
+            predictionLabel.setFont(self.mainWindow.application._fontSettings.textFontSmallBold)
             predictionLabel.setPos(caAtom.x() - caAtom.boundingRect().width() / 2,
                                    caAtom.y() + (30 * (predictions.index(prediction) + 2)))
 
